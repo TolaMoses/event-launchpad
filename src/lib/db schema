@@ -1,0 +1,245 @@
+-- ============================================
+-- USERS
+-- Wallet-based login only
+-- ============================================
+CREATE TABLE users (
+    id              uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
+    wallet_address  text NOT NULL UNIQUE,
+    username        text,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    last_login      timestamptz
+);
+
+CREATE UNIQUE INDEX users_wallet_unique
+    ON users(wallet_address);
+
+-- Mirror auth.users into public.users using triggers
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS trigger AS $$
+DECLARE
+  wallet_address text;
+BEGIN
+  wallet_address := lower(coalesce(
+    NEW.raw_user_meta_data->>'wallet_address',
+    NEW.raw_user_meta_data->>'address',
+    (NEW.raw_user_meta_data->'wallet_addresses') ->> 0,
+    NEW.email
+  ));
+
+  IF wallet_address IS NULL THEN
+    SELECT lower(coalesce(
+             identity_data->>'wallet_address',
+             identity_data->>'address'
+           ))
+      INTO wallet_address
+      FROM auth.identities
+     WHERE user_id = NEW.id
+     LIMIT 1;
+  END IF;
+
+  IF wallet_address IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO public.users (id, wallet_address, created_at, last_login)
+  VALUES (
+    NEW.id,
+    wallet_address,
+    COALESCE(NEW.created_at, now()),
+    NEW.last_sign_in_at
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET wallet_address = EXCLUDED.wallet_address,
+        last_login = EXCLUDED.last_login;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Ensure function runs with predictable search path
+ALTER FUNCTION public.handle_new_auth_user()
+  SET search_path = public, pg_temp;
+
+CREATE OR REPLACE FUNCTION public.handle_updated_auth_user()
+RETURNS trigger AS $$
+DECLARE
+  wallet_address text;
+BEGIN
+  wallet_address := coalesce(
+    NEW.raw_user_meta_data->>'wallet_address',
+    (NEW.raw_user_meta_data->'wallet_addresses') ->> 0,
+    NEW.email
+  );
+
+  IF wallet_address IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO public.users (id, wallet_address, last_login)
+  VALUES (
+    NEW.id,
+    wallet_address,
+    NEW.last_sign_in_at
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET wallet_address = EXCLUDED.wallet_address,
+        last_login = EXCLUDED.last_login;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+ALTER FUNCTION public.handle_updated_auth_user()
+  SET search_path = public, pg_temp;
+
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_auth_user();
+
+CREATE TRIGGER on_auth_user_updated
+AFTER UPDATE ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_updated_auth_user();
+
+-- Grants to allow auth triggers/functions to access public schema/tables where needed
+GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+GRANT INSERT, UPDATE ON public.users TO supabase_auth_admin;
+GRANT USAGE ON SCHEMA auth TO supabase_auth_admin;
+GRANT SELECT ON auth.identities TO supabase_auth_admin;
+
+
+-- ============================================
+-- EVENTS
+-- Main giveaway/event object
+-- ============================================
+CREATE TABLE events (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    creator_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title           text NOT NULL,
+    description     text,
+    start_time      timestamptz NOT NULL,
+    end_time        timestamptz NOT NULL,
+    num_winners     integer NOT NULL,
+    prize_type      text NOT NULL,       -- crypto, token, nft, voucher
+    prize_amounts   jsonb NOT NULL,      -- flexible prize structure
+    banner_url      text,
+    status          text NOT NULL DEFAULT 'active',  -- draft, active, ended, cancelled
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX events_creator_idx
+    ON events(creator_id);
+
+CREATE INDEX events_status_idx
+    ON events(status);
+
+
+-- ============================================
+-- TASKS
+-- Modular tasks for each event
+-- ============================================
+CREATE TABLE tasks (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id        uuid NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    type            text NOT NULL,   -- "social", "quiz", "content", "puzzle", etc.
+    config          jsonb NOT NULL,  -- task definition data
+    required        boolean NOT NULL DEFAULT false,
+    order_index     integer NOT NULL DEFAULT 0,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX tasks_event_idx
+    ON tasks(event_id);
+
+CREATE INDEX tasks_type_idx
+    ON tasks(type);
+
+CREATE INDEX tasks_config_gin_idx
+    ON tasks USING GIN (config jsonb_path_ops);
+
+
+-- ============================================
+-- EVENT PARTICIPANTS
+-- Tracks who joined an event
+-- ============================================
+CREATE TABLE event_participants (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id    uuid NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    joined_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX participants_event_user_unique
+    ON event_participants(event_id, user_id);
+
+CREATE INDEX participants_user_idx
+    ON event_participants(user_id);
+
+
+-- ============================================
+-- TASK SUBMISSIONS 
+-- User completion data for tasks
+-- ============================================
+CREATE TABLE task_submissions (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id         uuid NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    user_id         uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    submission      jsonb NOT NULL, -- answer, proof, image URL, etc.
+    score           integer,
+    verified        boolean NOT NULL DEFAULT false,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX submissions_user_task_unique
+    ON task_submissions(user_id, task_id);
+
+CREATE INDEX submissions_task_idx
+    ON task_submissions(task_id);
+
+CREATE INDEX submissions_verified_idx
+    ON task_submissions(verified);
+
+
+-- ============================================
+-- WINNERS TABLE
+-- Stores the winners after the event ends
+-- ============================================
+CREATE TABLE event_winners (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id        uuid NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    user_id         uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    prize_amount    text,
+    prize_details   jsonb,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX winners_event_idx
+    ON event_winners(event_id);
+
+CREATE INDEX winners_user_idx
+    ON event_winners(user_id);
+
+
+-- ============================================
+-- VERIFICATION LOGS
+-- Logs for automated/manual task verification
+-- ============================================
+CREATE TABLE task_verification_logs (
+    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_submission_id  uuid NOT NULL REFERENCES task_submissions(id) ON DELETE CASCADE,
+    verifier_type       text NOT NULL,   -- "manual", "bot", "api"
+    status              text NOT NULL,   -- "success", "failed"
+    details             jsonb,
+    created_at          timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX verification_submission_idx
+    ON task_verification_logs(task_submission_id);
+
+
+-- ============================================
+-- OPTIONAL: JSON Search Indexes
+-- Improve searching inside JSON configs/submissions
+-- ============================================
+CREATE INDEX task_submissions_json_idx
+    ON task_submissions USING GIN (submission jsonb_path_ops);
