@@ -12,20 +12,14 @@
     tokenId: string;
   };
 
-  const prizeSummaryOptions = ["Crypto", "Token", "NFT", "Voucher", "Merch", "Other"];
-
-  const detailedPrizeOptions: { value: string; label: string }[] = [
-    { value: "Token", label: "Token" },
-    { value: "ETH", label: "Native coin" },
-    { value: "NFT", label: "NFT" }
-  ];
-
   const registryEntries = Object.entries(taskRegistry) as [
     TaskTypeKey,
     (typeof taskRegistry)[TaskTypeKey]
   ][];
 
-  const taskOptions = registryEntries.map(([value, entry]) => ({ value, label: entry.label }));
+  const taskOptions = registryEntries
+    .filter(([key]) => key !== "irl")
+    .map(([value, entry]) => ({ value, label: entry.label }));
 
   const clone = <T>(input: T): T =>
     typeof structuredClone === "function"
@@ -60,8 +54,6 @@
   let scheduleError = "";
 
   let numWinners = "";
-  let prizeSummaryType = "";
-  let prizeSummaryAmount = "";
   let bannerFile: File | null = null;
   let bannerPreview = "";
 
@@ -209,24 +201,17 @@
     if (!eventEndISO) errors.push("Set an end date and time");
     if (scheduleError) errors.push(scheduleError);
 
-    const winners = Number(numWinners);
-    if (!numWinners || Number.isNaN(winners) || winners < 1 || !Number.isInteger(winners)) {
-      errors.push("Number of winners must be a positive integer");
+    let winnersInt: number | null = null;
+    if (numWinners) {
+      winnersInt = Number(numWinners);
+      if (!Number.isInteger(winnersInt) || winnersInt <= 0) {
+        errors.push("Number of winners must be a positive integer when provided");
+      }
     }
-
-    if (!prizeSummaryType) errors.push("Select a prize summary type");
-    if (!prizeSummaryAmount.trim()) errors.push("Provide prize summary details");
 
     if (tasks.length === 0) errors.push("Add at least one event task");
 
     if (!prizeType) errors.push("Select a detailed prize type");
-
-    if (maxTickets) {
-      const parsedTickets = Number(maxTickets);
-      if (Number.isNaN(parsedTickets) || parsedTickets < 0 || !Number.isInteger(parsedTickets)) {
-        errors.push("Max tickets must be a non-negative integer");
-      }
-    }
 
     if (prizeType === "Token") {
       if (!prizeAddress) errors.push("Select a prize token");
@@ -237,11 +222,13 @@
         if (token) {
           try {
             const amountWei = ethers.parseUnits(String(prizePool), token.decimals);
-            const winnersBigInt = BigInt(winners || 0);
-            if (winnersBigInt > 0n && amountWei % winnersBigInt !== 0n) {
-              errors.push(
-                `Prize pool must divide evenly among winners in ${token.symbol} smallest units`
-              );
+            if (winnersInt && winnersInt > 0) {
+              const winnersBigInt = BigInt(winnersInt);
+              if (amountWei % winnersBigInt !== 0n) {
+                errors.push(
+                  `Prize pool must divide evenly among winners in ${token.symbol} smallest units`
+                );
+              }
             }
           } catch (error) {
             errors.push("Invalid prize pool format for selected token");
@@ -259,7 +246,7 @@
       if (nfts.some((nft) => !nft.contract.trim() || !nft.tokenId.trim())) {
         errors.push("Each NFT must include contract and token ID");
       }
-      if (winners > 0 && nfts.length % winners !== 0) {
+      if (winnersInt && winnersInt > 0 && nfts.length % winnersInt !== 0) {
         errors.push("Number of NFTs must be divisible by number of winners");
       }
     }
@@ -279,11 +266,7 @@
       description: eventDescription.trim(),
       start_time: eventStartISO,
       end_time: eventEndISO,
-      num_winners: Number(numWinners),
-      prize_summary: {
-        type: prizeSummaryType,
-        amount: prizeSummaryAmount.trim()
-      },
+      num_winners: numWinners ? Number(numWinners) : null,
       banner: bannerFile,
       tasks: tasks.map((task) => ({
         id: task.id,
@@ -294,7 +277,6 @@
         type: prizeType,
         token_address: prizeType === "Token" ? prizeAddress : null,
         prize_pool: prizePool ? Number(prizePool) : null,
-        max_tickets: maxTickets ? Number(maxTickets) : null,
         nfts:
           prizeType === "NFT"
             ? nfts.map(({ contract, tokenId }) => ({
@@ -319,28 +301,15 @@
         public event page.
       </p>
 
-      <div class="grid-two">
-        <div class="form-group">
-          <label for="event-title">Event title</label>
-          <input
-            id="event-title"
-            type="text"
-            placeholder="MoonFlux launch celebration"
-            bind:value={eventTitle}
-            required
-          />
-        </div>
-        <div class="form-group">
-          <label for="num-winners">Number of winners</label>
-          <input
-            id="num-winners"
-            type="number"
-            min="1"
-            placeholder="1"
-            bind:value={numWinners}
-            required
-          />
-        </div>
+      <div class="form-group">
+        <label for="event-title">Event title</label>
+        <input
+          id="event-title"
+          type="text"
+          placeholder="MoonFlux launch celebration"
+          bind:value={eventTitle}
+          required
+        />
       </div>
 
       <div class="form-group">
@@ -348,7 +317,7 @@
         <textarea
           id="event-description"
           rows="4"
-          placeholder="Explain what participants need to do and the prizes at stake"
+          placeholder="Explain what participants need to do and any rewards on offer"
           bind:value={eventDescription}
           required
         ></textarea>
@@ -376,26 +345,17 @@
         </div>
       </div>
 
-      <div class="grid-two">
-        <div class="form-group">
-          <label for="prize-summary-type">Prize type</label>
-          <select id="prize-summary-type" bind:value={prizeSummaryType} required>
-            <option disabled hidden value="">Select type</option>
-            {#each prizeSummaryOptions as option}
-              <option value={option}>{option}</option>
-            {/each}
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="prize-summary-amount">Prize amount(s)</label>
-          <input
-            id="prize-summary-amount"
-            type="text"
-            placeholder="5 ETH + limited NFTs"
-            bind:value={prizeSummaryAmount}
-            required
-          />
-        </div>
+      <div class="form-group single">
+        <label for="num-winners">Number of winners (optional)</label>
+        <input
+          id="num-winners"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="Leave blank if every eligible participant is rewarded"
+          bind:value={numWinners}
+        />
+        <p class="field-hint">Leave empty when every qualifying participant receives the reward.</p>
       </div>
 
       <div class="form-group">
@@ -552,16 +512,25 @@
         </div>
       {/if}
 
-      <div class="grid-two">
-        <div class="form-group">
-          <label for="max-tickets">Max tickets (optional)</label>
-          <input id="max-tickets" type="number" min="0" placeholder="Unlimited" bind:value={maxTickets} />
-        </div>
-        <div class="form-group readonly">
-          <label>Number of winners</label>
-          <input type="number" value={numWinners} readonly />
-          <span class="helper-text">Update this value in the basic details section.</span>
-        </div>
+      <div class="form-group readonly">
+        <label>Reward distribution summary</label>
+        <input
+          type="text"
+          value={
+            prizeType === "Token" && numWinners
+              ? `${Number(prizePool || 0) / Number(numWinners)} ${
+                  availableTokens.find((t) => t.address === prizeAddress)?.symbol ?? "tokens"
+                } each`
+              : prizeType === "ETH" && numWinners
+              ? `${Number(prizePool || 0) / Number(numWinners)} ETH each`
+              : prizeType === "NFT" && numWinners
+              ? `${nfts.length} NFT prize${nfts.length === 1 ? "" : "s"}`
+              : numWinners
+              ? "—"
+              : "All eligible participants rewarded"
+          }
+          readonly
+        />
       </div>
     </div>
 

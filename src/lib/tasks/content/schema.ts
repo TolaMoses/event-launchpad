@@ -1,24 +1,10 @@
 export interface ContentTaskConfig {
-  submitMeme: boolean;
-  submitImage: boolean;
-  submitVideo: boolean;
-  submitExplanation: boolean;
-  submitThread: boolean;
-  submitFanArt: boolean;
-  submitDesign: boolean;
-  submissionMethod: "upload" | "link" | "either";
+  submissionMethod: "link";
   instructions: string;
 }
 
 const defaultContentTaskConfig: ContentTaskConfig = {
-  submitMeme: false,
-  submitImage: false,
-  submitVideo: false,
-  submitExplanation: false,
-  submitThread: false,
-  submitFanArt: false,
-  submitDesign: false,
-  submissionMethod: "upload",
+  submissionMethod: "link",
   instructions: ""
 };
 
@@ -29,20 +15,8 @@ export function createDefaultContentTaskConfig(): ContentTaskConfig {
 export function validateContentTaskConfig(config: ContentTaskConfig): string[] {
   const errors: string[] = [];
 
-  if (
-    !config.submitMeme &&
-    !config.submitImage &&
-    !config.submitVideo &&
-    !config.submitExplanation &&
-    !config.submitThread &&
-    !config.submitFanArt &&
-    !config.submitDesign
-  ) {
-    errors.push("Select at least one content submission type");
-  }
-
   if (!config.instructions.trim()) {
-    errors.push("Provide instructions for creators");
+    errors.push("Provide instructions for participants");
   }
 
   return errors;

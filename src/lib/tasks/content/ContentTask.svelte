@@ -26,40 +26,10 @@
 
 <div class="task-panel">
   <h3>Content Creation Tasks</h3>
-  <p class="description">
-    Choose the types of creative submissions required and provide instructions for creators.
-  </p>
-
-  <div class="checkbox-grid">
-    <label><input type="checkbox" bind:checked={config.submitMeme} /> Submit a meme</label>
-    <label><input type="checkbox" bind:checked={config.submitImage} /> Submit an image</label>
-    <label><input type="checkbox" bind:checked={config.submitVideo} /> Submit a video</label>
-    <label><input type="checkbox" bind:checked={config.submitExplanation} /> Submit a short explanation</label>
-    <label><input type="checkbox" bind:checked={config.submitThread} /> Submit a thread</label>
-    <label><input type="checkbox" bind:checked={config.submitFanArt} /> Submit fan art</label>
-    <label><input type="checkbox" bind:checked={config.submitDesign} /> Submit design / logo</label>
-  </div>
+  <p class="description">Participants will submit a link to their content. Tell them what to create.</p>
 
   <div class="form-group">
-    <label>Submission method</label>
-    <div class="radio-group">
-      <label>
-        <input type="radio" bind:group={config.submissionMethod} value="upload" />
-        Upload files directly
-      </label>
-      <label>
-        <input type="radio" bind:group={config.submissionMethod} value="link" />
-        Provide external link
-      </label>
-      <label>
-        <input type="radio" bind:group={config.submissionMethod} value="either" />
-        Allow either method
-      </label>
-    </div>
-  </div>
-
-  <div class="form-group">
-    <label>Instructions</label>
+    <label>Submission instructions</label>
     <textarea
       rows="4"
       bind:value={config.instructions}
