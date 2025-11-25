@@ -1,5 +1,6 @@
 import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { createClient } from '@supabase/supabase-js';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
@@ -13,7 +14,7 @@ function clearAuthCookies(event: RequestEvent) {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
-  const supabase = createClient(process.env.PUBLIC_SUPABASE_URL!, process.env.PUBLIC_SUPABASE_ANON_KEY!, {
+  const supabase = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
     auth: {
       autoRefreshToken: true,
       persistSession: false,
@@ -23,9 +24,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   const accessToken = event.cookies.get(ACCESS_TOKEN_COOKIE);
   const refreshToken = event.cookies.get(REFRESH_TOKEN_COOKIE);
-
-  event.locals.supabase = supabase;
-  event.locals.user = null;
 
   if (accessToken) {
     const { data, error } = await supabase.auth.setSession({
