@@ -21,6 +21,12 @@
     .filter(([key]) => key !== "irl")
     .map(([value, entry]) => ({ value, label: entry.label }));
 
+  const detailedPrizeOptions: { value: string; label: string }[] = [
+    { value: "Token", label: "Token" },
+    { value: "ETH", label: "Native coin" },
+    { value: "NFT", label: "NFT" }
+  ];
+
   const clone = <T>(input: T): T =>
     typeof structuredClone === "function"
       ? structuredClone(input)
