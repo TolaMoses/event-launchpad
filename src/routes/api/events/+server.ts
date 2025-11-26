@@ -64,8 +64,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     logo_path: logo.path,
     logo_url: logo.publicUrl,
     prize_details: prizeDetails,
-    tasks,
-    created_by: locals.user.id
+    tasks: tasks,
+    created_by: locals.user.id,
+    status: 'draft'
   };
 
   const { data, error: insertError } = await supabaseAdmin

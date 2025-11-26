@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { ethers } from "ethers";
   import { goto } from "$app/navigation";
   import { chainId } from "$lib/wallet";
@@ -7,6 +7,7 @@
   import { CONTRACTS } from "$lib/contracts";
   import { taskRegistry } from "$lib/tasks";
   import type { TaskInstance, TaskRegistryEntry, TaskTypeKey } from "$lib/tasks/TaskTypes";
+  import { browser } from "$app/environment";
 
   type NftInput = {
     id: string;
@@ -35,17 +36,12 @@
     publicUrl: string;
   };
 
-  const chainOptions = Array.from(
-    new Set([
-      ...Object.keys(TOKEN_LIST).map((id) => String(id)),
-      ...Object.keys(CONTRACTS).map((id) => String(id))
-    ])
-  )
-    .sort((a, b) => Number(a) - Number(b))
+  const chainOptions = Object.keys(TOKEN_LIST)
     .map((id) => ({
       id,
       label: CONTRACTS[Number(id)]?.name ?? `Chain ${id}`
-    }));
+    }))
+    .sort((a, b) => Number(a.id) - Number(b.id));
 
   const clone = <T>(input: T): T =>
     typeof structuredClone === "function"
@@ -98,11 +94,7 @@
   let maxTickets = "";
   let nfts: NftInput[] = [];
   let availableTokens: { symbol: string; address: string; decimals: number }[] = [];
-  let selectedChain: string = "";
-  let customChainMode = false;
-  let customChainId = "";
-  let customChainName = "";
-  let customChainRpc = "";
+  let selectedChain = "";
   let customTokenSymbol = "";
   let customTokenAddress = "";
   let customTokenDecimals = "";
@@ -113,20 +105,8 @@
   let uploadedBanner: UploadedAsset | null = null;
   let uploadedLogo: UploadedAsset | null = null;
   let uploadError = "";
-
-  function handleChainChange(event: Event) {
-    const value = (event.currentTarget as HTMLSelectElement).value;
-    selectedChain = value;
-    if (value === "custom") {
-      customChainMode = true;
-    } else {
-      customChainMode = false;
-      customChainId = "";
-      customChainName = "";
-      customChainRpc = "";
-    }
-    prizeAddress = "";
-  }
+  let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+  const AUTOSAVE_KEY = "event-creation-draft";
 
   function handleTokenSelect(event: Event) {
     const value = (event.currentTarget as HTMLSelectElement).value;
@@ -140,20 +120,11 @@
 
   $: defaultChain = $chainId != null ? String($chainId) : "";
 
-  $: if (!selectedChain && defaultChain) {
-    selectedChain = defaultChain;
-  }
-
   $: {
-    const effectiveChainId =
-      selectedChain && selectedChain !== "custom"
-        ? Number(selectedChain)
-        : defaultChain
-        ? Number(defaultChain)
-        : null;
-
-    if (effectiveChainId !== null && effectiveChainId in TOKEN_LIST) {
-      availableTokens = TOKEN_LIST[effectiveChainId];
+    const effectiveChainId = selectedChain || defaultChain;
+    if (effectiveChainId && Number(effectiveChainId) in TOKEN_LIST) {
+      selectedChain = effectiveChainId;
+      availableTokens = TOKEN_LIST[Number(effectiveChainId)];
     } else {
       availableTokens = [];
     }
@@ -162,6 +133,90 @@
   $: if (prizeType === "NFT" && nfts.length === 0) {
     nfts = [{ id: generateId(), contract: "", tokenId: "" }];
   }
+
+  function isValidEthereumAddress(address: string): boolean {
+    if (!address) return false;
+    try {
+      return ethers.isAddress(address);
+    } catch {
+      return false;
+    }
+  }
+
+  function saveFormDraft() {
+    if (!browser) return;
+    const draft = {
+      eventTitle,
+      eventDescription,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
+      numWinners,
+      selectedChain,
+      prizeType,
+      prizeAddress,
+      prizePool,
+      customTokenSymbol,
+      customTokenAddress,
+      customTokenDecimals,
+      nfts,
+      tasks,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(draft));
+  }
+
+  function loadFormDraft() {
+    if (!browser) return;
+    try {
+      const saved = localStorage.getItem(AUTOSAVE_KEY);
+      if (!saved) return;
+      const draft = JSON.parse(saved);
+      const age = Date.now() - (draft.timestamp || 0);
+      if (age > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem(AUTOSAVE_KEY);
+        return;
+      }
+      eventTitle = draft.eventTitle || "";
+      eventDescription = draft.eventDescription || "";
+      startDate = draft.startDate || "";
+      startTime = draft.startTime || "";
+      endDate = draft.endDate || "";
+      endTime = draft.endTime || "";
+      numWinners = draft.numWinners || "";
+      selectedChain = draft.selectedChain || "";
+      prizeType = draft.prizeType || "";
+      prizeAddress = draft.prizeAddress || "";
+      prizePool = draft.prizePool || "";
+      customTokenSymbol = draft.customTokenSymbol || "";
+      customTokenAddress = draft.customTokenAddress || "";
+      customTokenDecimals = draft.customTokenDecimals || "";
+      nfts = draft.nfts || [];
+      tasks = draft.tasks || [];
+      updateDateTimes();
+    } catch (err) {
+      console.warn("Failed to restore draft", err);
+    }
+  }
+
+  function clearFormDraft() {
+    if (!browser) return;
+    localStorage.removeItem(AUTOSAVE_KEY);
+  }
+
+  function triggerAutosave() {
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(saveFormDraft, 1000);
+  }
+
+  $: if (browser && (eventTitle || eventDescription || startDate || prizeType)) {
+    triggerAutosave();
+  }
+
+  onMount(() => {
+    loadFormDraft();
+  });
 
   function handleBannerUpload(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
@@ -375,19 +430,17 @@
         errors.push("Select a chain for the token prize");
       }
 
-      if (selectedChain === "custom") {
-        if (!customChainId.trim()) errors.push("Enter a custom chain ID");
-        if (!customChainName.trim()) errors.push("Enter a custom chain name");
-        if (!customChainRpc.trim()) errors.push("Enter a custom chain RPC URL");
-      }
-
       if (!prizeAddress) {
         errors.push("Select or enter a prize token");
       }
 
       if (prizeAddress === "custom") {
         if (!customTokenSymbol.trim()) errors.push("Enter custom token symbol");
-        if (!customTokenAddress.trim()) errors.push("Enter custom token contract address");
+        if (!customTokenAddress.trim()) {
+          errors.push("Enter custom token contract address");
+        } else if (!isValidEthereumAddress(customTokenAddress.trim())) {
+          errors.push("Custom token address is not a valid Ethereum address");
+        }
         if (!customTokenDecimals.trim()) {
           errors.push("Enter custom token decimals");
         } else if (Number.isNaN(Number(customTokenDecimals)) || Number(customTokenDecimals) < 0) {
@@ -422,16 +475,19 @@
     }
 
     if (prizeType === "NFT") {
-      if (nfts.length === 0) errors.push("Add at least one NFT");
-      if (nfts.some((nft) => !nft.contract.trim() || !nft.tokenId.trim())) {
-        errors.push("Each NFT must include contract and token ID");
-      }
-      if (winnersInt && winnersInt > 0 && nfts.length % winnersInt !== 0) {
-        errors.push("Number of NFTs must be divisible by number of winners");
-      }
-    }
-
-    validationErrors = errors;
+      if (nfts.length === 0) {
+        errors.push("Add at least one NFT prize");
+      } else {
+        nfts.forEach((nft, i) => {
+          if (!nft.contract.trim()) {
+            errors.push(`NFT #${i + 1}: Enter contract address`);
+          } else if (!isValidEthereumAddress(nft.contract.trim())) {
+            errors.push(`NFT #${i + 1}: Invalid Ethereum contract address`);
+          }
+          if (!nft.tokenId.trim()) errors.push(`NFT #${i + 1}: Enter token ID`);
+        });
+        if (winnersInt && winnersInt > 0 && nfts.length % winnersInt !== 0) {
+          errors.push("Number of NFTs must be divisible by number of winners");
     return errors.length === 0;
   }
 
@@ -462,15 +518,6 @@
         return;
       }
 
-      const selectedChainOption = chainOptions.find((option) => option.id === selectedChain);
-      const customChain = selectedChain === "custom" ? {
-        id: customChainId.trim(),
-        name: customChainName.trim(),
-        rpc: customChainRpc.trim()
-      } : null;
-
-      const prizeChain = customChain ? customChain : selectedChainOption;
-
       const payload = {
         title: eventTitle.trim(),
         description: eventDescription.trim(),
@@ -482,7 +529,6 @@
           logo: logoAsset
         },
         tasks: tasks.map((task) => ({
-{{ ... }}
           id: task.id,
           type: task.type,
           config: clone(task.config)
@@ -494,19 +540,9 @@
           chain:
             prizeType === "Token"
               ? {
-                  id:
-                    selectedChain === "custom"
-                      ? customChainId.trim()
-                      : selectedChain,
-                  name:
-                    selectedChain === "custom"
-                      ? customChainName.trim()
-                      : chainOptions.find((option) => option.id === selectedChain)?.label ?? "",
-                  rpc:
-                    selectedChain === "custom"
-                      ? customChainRpc.trim()
-                      : undefined,
-                  isCustom: selectedChain === "custom"
+                  id: selectedChain,
+                  name: chainOptions.find((option) => option.id === selectedChain)?.label ?? selectedChain,
+                  isCustom: false
                 }
               : null,
           token_metadata:
@@ -566,6 +602,7 @@
       prizePool = "";
       nfts = [];
 
+      clearFormDraft();
       await goto("/dashboard", { replaceState: true });
     } catch (err) {
       uploadError = err instanceof Error ? err.message : "Failed to upload assets.";
@@ -751,46 +788,13 @@
       {#if prizeType === "Token"}
         <div class="form-group">
           <label for="prize-chain">Token chain</label>
-          <select id="prize-chain" bind:value={selectedChain} on:change={handleChainChange}>
+          <select id="prize-chain" bind:value={selectedChain}>
             <option disabled hidden value="">Select chain</option>
             {#each chainOptions as option}
               <option value={option.id}>{option.label}</option>
             {/each}
-            <option value="custom">Add custom chain…</option>
           </select>
         </div>
-
-        {#if customChainMode}
-          <div class="grid-two">
-            <div class="form-group">
-              <label for="custom-chain-id">Custom chain ID</label>
-              <input
-                id="custom-chain-id"
-                type="text"
-                placeholder="e.g. 77777"
-                bind:value={customChainId}
-              />
-            </div>
-            <div class="form-group">
-              <label for="custom-chain-name">Custom chain name</label>
-              <input
-                id="custom-chain-name"
-                type="text"
-                placeholder="Chain name"
-                bind:value={customChainName}
-              />
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="custom-chain-rpc">Custom chain RPC URL</label>
-            <input
-              id="custom-chain-rpc"
-              type="url"
-              placeholder="https://rpc.example.com"
-              bind:value={customChainRpc}
-            />
-          </div>
-        {/if}
 
         <div class="grid-two">
           <div class="form-group">
