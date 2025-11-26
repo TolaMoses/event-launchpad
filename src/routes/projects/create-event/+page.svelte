@@ -4,7 +4,7 @@
   import { chainId } from "$lib/wallet";
   import { TOKEN_LIST } from "$lib/tokens";
   import { taskRegistry } from "$lib/tasks";
-  import type { TaskInstance, TaskTypeKey } from "$lib/tasks/TaskTypes";
+  import type { TaskInstance, TaskRegistryEntry, TaskTypeKey } from "$lib/tasks/TaskTypes";
 
   type NftInput = {
     id: string;
@@ -12,10 +12,7 @@
     tokenId: string;
   };
 
-  const registryEntries = Object.entries(taskRegistry) as [
-    TaskTypeKey,
-    (typeof taskRegistry)[TaskTypeKey]
-  ][];
+  const registryEntries = Object.entries(taskRegistry) as [TaskTypeKey, TaskRegistryEntry][];
 
   const taskOptions = registryEntries
     .filter(([key]) => key !== "irl")
@@ -26,6 +23,15 @@
     { value: "ETH", label: "Native coin" },
     { value: "NFT", label: "NFT" }
   ];
+
+  const MAX_BANNER_SIZE = 500 * 1024;
+  const MAX_LOGO_SIZE = 150 * 1024;
+
+  type UploadKind = "banner" | "logo";
+  type UploadedAsset = {
+    path: string;
+    publicUrl: string;
+  };
 
   const clone = <T>(input: T): T =>
     typeof structuredClone === "function"
@@ -62,6 +68,10 @@
   let numWinners = "";
   let bannerFile: File | null = null;
   let bannerPreview = "";
+  let logoFile: File | null = null;
+  let logoPreview = "";
+  let bannerError = "";
+  let logoError = "";
 
   let selectedTaskType: TaskTypeKey | "" = "";
   let creatingTaskType: TaskTypeKey | null = null;
@@ -77,8 +87,15 @@
 
   let submitAttempted = false;
   let validationErrors: string[] = [];
+  let isSaving = false;
+  let uploadedBanner: UploadedAsset | null = null;
+  let uploadedLogo: UploadedAsset | null = null;
+  let uploadError = "";
 
-  $: availableTokens = $chainId ? TOKEN_LIST[$chainId] ?? [] : [];
+  $: {
+    const key = $chainId != null ? (String($chainId) as keyof typeof TOKEN_LIST) : null;
+    availableTokens = key ? TOKEN_LIST[key] ?? [] : [];
+  }
 
   $: if (prizeType === "NFT" && nfts.length === 0) {
     nfts = [{ id: generateId(), contract: "", tokenId: "" }];
@@ -90,15 +107,62 @@
 
     if (bannerPreview) {
       URL.revokeObjectURL(bannerPreview);
+      bannerPreview = "";
     }
 
+    if (!file) {
+      bannerFile = null;
+      bannerError = "";
+      return;
+    }
+
+    if (file.size > MAX_BANNER_SIZE) {
+      bannerFile = null;
+      bannerError = "Banner image must be 500 KB or less.";
+      input.value = "";
+      return;
+    }
+
+    bannerError = "";
+    uploadedBanner = null;
     bannerFile = file;
-    bannerPreview = file ? URL.createObjectURL(file) : "";
+    bannerPreview = URL.createObjectURL(file);
+  }
+
+  function handleLogoUpload(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+
+    if (logoPreview) {
+      URL.revokeObjectURL(logoPreview);
+      logoPreview = "";
+    }
+
+    if (!file) {
+      logoFile = null;
+      logoError = "";
+      return;
+    }
+
+    if (file.size > MAX_LOGO_SIZE) {
+      logoFile = null;
+      logoError = "Logo must be 150 KB or less.";
+      input.value = "";
+      return;
+    }
+
+    logoError = "";
+    uploadedLogo = null;
+    logoFile = file;
+    logoPreview = URL.createObjectURL(file);
   }
 
   onDestroy(() => {
     if (bannerPreview) {
       URL.revokeObjectURL(bannerPreview);
+    }
+    if (logoPreview) {
+      URL.revokeObjectURL(logoPreview);
     }
   });
 
@@ -198,6 +262,27 @@
     );
   }
 
+  async function uploadAsset(file: File, kind: UploadKind): Promise<UploadedAsset> {
+    const formData = new FormData();
+    formData.set("file", file);
+    formData.set("kind", kind);
+
+    const response = await fetch("/api/uploads/event-assets", {
+      method: "POST",
+      body: formData,
+      credentials: "include"
+    });
+
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok || !result) {
+      const message = result?.error ?? "Failed to upload asset.";
+      throw new Error(message);
+    }
+
+    return result as UploadedAsset;
+  }
+
   function isFormValid() {
     const errors: string[] = [];
 
@@ -216,6 +301,12 @@
     }
 
     if (tasks.length === 0) errors.push("Add at least one event task");
+
+    if (bannerError) errors.push(bannerError);
+    if (logoError) errors.push(logoError);
+    if (!logoFile && !uploadedLogo) {
+      errors.push("Upload a logo image (150 KB max).");
+    }
 
     if (!prizeType) errors.push("Select a detailed prize type");
 
@@ -264,37 +355,66 @@
   async function createEvent() {
     submitAttempted = true;
     validationErrors = [];
+    uploadError = "";
 
     if (!isFormValid()) return;
 
-    const payload = {
-      title: eventTitle.trim(),
-      description: eventDescription.trim(),
-      start_time: eventStartISO,
-      end_time: eventEndISO,
-      num_winners: numWinners ? Number(numWinners) : null,
-      banner: bannerFile,
-      tasks: tasks.map((task) => ({
-        id: task.id,
-        type: task.type,
-        config: clone(task.config)
-      })),
-      prize_details: {
-        type: prizeType,
-        token_address: prizeType === "Token" ? prizeAddress : null,
-        prize_pool: prizePool ? Number(prizePool) : null,
-        nfts:
-          prizeType === "NFT"
-            ? nfts.map(({ contract, tokenId }) => ({
-                contract: contract.trim(),
-                tokenId: tokenId.trim()
-              }))
-            : []
-      }
-    };
+    isSaving = true;
 
-    console.log("Event payload", payload);
-    alert("Event configuration captured. Integrate persistence or blockchain flow next.");
+    try {
+      let bannerAsset: UploadedAsset | null = uploadedBanner;
+      if (bannerFile) {
+        bannerAsset = await uploadAsset(bannerFile, "banner");
+        uploadedBanner = bannerAsset;
+      }
+
+      let logoAsset: UploadedAsset | null = uploadedLogo;
+      if (logoFile) {
+        logoAsset = await uploadAsset(logoFile, "logo");
+        uploadedLogo = logoAsset;
+      }
+
+      if (!logoAsset) {
+        uploadError = "Logo upload failed. Please upload a logo to continue.";
+        return;
+      }
+
+      const payload = {
+        title: eventTitle.trim(),
+        description: eventDescription.trim(),
+        start_time: eventStartISO,
+        end_time: eventEndISO,
+        num_winners: numWinners ? Number(numWinners) : null,
+        assets: {
+          banner: bannerAsset,
+          logo: logoAsset
+        },
+        tasks: tasks.map((task) => ({
+          id: task.id,
+          type: task.type,
+          config: clone(task.config)
+        })),
+        prize_details: {
+          type: prizeType,
+          token_address: prizeType === "Token" ? prizeAddress : null,
+          prize_pool: prizePool ? Number(prizePool) : null,
+          nfts:
+            prizeType === "NFT"
+              ? nfts.map(({ contract, tokenId }) => ({
+                  contract: contract.trim(),
+                  tokenId: tokenId.trim()
+                }))
+              : []
+        }
+      };
+
+      console.log("Event payload", payload);
+      alert("Event configuration captured. Integrate persistence or blockchain flow next.");
+    } catch (err) {
+      uploadError = err instanceof Error ? err.message : "Failed to upload assets.";
+    } finally {
+      isSaving = false;
+    }
   }
 </script>
 
@@ -365,13 +485,32 @@
       </div>
 
       <div class="form-group">
-        <label for="banner-upload">Image / banner upload</label>
+        <label for="banner-upload">Banner image</label>
+        <p class="field-hint">Recommended size: 1600 × 600 px (wide hero format)</p>
         <div class="file-input">
           <input id="banner-upload" type="file" accept="image/*" on:change={handleBannerUpload} />
           <span>Upload banner image</span>
         </div>
+        {#if bannerError}
+          <p class="error-text">{bannerError}</p>
+        {/if}
         {#if bannerPreview}
           <img class="banner-preview" src={bannerPreview} alt="Event banner preview" />
+        {/if}
+      </div>
+
+      <div class="form-group">
+        <label for="logo-upload">Event logo</label>
+        <p class="field-hint">Recommended size: 480 × 480 px (square with transparent background)</p>
+        <div class="file-input">
+          <input id="logo-upload" type="file" accept="image/*" on:change={handleLogoUpload} />
+          <span>Upload logo image</span>
+        </div>
+        {#if logoError}
+          <p class="error-text">{logoError}</p>
+        {/if}
+        {#if logoPreview}
+          <img class="logo-preview" src={logoPreview} alt="Event logo preview" />
         {/if}
       </div>
     </div>
@@ -540,7 +679,13 @@
       </div>
     </div>
 
-    <button type="submit" class="primary-btn">Create Event</button>
+    <button type="submit" class="primary-btn" disabled={isSaving}>
+      {isSaving ? "Saving..." : "Create Event"}
+    </button>
+
+    {#if uploadError}
+      <div class="upload-error">{uploadError}</div>
+    {/if}
 
     {#if submitAttempted && validationErrors.length}
       <div class="validation-errors">
@@ -669,7 +814,6 @@
     position: absolute;
     inset: 0;
     opacity: 0;
-    cursor: pointer;
   }
 
   .file-input span {
@@ -678,17 +822,34 @@
     color: rgba(242, 243, 255, 0.85);
   }
 
+  .field-hint {
+    margin: 0.3rem 0 0;
+    color: rgba(242, 243, 255, 0.7);
+    font-size: 0.85rem;
+  }
+
   .banner-preview {
     margin-top: 0.75rem;
     max-height: 200px;
     border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    object-fit: cover;
+  }
+
+  .logo-preview {
+    margin-top: 0.75rem;
+    max-height: 140px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.6rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     object-fit: cover;
   }
 
   .task-builder {
     background: rgba(12, 14, 30, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 14px;
     padding: 1.25rem 1.1rem;
   }

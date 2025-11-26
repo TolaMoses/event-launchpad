@@ -5,8 +5,12 @@ import { env as privateEnv } from '$env/dynamic/private';
 const url = publicEnv.PUBLIC_SUPABASE_URL;
 const serviceRoleKey = privateEnv.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!url || !serviceRoleKey) {
-  throw new Error('Supabase admin client missing PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+if (!url) {
+  throw new Error('Supabase admin client missing PUBLIC_SUPABASE_URL');
+}
+
+if (!serviceRoleKey) {
+  throw new Error('Supabase admin client missing SUPABASE_SERVICE_ROLE_KEY');
 }
 
 export const supabaseAdmin = createClient(url, serviceRoleKey, {
