@@ -20,6 +20,17 @@
     amount: string;
   };
 
+  type MintableNft = {
+    id: string;
+    name: string;
+    description: string;
+    imageFile: File | null;
+    imagePreview: string;
+    supply: string;
+    rarity: string;
+    uploadedImage: UploadedAsset | null;
+  };
+
   const registryEntries = Object.entries(taskRegistry) as [TaskTypeKey, TaskRegistryEntry][];
 
   const taskOptions = registryEntries
@@ -29,13 +40,14 @@
   const detailedPrizeOptions: { value: string; label: string }[] = [
     { value: "Token", label: "Token" },
     { value: "ETH", label: "Native coin" },
-    { value: "NFT", label: "NFT" }
+    { value: "NFT", label: "Existing NFT" },
+    { value: "MintableNFT", label: "Mintable NFT (participants mint after tasks)" }
   ];
 
   const MAX_BANNER_SIZE = 500 * 1024;
   const MAX_LOGO_SIZE = 150 * 1024;
 
-  type UploadKind = "banner" | "logo";
+  type UploadKind = "banner" | "logo" | "nft";
   type UploadedAsset = {
     path: string;
     publicUrl: string;
@@ -100,6 +112,7 @@
   let positionRewards: PositionReward[] = [];
   let maxTickets = "";
   let nfts: NftInput[] = [];
+  let mintableNfts: MintableNft[] = [];
   let availableTokens: { symbol: string; address: string; decimals: number }[] = [];
   let selectedChain = "";
   let customTokenSymbol = "";
@@ -141,6 +154,19 @@
     nfts = [{ id: generateId(), contract: "", tokenId: "" }];
   }
 
+  $: if (prizeType === "MintableNFT" && mintableNfts.length === 0) {
+    mintableNfts = [{
+      id: generateId(),
+      name: "",
+      description: "",
+      imageFile: null,
+      imagePreview: "",
+      supply: "",
+      rarity: "Common",
+      uploadedImage: null
+    }];
+  }
+
   $: if (distributionType === "custom" && numWinners) {
     const count = Math.min(Number(numWinners) || 0, 10);
     if (positionRewards.length !== count) {
@@ -180,6 +206,14 @@
       customTokenAddress,
       customTokenDecimals,
       nfts,
+      mintableNfts: mintableNfts.map(n => ({
+        id: n.id,
+        name: n.name,
+        description: n.description,
+        supply: n.supply,
+        rarity: n.rarity,
+        imagePreview: n.imagePreview
+      })),
       tasks,
       timestamp: Date.now()
     };
@@ -214,6 +248,11 @@
       customTokenAddress = draft.customTokenAddress || "";
       customTokenDecimals = draft.customTokenDecimals || "";
       nfts = draft.nfts || [];
+      mintableNfts = (draft.mintableNfts || []).map((n: any) => ({
+        ...n,
+        imageFile: null,
+        uploadedImage: null
+      }));
       tasks = draft.tasks || [];
       updateDateTimes();
     } catch (err) {
@@ -367,6 +406,55 @@
   function handleTaskCancel() {
     creatingTaskType = null;
     editingTaskIndex = null;
+  }
+
+  function addMintableNft() {
+    mintableNfts = [
+      ...mintableNfts,
+      {
+        id: generateId(),
+        name: "",
+        description: "",
+        imageFile: null,
+        imagePreview: "",
+        supply: "",
+        rarity: "Common",
+        uploadedImage: null
+      }
+    ];
+  }
+
+  function removeMintableNft(index: number) {
+    if (mintableNfts[index].imagePreview) {
+      URL.revokeObjectURL(mintableNfts[index].imagePreview);
+    }
+    mintableNfts = mintableNfts.filter((_, i) => i !== index);
+  }
+
+  function handleMintableNftImageUpload(index: number, event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+
+    if (mintableNfts[index].imagePreview) {
+      URL.revokeObjectURL(mintableNfts[index].imagePreview);
+    }
+
+    if (!file) {
+      mintableNfts[index].imageFile = null;
+      mintableNfts[index].imagePreview = "";
+      return;
+    }
+
+    const MAX_NFT_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
+    if (file.size > MAX_NFT_IMAGE_SIZE) {
+      alert("NFT image must be 2 MB or less.");
+      input.value = "";
+      return;
+    }
+
+    mintableNfts[index].imageFile = file;
+    mintableNfts[index].imagePreview = URL.createObjectURL(file);
+    mintableNfts = [...mintableNfts];
   }
 
   function editTask(index: number) {
@@ -536,6 +624,23 @@
       }
     }
 
+    if (prizeType === "MintableNFT") {
+      if (mintableNfts.length === 0) {
+        errors.push("Add at least one mintable NFT variant");
+      } else {
+        mintableNfts.forEach((nft, i) => {
+          if (!nft.name.trim()) errors.push(`NFT #${i + 1}: Enter NFT name`);
+          if (!nft.description.trim()) errors.push(`NFT #${i + 1}: Enter description`);
+          if (!nft.supply.trim() || Number(nft.supply) <= 0) {
+            errors.push(`NFT #${i + 1}: Enter a valid supply limit`);
+          }
+          if (!nft.imageFile && !nft.uploadedImage) {
+            errors.push(`NFT #${i + 1}: Upload an NFT image`);
+          }
+        });
+      }
+    }
+
     validationErrors = errors;
     return errors.length === 0;
   }
@@ -565,6 +670,24 @@
       if (!logoAsset) {
         uploadError = "Logo upload failed. Please upload a logo to continue.";
         return;
+      }
+
+      // Upload mintable NFT images
+      const mintableNftAssets = [];
+      if (prizeType === "MintableNFT") {
+        for (const nft of mintableNfts) {
+          let nftImageAsset = nft.uploadedImage;
+          if (nft.imageFile) {
+            nftImageAsset = await uploadAsset(nft.imageFile, "nft");
+          }
+          mintableNftAssets.push({
+            name: nft.name.trim(),
+            description: nft.description.trim(),
+            supply: Number(nft.supply),
+            rarity: nft.rarity,
+            image: nftImageAsset
+          });
+        }
       }
 
       const payload = {
@@ -613,6 +736,10 @@
                   contract: contract.trim(),
                   tokenId: tokenId.trim()
                 }))
+              : [],
+          mintable_nfts:
+            prizeType === "MintableNFT"
+              ? mintableNftAssets
               : []
         }
       };
@@ -1020,6 +1147,90 @@
         </div>
       {/if}
 
+      {#if prizeType === "MintableNFT"}
+        <div class="form-group">
+          <div class="group-header">
+            <h3>Mintable NFT Variants</h3>
+            <button type="button" class="ghost-btn" on:click={addMintableNft}>+ Add NFT Variant</button>
+          </div>
+          <p class="field-hint">Add one or more NFT variants that participants can mint after completing tasks</p>
+          <div class="mintable-nft-list">
+            {#each mintableNfts as nft, index (nft.id)}
+              <div class="mintable-nft-card">
+                <div class="mintable-nft-header">
+                  <h4>NFT Variant #{index + 1}</h4>
+                  {#if mintableNfts.length > 1}
+                    <button type="button" class="ghost-btn danger small" on:click={() => removeMintableNft(index)}>
+                      Remove
+                    </button>
+                  {/if}
+                </div>
+
+                <div class="grid-two">
+                  <div class="form-group">
+                    <label for="nft-name-{index}">NFT Name</label>
+                    <input
+                      id="nft-name-{index}"
+                      type="text"
+                      placeholder="e.g. Golden Badge"
+                      bind:value={nft.name}
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="nft-rarity-{index}">Rarity</label>
+                    <select id="nft-rarity-{index}" bind:value={nft.rarity}>
+                      <option value="Common">Common</option>
+                      <option value="Uncommon">Uncommon</option>
+                      <option value="Rare">Rare</option>
+                      <option value="Epic">Epic</option>
+                      <option value="Legendary">Legendary</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="nft-description-{index}">Description</label>
+                  <textarea
+                    id="nft-description-{index}"
+                    placeholder="Describe this NFT variant..."
+                    bind:value={nft.description}
+                    rows="3"
+                    required
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="nft-supply-{index}">Supply Limit</label>
+                  <input
+                    id="nft-supply-{index}"
+                    type="number"
+                    min="1"
+                    placeholder="Max number that can be minted"
+                    bind:value={nft.supply}
+                    required
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="nft-image-{index}">NFT Image (max 2MB)</label>
+                  <input
+                    id="nft-image-{index}"
+                    type="file"
+                    accept="image/*"
+                    on:change={(e) => handleMintableNftImageUpload(index, e)}
+                    required={!nft.uploadedImage}
+                  />
+                  {#if nft.imagePreview}
+                    <img src={nft.imagePreview} alt="NFT preview" class="nft-image-preview" />
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
       <div class="form-group readonly">
         <label>Reward distribution summary</label>
         <input
@@ -1033,6 +1244,8 @@
               ? `${Number(prizePool || 0) / Number(numWinners)} ETH each`
               : prizeType === "NFT" && numWinners
               ? `${nfts.length} NFT prize${nfts.length === 1 ? "" : "s"}`
+              : prizeType === "MintableNFT"
+              ? `${mintableNfts.length} NFT variant${mintableNfts.length === 1 ? "" : "s"} - participants mint after tasks`
               : numWinners
               ? "—"
               : "All eligible participants rewarded"
@@ -1357,6 +1570,49 @@
     background: rgba(255, 255, 255, 0.08);
     border-radius: 6px;
     font-size: 0.95rem;
+  }
+
+  .mintable-nft-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .mintable-nft-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+
+  .mintable-nft-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .mintable-nft-header h4 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  .ghost-btn.small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .nft-image-preview {
+    margin-top: 0.75rem;
+    max-height: 200px;
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    object-fit: contain;
   }
 
   .validation-errors {
