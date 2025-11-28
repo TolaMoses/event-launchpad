@@ -15,6 +15,11 @@
     tokenId: string;
   };
 
+  type PositionReward = {
+    position: number;
+    amount: string;
+  };
+
   const registryEntries = Object.entries(taskRegistry) as [TaskTypeKey, TaskRegistryEntry][];
 
   const taskOptions = registryEntries
@@ -91,6 +96,8 @@
   let prizeType = "";
   let prizeAddress = "";
   let prizePool = "";
+  let distributionType: "even" | "custom" = "even";
+  let positionRewards: PositionReward[] = [];
   let maxTickets = "";
   let nfts: NftInput[] = [];
   let availableTokens: { symbol: string; address: string; decimals: number }[] = [];
@@ -134,6 +141,16 @@
     nfts = [{ id: generateId(), contract: "", tokenId: "" }];
   }
 
+  $: if (distributionType === "custom" && numWinners) {
+    const count = Math.min(Number(numWinners) || 0, 10);
+    if (positionRewards.length !== count) {
+      positionRewards = Array.from({ length: count }, (_, i) => ({
+        position: i + 1,
+        amount: positionRewards[i]?.amount || ""
+      }));
+    }
+  }
+
   function isValidEthereumAddress(address: string): boolean {
     if (!address) return false;
     try {
@@ -157,6 +174,8 @@
       prizeType,
       prizeAddress,
       prizePool,
+      distributionType,
+      positionRewards,
       customTokenSymbol,
       customTokenAddress,
       customTokenDecimals,
@@ -189,6 +208,8 @@
       prizeType = draft.prizeType || "";
       prizeAddress = draft.prizeAddress || "";
       prizePool = draft.prizePool || "";
+      distributionType = draft.distributionType || "even";
+      positionRewards = draft.positionRewards || [];
       customTokenSymbol = draft.customTokenSymbol || "";
       customTokenAddress = draft.customTokenAddress || "";
       customTokenDecimals = draft.customTokenDecimals || "";
@@ -448,23 +469,46 @@
         }
       }
 
-      if (!prizePool || Number(prizePool) <= 0) {
-        errors.push("Enter a positive prize pool");
-      } else {
-        const token = availableTokens.find((t) => t.address === prizeAddress);
-        if (token) {
-          try {
-            const amountWei = ethers.parseUnits(String(prizePool), token.decimals);
-            if (winnersInt && winnersInt > 0) {
-              const winnersBigInt = BigInt(winnersInt);
-              if (amountWei % winnersBigInt !== 0n) {
-                errors.push(
-                  `Prize pool must divide evenly among winners in ${token.symbol} smallest units`
-                );
+      if (distributionType === "even") {
+        if (!prizePool || Number(prizePool) <= 0) {
+          errors.push("Enter a positive prize pool");
+        } else {
+          const token = availableTokens.find((t) => t.address === prizeAddress);
+          if (token) {
+            try {
+              const amountWei = ethers.parseUnits(String(prizePool), token.decimals);
+              if (winnersInt && winnersInt > 0) {
+                const winnersBigInt = BigInt(winnersInt);
+                if (amountWei % winnersBigInt !== 0n) {
+                  errors.push(
+                    `Prize pool must divide evenly among winners in ${token.symbol} smallest units`
+                  );
+                }
               }
+            } catch (error) {
+              errors.push("Invalid prize pool format for selected token");
             }
-          } catch (error) {
-            errors.push("Invalid prize pool format for selected token");
+          }
+        }
+      } else if (distributionType === "custom") {
+        if (positionRewards.length === 0) {
+          errors.push("Enter rewards for each winner position");
+        } else {
+          let totalCustomRewards = 0;
+          positionRewards.forEach((reward, i) => {
+            if (!reward.amount || Number(reward.amount) <= 0) {
+              errors.push(`Position #${i + 1}: Enter a positive reward amount`);
+            } else {
+              totalCustomRewards += Number(reward.amount);
+            }
+          });
+          const token = availableTokens.find((t) => t.address === prizeAddress);
+          if (token && totalCustomRewards > 0) {
+            try {
+              ethers.parseUnits(String(totalCustomRewards), token.decimals);
+            } catch {
+              errors.push("Total custom rewards exceed token precision");
+            }
           }
         }
       }
@@ -488,6 +532,11 @@
         });
         if (winnersInt && winnersInt > 0 && nfts.length % winnersInt !== 0) {
           errors.push("Number of NFTs must be divisible by number of winners");
+        }
+      }
+    }
+
+    validationErrors = errors;
     return errors.length === 0;
   }
 
@@ -537,6 +586,11 @@
           type: prizeType,
           token_address: prizeType === "Token" ? prizeAddress : null,
           prize_pool: prizePool ? Number(prizePool) : null,
+          distribution_type: prizeType === "Token" || prizeType === "ETH" ? distributionType : null,
+          position_rewards:
+            (prizeType === "Token" || prizeType === "ETH") && distributionType === "custom"
+              ? positionRewards.map((r) => ({ position: r.position, amount: Number(r.amount) }))
+              : null,
           chain:
             prizeType === "Token"
               ? {
@@ -600,6 +654,8 @@
       prizeType = "";
       prizeAddress = "";
       prizePool = "";
+      distributionType = "even";
+      positionRewards = [];
       nfts = [];
 
       clearFormDraft();
@@ -796,21 +852,35 @@
           </select>
         </div>
 
-        <div class="grid-two">
+        <div class="form-group">
+          <label for="prize-token">Prize token</label>
+          <select id="prize-token" bind:value={prizeAddress} on:change={handleTokenSelect}>
+            <option disabled hidden value="">Select token</option>
+            {#each availableTokens as token}
+              <option value={token.address}>
+                {token.symbol} ({token.decimals} decimals)
+              </option>
+            {/each}
+            <option value="custom">Add custom token…</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="distribution-type">Reward distribution</label>
+          <select id="distribution-type" bind:value={distributionType}>
+            <option value="even">Even split among winners</option>
+            <option value="custom">Custom amount per position</option>
+          </select>
+          <p class="field-hint">
+            {distributionType === "even" 
+              ? "Prize pool will be divided equally among all winners" 
+              : "Specify exact reward for each winner position (1st, 2nd, 3rd, etc.)"}
+          </p>
+        </div>
+
+        {#if distributionType === "even"}
           <div class="form-group">
-            <label for="prize-token">Prize token</label>
-            <select id="prize-token" bind:value={prizeAddress} on:change={handleTokenSelect}>
-              <option disabled hidden value="">Select token</option>
-              {#each availableTokens as token}
-                <option value={token.address}>
-                  {token.symbol} ({token.decimals} decimals)
-                </option>
-              {/each}
-              <option value="custom">Add custom token…</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="token-prize-pool">Prize pool</label>
+            <label for="token-prize-pool">Total prize pool</label>
             <input
               id="token-prize-pool"
               type="number"
@@ -820,7 +890,27 @@
               required
             />
           </div>
-        </div>
+        {:else if distributionType === "custom" && numWinners && Number(numWinners) > 0}
+          <div class="form-group">
+            <label>Position-based rewards (max 10 winners)</label>
+            <p class="field-hint">Enter the reward amount for each winner position</p>
+            <div class="position-rewards-list">
+              {#each positionRewards as reward (reward.position)}
+                <div class="position-reward-row">
+                  <span class="position-label">#{reward.position}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Amount"
+                    bind:value={reward.amount}
+                    required
+                  />
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
 
         {#if prizeAddress === "custom"}
           <div class="grid-two">
@@ -858,9 +948,44 @@
 
       {#if prizeType === "ETH"}
         <div class="form-group">
-          <label for="native-prize-pool">Native coin prize pool</label>
-          <input id="native-prize-pool" type="number" min="0" step="any" bind:value={prizePool} required />
+          <label for="distribution-type-eth">Reward distribution</label>
+          <select id="distribution-type-eth" bind:value={distributionType}>
+            <option value="even">Even split among winners</option>
+            <option value="custom">Custom amount per position</option>
+          </select>
+          <p class="field-hint">
+            {distributionType === "even" 
+              ? "Prize pool will be divided equally among all winners" 
+              : "Specify exact reward for each winner position (1st, 2nd, 3rd, etc.)"}
+          </p>
         </div>
+
+        {#if distributionType === "even"}
+          <div class="form-group">
+            <label for="native-prize-pool">Total prize pool (ETH)</label>
+            <input id="native-prize-pool" type="number" min="0" step="any" bind:value={prizePool} required />
+          </div>
+        {:else if distributionType === "custom" && numWinners && Number(numWinners) > 0}
+          <div class="form-group">
+            <label>Position-based rewards (max 10 winners)</label>
+            <p class="field-hint">Enter the ETH reward amount for each winner position</p>
+            <div class="position-rewards-list">
+              {#each positionRewards as reward (reward.position)}
+                <div class="position-reward-row">
+                  <span class="position-label">#{reward.position}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="ETH amount"
+                    bind:value={reward.amount}
+                    required
+                  />
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
       {/if}
 
       {#if prizeType === "NFT"}
@@ -1203,6 +1328,35 @@
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto;
     gap: 0.75rem;
     align-items: center;
+  }
+
+  .position-rewards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  .position-reward-row {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .position-label {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    font-size: 0.95rem;
   }
 
   .validation-errors {
