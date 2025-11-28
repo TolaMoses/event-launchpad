@@ -28,7 +28,13 @@
     imagePreview: string;
     supply: string;
     rarity: string;
+    rarityPercentage: string;
     uploadedImage: UploadedAsset | null;
+  };
+
+  type NftDistributionPosition = {
+    position: number;
+    nftId: string; // references nft.id or mintableNft.id
   };
 
   const registryEntries = Object.entries(taskRegistry) as [TaskTypeKey, TaskRegistryEntry][];
@@ -112,7 +118,11 @@
   let positionRewards: PositionReward[] = [];
   let maxTickets = "";
   let nfts: NftInput[] = [];
+  let nftDistributionType: "even" | "custom" = "even";
+  let nftPositionDistribution: NftDistributionPosition[] = [];
   let mintableNfts: MintableNft[] = [];
+  let mintableNftDistributionType: "random" | "custom" = "random";
+  let mintableNftPositionDistribution: NftDistributionPosition[] = [];
   let availableTokens: { symbol: string; address: string; decimals: number }[] = [];
   let selectedChain = "";
   let customTokenSymbol = "";
@@ -163,8 +173,29 @@
       imagePreview: "",
       supply: "",
       rarity: "Common",
+      rarityPercentage: "100",
       uploadedImage: null
     }];
+  }
+
+  $: if (prizeType === "NFT" && nftDistributionType === "custom" && numWinners) {
+    const count = Math.min(Number(numWinners) || 0, 10);
+    if (nftPositionDistribution.length !== count) {
+      nftPositionDistribution = Array.from({ length: count }, (_, i) => ({
+        position: i + 1,
+        nftId: nftPositionDistribution[i]?.nftId || ""
+      }));
+    }
+  }
+
+  $: if (prizeType === "MintableNFT" && mintableNftDistributionType === "custom" && numWinners) {
+    const count = Math.min(Number(numWinners) || 0, 10);
+    if (mintableNftPositionDistribution.length !== count) {
+      mintableNftPositionDistribution = Array.from({ length: count }, (_, i) => ({
+        position: i + 1,
+        nftId: mintableNftPositionDistribution[i]?.nftId || ""
+      }));
+    }
   }
 
   $: if (distributionType === "custom" && numWinners) {
@@ -206,14 +237,19 @@
       customTokenAddress,
       customTokenDecimals,
       nfts,
+      nftDistributionType,
+      nftPositionDistribution,
       mintableNfts: mintableNfts.map(n => ({
         id: n.id,
         name: n.name,
         description: n.description,
         supply: n.supply,
         rarity: n.rarity,
+        rarityPercentage: n.rarityPercentage,
         imagePreview: n.imagePreview
       })),
+      mintableNftDistributionType,
+      mintableNftPositionDistribution,
       tasks,
       timestamp: Date.now()
     };
@@ -248,11 +284,15 @@
       customTokenAddress = draft.customTokenAddress || "";
       customTokenDecimals = draft.customTokenDecimals || "";
       nfts = draft.nfts || [];
+      nftDistributionType = draft.nftDistributionType || "even";
+      nftPositionDistribution = draft.nftPositionDistribution || [];
       mintableNfts = (draft.mintableNfts || []).map((n: any) => ({
         ...n,
         imageFile: null,
         uploadedImage: null
       }));
+      mintableNftDistributionType = draft.mintableNftDistributionType || "random";
+      mintableNftPositionDistribution = draft.mintableNftPositionDistribution || [];
       tasks = draft.tasks || [];
       updateDateTimes();
     } catch (err) {
@@ -409,6 +449,7 @@
   }
 
   function addMintableNft() {
+    const defaultPercentage = mintableNfts.length === 0 ? "100" : "0";
     mintableNfts = [
       ...mintableNfts,
       {
@@ -419,6 +460,7 @@
         imagePreview: "",
         supply: "",
         rarity: "Common",
+        rarityPercentage: defaultPercentage,
         uploadedImage: null
       }
     ];
@@ -618,8 +660,21 @@
           }
           if (!nft.tokenId.trim()) errors.push(`NFT #${i + 1}: Enter token ID`);
         });
-        if (winnersInt && winnersInt > 0 && nfts.length % winnersInt !== 0) {
-          errors.push("Number of NFTs must be divisible by number of winners");
+
+        if (nftDistributionType === "even") {
+          if (winnersInt && winnersInt > 0 && nfts.length % winnersInt !== 0) {
+            errors.push("Number of NFTs must be divisible by number of winners for even distribution");
+          }
+        } else if (nftDistributionType === "custom") {
+          if (nftPositionDistribution.length === 0) {
+            errors.push("Assign NFTs to winner positions");
+          } else {
+            nftPositionDistribution.forEach((pos, i) => {
+              if (!pos.nftId) {
+                errors.push(`Position #${i + 1}: Select an NFT to assign`);
+              }
+            });
+          }
         }
       }
     }
@@ -638,6 +693,35 @@
             errors.push(`NFT #${i + 1}: Upload an NFT image`);
           }
         });
+
+        // Validate rarity percentages for random distribution
+        if (mintableNftDistributionType === "random" && mintableNfts.length > 1) {
+          let totalPercentage = 0;
+          mintableNfts.forEach((nft, i) => {
+            const percentage = Number(nft.rarityPercentage);
+            if (!nft.rarityPercentage.trim() || percentage < 0 || percentage > 100) {
+              errors.push(`NFT #${i + 1}: Rarity percentage must be between 0 and 100`);
+            } else {
+              totalPercentage += percentage;
+            }
+          });
+          if (Math.abs(totalPercentage - 100) > 0.01) {
+            errors.push(`Total rarity percentages must equal 100% (currently ${totalPercentage.toFixed(1)}%)`);
+          }
+        }
+
+        // Validate custom distribution
+        if (mintableNftDistributionType === "custom") {
+          if (mintableNftPositionDistribution.length === 0) {
+            errors.push("Assign NFT variants to winner positions");
+          } else {
+            mintableNftPositionDistribution.forEach((pos, i) => {
+              if (!pos.nftId) {
+                errors.push(`Position #${i + 1}: Select an NFT variant to assign`);
+              }
+            });
+          }
+        }
       }
     }
 
@@ -681,10 +765,12 @@
             nftImageAsset = await uploadAsset(nft.imageFile, "nft");
           }
           mintableNftAssets.push({
+            id: nft.id,
             name: nft.name.trim(),
             description: nft.description.trim(),
             supply: Number(nft.supply),
             rarity: nft.rarity,
+            rarityPercentage: Number(nft.rarityPercentage),
             image: nftImageAsset
           });
         }
@@ -732,15 +818,26 @@
               : null,
           nfts:
             prizeType === "NFT"
-              ? nfts.map(({ contract, tokenId }) => ({
+              ? nfts.map(({ id, contract, tokenId }) => ({
+                  id,
                   contract: contract.trim(),
                   tokenId: tokenId.trim()
                 }))
               : [],
+          nft_distribution_type: prizeType === "NFT" ? nftDistributionType : null,
+          nft_position_distribution:
+            prizeType === "NFT" && nftDistributionType === "custom"
+              ? nftPositionDistribution
+              : null,
           mintable_nfts:
             prizeType === "MintableNFT"
               ? mintableNftAssets
-              : []
+              : [],
+          mintable_nft_distribution_type: prizeType === "MintableNFT" ? mintableNftDistributionType : null,
+          mintable_nft_position_distribution:
+            prizeType === "MintableNFT" && mintableNftDistributionType === "custom"
+              ? mintableNftPositionDistribution
+              : null
         }
       };
 
@@ -1117,6 +1214,19 @@
 
       {#if prizeType === "NFT"}
         <div class="form-group">
+          <label for="nft-distribution-type">NFT Distribution</label>
+          <select id="nft-distribution-type" bind:value={nftDistributionType}>
+            <option value="even">Even distribution (divide NFTs equally among winners)</option>
+            <option value="custom">Custom (assign specific NFTs to positions)</option>
+          </select>
+          <p class="field-hint">
+            {nftDistributionType === "even" 
+              ? "NFTs will be distributed evenly among all winners" 
+              : "Assign specific NFTs to winner positions (1st gets NFT #1, 2nd gets NFT #2, etc.)"}
+          </p>
+        </div>
+
+        <div class="form-group">
           <div class="group-header">
             <h3>NFT prizes</h3>
             <button type="button" class="ghost-btn" on:click={addNftField}>+ Add NFT</button>
@@ -1145,15 +1255,52 @@
             {/each}
           </div>
         </div>
+
+        {#if nftDistributionType === "custom" && numWinners && Number(numWinners) > 0}
+          <div class="form-group">
+            <label>Position-based NFT Assignment (max 10 winners)</label>
+            <p class="field-hint">Assign which NFT each winner position receives</p>
+            <div class="position-rewards-list">
+              {#each nftPositionDistribution as pos (pos.position)}
+                <div class="position-reward-row">
+                  <span class="position-label">#{pos.position}</span>
+                  <select bind:value={pos.nftId} required>
+                    <option value="">Select NFT</option>
+                    {#each nfts as nft, i}
+                      <option value={nft.id}>NFT #{i + 1} ({nft.contract.slice(0, 6)}...{nft.contract.slice(-4)} - Token {nft.tokenId})</option>
+                    {/each}
+                  </select>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
       {/if}
 
       {#if prizeType === "MintableNFT"}
+        <div class="form-group">
+          <label for="mintable-nft-distribution-type">Mintable NFT Distribution</label>
+          <select id="mintable-nft-distribution-type" bind:value={mintableNftDistributionType}>
+            <option value="random">Random (probability-based on rarity %)</option>
+            <option value="custom">Custom (assign specific variants to positions)</option>
+          </select>
+          <p class="field-hint">
+            {mintableNftDistributionType === "random" 
+              ? "Participants randomly mint variants based on rarity percentages" 
+              : "Assign specific NFT variants to winner positions (1st gets Legendary, 2nd gets Epic, etc.)"}
+          </p>
+        </div>
+
         <div class="form-group">
           <div class="group-header">
             <h3>Mintable NFT Variants</h3>
             <button type="button" class="ghost-btn" on:click={addMintableNft}>+ Add NFT Variant</button>
           </div>
-          <p class="field-hint">Add one or more NFT variants that participants can mint after completing tasks</p>
+          <p class="field-hint">
+            {mintableNftDistributionType === "random" && mintableNfts.length > 1
+              ? "Add NFT variants with rarity percentages (must total 100%)"
+              : "Add one or more NFT variants that participants can mint after completing tasks"}
+          </p>
           <div class="mintable-nft-list">
             {#each mintableNfts as nft, index (nft.id)}
               <div class="mintable-nft-card">
@@ -1178,7 +1325,48 @@
                     />
                   </div>
                   <div class="form-group">
-                    <label for="nft-rarity-{index}">Rarity</label>
+                    <label for="nft-supply-{index}">Supply Limit</label>
+                    <input
+                      id="nft-supply-{index}"
+                      type="number"
+                      min="1"
+                      placeholder="Max number that can be minted"
+                      bind:value={nft.supply}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {#if mintableNftDistributionType === "random" && mintableNfts.length > 1}
+                  <div class="grid-two">
+                    <div class="form-group">
+                      <label for="nft-rarity-{index}">Rarity Tier</label>
+                      <select id="nft-rarity-{index}" bind:value={nft.rarity}>
+                        <option value="Common">Common</option>
+                        <option value="Uncommon">Uncommon</option>
+                        <option value="Rare">Rare</option>
+                        <option value="Epic">Epic</option>
+                        <option value="Legendary">Legendary</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="nft-rarity-percentage-{index}">Rarity % (Mint Probability)</label>
+                      <input
+                        id="nft-rarity-percentage-{index}"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="e.g. 25"
+                        bind:value={nft.rarityPercentage}
+                        required
+                      />
+                      <p class="field-hint">Probability this variant will be minted (all variants must total 100%)</p>
+                    </div>
+                  </div>
+                {:else}
+                  <div class="form-group">
+                    <label for="nft-rarity-{index}">Rarity Tier (optional)</label>
                     <select id="nft-rarity-{index}" bind:value={nft.rarity}>
                       <option value="Common">Common</option>
                       <option value="Uncommon">Uncommon</option>
@@ -1187,7 +1375,7 @@
                       <option value="Legendary">Legendary</option>
                     </select>
                   </div>
-                </div>
+                {/if}
 
                 <div class="form-group">
                   <label for="nft-description-{index}">Description</label>
@@ -1196,18 +1384,6 @@
                     placeholder="Describe this NFT variant..."
                     bind:value={nft.description}
                     rows="3"
-                    required
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label for="nft-supply-{index}">Supply Limit</label>
-                  <input
-                    id="nft-supply-{index}"
-                    type="number"
-                    min="1"
-                    placeholder="Max number that can be minted"
-                    bind:value={nft.supply}
                     required
                   />
                 </div>
@@ -1229,6 +1405,26 @@
             {/each}
           </div>
         </div>
+
+        {#if mintableNftDistributionType === "custom" && numWinners && Number(numWinners) > 0}
+          <div class="form-group">
+            <label>Position-based NFT Variant Assignment (max 10 winners)</label>
+            <p class="field-hint">Assign which NFT variant each winner position receives</p>
+            <div class="position-rewards-list">
+              {#each mintableNftPositionDistribution as pos (pos.position)}
+                <div class="position-reward-row">
+                  <span class="position-label">#{pos.position}</span>
+                  <select bind:value={pos.nftId} required>
+                    <option value="">Select NFT Variant</option>
+                    {#each mintableNfts as nft, i}
+                      <option value={nft.id}>Variant #{i + 1}: {nft.name || 'Unnamed'} ({nft.rarity})</option>
+                    {/each}
+                  </select>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
       {/if}
 
       <div class="form-group readonly">

@@ -139,7 +139,7 @@ CREATE TABLE events (
     banner_url      text,
     logo_path       text,
     logo_url        text,
-    prize_details   jsonb NOT NULL,                   -- { type, token_address, prize_pool, distribution_type, position_rewards, chain, token_metadata, nfts, mintable_nfts }
+    prize_details   jsonb NOT NULL,                   -- { type, token_address, prize_pool, distribution_type, position_rewards, chain, token_metadata, nfts, nft_distribution_type, nft_position_distribution, mintable_nfts, mintable_nft_distribution_type, mintable_nft_position_distribution }
     tasks           jsonb NOT NULL,                   -- array of { id, type, config }
     status          text NOT NULL DEFAULT 'draft',    -- draft, active, ended, cancelled
     created_at      timestamptz NOT NULL DEFAULT now(),
