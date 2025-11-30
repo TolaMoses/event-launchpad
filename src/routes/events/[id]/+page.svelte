@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { supabase } from '$lib/supabaseClient';
 	import { goto } from '$app/navigation';
-	import { taskRegistry } from '$lib/tasks/taskRegistry';
+	import { taskRegistry } from '$lib/tasks/taskRegistry.js';
 
 	type Event = {
 		id: string;
