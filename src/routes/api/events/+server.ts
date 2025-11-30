@@ -23,6 +23,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   const title = ensureString(body.title, 'title');
   const description = ensureString(body.description, 'description');
+  const videoUrl = typeof body.video_url === 'string' ? body.video_url.trim() : null;
   const startTime = ensureString(body.start_time, 'start_time');
   const endTime = ensureString(body.end_time, 'end_time');
 
@@ -56,6 +57,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const insertPayload = {
     title,
     description,
+    video_url: videoUrl,
     start_time: startTime,
     end_time: endTime,
     num_winners: numWinners,

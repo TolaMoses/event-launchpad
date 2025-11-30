@@ -47,7 +47,9 @@
     { value: "Token", label: "Token" },
     { value: "ETH", label: "Native coin" },
     { value: "NFT", label: "Existing NFT" },
-    { value: "MintableNFT", label: "Mintable NFT (participants mint after tasks)" }
+    { value: "MintableNFT", label: "Mintable NFT (participants mint after tasks)" },
+    { value: "Gift", label: "Gift/Merch (physical items shipped to winners)" },
+    { value: "Voucher", label: "Voucher/Code (digital codes sent to winners)" }
   ];
 
   const MAX_BANNER_SIZE = 500 * 1024;
@@ -123,6 +125,12 @@
   let mintableNfts: MintableNft[] = [];
   let mintableNftDistributionType: "random" | "custom" = "random";
   let mintableNftPositionDistribution: NftDistributionPosition[] = [];
+  let giftDescription = "";
+  let giftValue = "";
+  let voucherDescription = "";
+  let voucherCodes: string[] = [];
+  let voucherCodeInput = "";
+  let videoUrl = "";
   let availableTokens: { symbol: string; address: string; decimals: number }[] = [];
   let selectedChain = "";
   let customTokenSymbol = "";
@@ -250,6 +258,11 @@
       })),
       mintableNftDistributionType,
       mintableNftPositionDistribution,
+      giftDescription,
+      giftValue,
+      voucherDescription,
+      voucherCodes,
+      videoUrl,
       tasks,
       timestamp: Date.now()
     };
@@ -293,6 +306,11 @@
       }));
       mintableNftDistributionType = draft.mintableNftDistributionType || "random";
       mintableNftPositionDistribution = draft.mintableNftPositionDistribution || [];
+      giftDescription = draft.giftDescription || "";
+      giftValue = draft.giftValue || "";
+      voucherDescription = draft.voucherDescription || "";
+      voucherCodes = draft.voucherCodes || [];
+      videoUrl = draft.videoUrl || "";
       tasks = draft.tasks || [];
       updateDateTimes();
     } catch (err) {
@@ -725,6 +743,27 @@
       }
     }
 
+    if (prizeType === "Gift") {
+      if (!giftDescription.trim()) {
+        errors.push("Enter a gift/merch description");
+      }
+      if (!giftValue.trim() || Number(giftValue) <= 0) {
+        errors.push("Enter an estimated gift value");
+      }
+    }
+
+    if (prizeType === "Voucher") {
+      if (!voucherDescription.trim()) {
+        errors.push("Enter voucher description");
+      }
+      if (voucherCodes.length === 0) {
+        errors.push("Add at least one voucher code");
+      }
+      if (winnersInt && winnersInt > 0 && voucherCodes.length < winnersInt) {
+        errors.push(`Need at least ${winnersInt} voucher codes for ${winnersInt} winners (currently have ${voucherCodes.length})`);
+      }
+    }
+
     validationErrors = errors;
     return errors.length === 0;
   }
@@ -779,6 +818,7 @@
       const payload = {
         title: eventTitle.trim(),
         description: eventDescription.trim(),
+        video_url: videoUrl.trim() || null,
         start_time: eventStartISO,
         end_time: eventEndISO,
         num_winners: numWinners ? Number(numWinners) : null,
@@ -837,7 +877,11 @@
           mintable_nft_position_distribution:
             prizeType === "MintableNFT" && mintableNftDistributionType === "custom"
               ? mintableNftPositionDistribution
-              : null
+              : null,
+          gift_description: prizeType === "Gift" ? giftDescription.trim() : null,
+          gift_value: prizeType === "Gift" ? Number(giftValue) : null,
+          voucher_description: prizeType === "Voucher" ? voucherDescription.trim() : null,
+          voucher_codes: prizeType === "Voucher" ? voucherCodes : []
         }
       };
 
@@ -913,14 +957,25 @@
       </div>
 
       <div class="form-group">
-        <label for="event-description">Description</label>
+        <label for="event-description">Event description</label>
         <textarea
           id="event-description"
-          rows="4"
-          placeholder="Explain what participants need to do and any rewards on offer"
+          placeholder="Describe your event and what participants need to do..."
           bind:value={eventDescription}
+          rows="5"
           required
         ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="video-url">Video URL (optional)</label>
+        <input
+          id="video-url"
+          type="url"
+          placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+          bind:value={videoUrl}
+        />
+        <p class="field-hint">Add a video description or promotional video for your event</p>
       </div>
 
       <div class="grid-two">
@@ -1427,6 +1482,100 @@
         {/if}
       {/if}
 
+      {#if prizeType === "Gift"}
+        <div class="form-group">
+          <label for="gift-description">Gift/Merch Description</label>
+          <textarea
+            id="gift-description"
+            placeholder="Describe the physical item (e.g., 'Limited edition T-shirt, size L' or 'Gaming mouse + mousepad bundle')"
+            bind:value={giftDescription}
+            rows="4"
+            required
+          ></textarea>
+          <p class="field-hint">Describe what winners will receive. You'll handle shipping manually.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="gift-value">Estimated Value (USD)</label>
+          <input
+            id="gift-value"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="e.g. 50"
+            bind:value={giftValue}
+            required
+          />
+          <p class="field-hint">Approximate value for transparency</p>
+        </div>
+      {/if}
+
+      {#if prizeType === "Voucher"}
+        <div class="form-group">
+          <label for="voucher-description">Voucher Description</label>
+          <textarea
+            id="voucher-description"
+            placeholder="Describe the voucher (e.g., '$25 Amazon Gift Card' or 'Premium subscription code for 3 months')"
+            bind:value={voucherDescription}
+            rows="3"
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="voucher-code-input">Voucher Codes</label>
+          <p class="field-hint">Add codes one at a time. You need at least {numWinners || 1} code{Number(numWinners) > 1 ? 's' : ''} for {numWinners || 1} winner{Number(numWinners) > 1 ? 's' : ''}.</p>
+          <div class="voucher-input-row">
+            <input
+              id="voucher-code-input"
+              type="text"
+              placeholder="Enter code and press Add"
+              bind:value={voucherCodeInput}
+              on:keypress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (voucherCodeInput.trim()) {
+                    voucherCodes = [...voucherCodes, voucherCodeInput.trim()];
+                    voucherCodeInput = '';
+                  }
+                }
+              }}
+            />
+            <button
+              type="button"
+              class="ghost-btn"
+              on:click={() => {
+                if (voucherCodeInput.trim()) {
+                  voucherCodes = [...voucherCodes, voucherCodeInput.trim()];
+                  voucherCodeInput = '';
+                }
+              }}
+            >
+              + Add Code
+            </button>
+          </div>
+          {#if voucherCodes.length > 0}
+            <div class="voucher-codes-list">
+              <p class="codes-count">{voucherCodes.length} code{voucherCodes.length > 1 ? 's' : ''} added:</p>
+              {#each voucherCodes as code, index}
+                <div class="voucher-code-item">
+                  <span class="code-text">{code}</span>
+                  <button
+                    type="button"
+                    class="ghost-btn danger small"
+                    on:click={() => {
+                      voucherCodes = voucherCodes.filter((_, i) => i !== index);
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {/if}
+
       <div class="form-group readonly">
         <label>Reward distribution summary</label>
         <input
@@ -1442,6 +1591,10 @@
               ? `${nfts.length} NFT prize${nfts.length === 1 ? "" : "s"}`
               : prizeType === "MintableNFT"
               ? `${mintableNfts.length} NFT variant${mintableNfts.length === 1 ? "" : "s"} - participants mint after tasks`
+              : prizeType === "Gift"
+              ? `Physical gift/merch (est. $${giftValue || 0}) - shipped to winners`
+              : prizeType === "Voucher"
+              ? `${voucherCodes.length} voucher code${voucherCodes.length === 1 ? "" : "s"} - sent digitally to winners`
               : numWinners
               ? "—"
               : "All eligible participants rewarded"
@@ -1809,6 +1962,55 @@
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     object-fit: contain;
+  }
+
+  .voucher-input-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .voucher-input-row input {
+    flex: 1;
+  }
+
+  .voucher-codes-list {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .codes-count {
+    margin: 0 0 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+  }
+
+  .voucher-code-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.8rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+  }
+
+  .voucher-code-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .code-text {
+    font-family: 'Courier New', monospace;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.95rem;
+    word-break: break-all;
   }
 
   .validation-errors {

@@ -132,6 +132,7 @@ CREATE TABLE events (
     created_by      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title           text NOT NULL,
     description     text,
+    video_url       text,                             -- optional video description/ad URL
     start_time      timestamptz NOT NULL,
     end_time        timestamptz NOT NULL,
     num_winners     integer,                          -- nullable: null = all participants win
@@ -139,7 +140,7 @@ CREATE TABLE events (
     banner_url      text,
     logo_path       text,
     logo_url        text,
-    prize_details   jsonb NOT NULL,                   -- { type, token_address, prize_pool, distribution_type, position_rewards, chain, token_metadata, nfts, nft_distribution_type, nft_position_distribution, mintable_nfts, mintable_nft_distribution_type, mintable_nft_position_distribution }
+    prize_details   jsonb NOT NULL,                   -- { type, token_address, prize_pool, distribution_type, position_rewards, chain, token_metadata, nfts, nft_distribution_type, nft_position_distribution, mintable_nfts, mintable_nft_distribution_type, mintable_nft_position_distribution, gift_description, gift_value, voucher_description, voucher_codes }
     tasks           jsonb NOT NULL,                   -- array of { id, type, config }
     status          text NOT NULL DEFAULT 'draft',    -- draft, active, ended, cancelled
     created_at      timestamptz NOT NULL DEFAULT now(),
