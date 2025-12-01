@@ -1,20 +1,23 @@
 // Task registry for dynamic task component loading
 // This maps task types to their display components and metadata
+import TwitterTask from './components/TwitterTask.svelte';
+import DiscordTask from './components/DiscordTask.svelte';
+import TelegramTask from './components/TelegramTask.svelte';
 
 export const taskRegistry = {
 	twitter: {
 		label: 'Twitter',
-		component: null, // Will be implemented later
+		component: TwitterTask,
 		icon: '🐦'
 	},
 	discord: {
 		label: 'Discord',
-		component: null,
+		component: DiscordTask,
 		icon: '💬'
 	},
 	telegram: {
 		label: 'Telegram',
-		component: null,
+		component: TelegramTask,
 		icon: '✈️'
 	},
 	quiz: {

@@ -13,6 +13,34 @@ CREATE TABLE users (
 CREATE UNIQUE INDEX users_wallet_unique
     ON users(wallet_address);
 
+
+-- ============================================
+-- SOCIAL CONNECTIONS
+-- Store user's connected social accounts
+-- ============================================
+CREATE TABLE social_connections (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    platform        text NOT NULL,                      -- 'twitter', 'discord', 'telegram'
+    platform_user_id text NOT NULL,                     -- User ID on the platform
+    username        text,                               -- Username/handle on the platform
+    access_token    text,                               -- Encrypted OAuth token
+    refresh_token   text,                               -- Encrypted refresh token
+    token_expires_at timestamptz,                       -- Token expiration
+    metadata        jsonb,                              -- Additional platform-specific data
+    connected_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX social_connections_user_platform_unique
+    ON social_connections(user_id, platform);
+
+CREATE INDEX social_connections_platform_idx
+    ON social_connections(platform);
+
+CREATE INDEX social_connections_platform_user_idx
+    ON social_connections(platform, platform_user_id);
+
 -- Mirror auth.users into public.users using triggers
 CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
 RETURNS trigger AS $$

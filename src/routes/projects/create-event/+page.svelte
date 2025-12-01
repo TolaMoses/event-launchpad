@@ -112,6 +112,22 @@
   let creatingTaskType: TaskTypeKey | null = null;
   let editingTaskIndex: number | null = null;
   let tasks: TaskInstance[] = [];
+  
+  // Discord bot setup
+  let discordBotSetup: {
+    connected: boolean;
+    selectedGuildId: string | null;
+    selectedGuildName: string | null;
+    botAdded: boolean;
+    guilds: Array<{ id: string; name: string; owner: boolean; permissions: string }>;
+  } = {
+    connected: false,
+    selectedGuildId: null,
+    selectedGuildName: null,
+    botAdded: false,
+    guilds: []
+  };
+  let checkingDiscordBot = false;
 
   let prizeType = "";
   let prizeAddress = "";
@@ -334,7 +350,70 @@
 
   onMount(() => {
     loadFormDraft();
+    checkDiscordConnection();
   });
+
+  // Discord bot setup functions
+  async function checkDiscordConnection() {
+    try {
+      const response = await fetch('/api/auth/discord/status');
+      if (response.ok) {
+        const data = await response.json();
+        discordBotSetup.connected = data.connected;
+        discordBotSetup.guilds = data.guilds || [];
+      }
+    } catch (err) {
+      console.error('Failed to check Discord connection:', err);
+    }
+  }
+
+  function connectDiscord() {
+    const currentUrl = window.location.href;
+    window.location.href = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
+  }
+
+  function selectDiscordGuild(guildId: string, guildName: string) {
+    discordBotSetup.selectedGuildId = guildId;
+    discordBotSetup.selectedGuildName = guildName;
+    discordBotSetup.botAdded = false; // Reset bot added status when changing guild
+  }
+
+  function getBotInviteUrl(): string {
+    const botClientId = 'YOUR_BOT_CLIENT_ID'; // This should come from env or config
+    const permissions = '268437504'; // Read Members + Read Messages
+    return `https://discord.com/oauth2/authorize?client_id=${botClientId}&permissions=${permissions}&scope=bot`;
+  }
+
+  async function verifyBotAdded() {
+    if (!discordBotSetup.selectedGuildId) return;
+
+    checkingDiscordBot = true;
+    try {
+      const response = await fetch('/api/auth/discord/verify-bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guildId: discordBotSetup.selectedGuildId })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        discordBotSetup.botAdded = data.botInGuild;
+        if (!data.botInGuild) {
+          alert('Bot not found in server. Please make sure you added the bot and try again.');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to verify bot:', err);
+      alert('Failed to verify bot. Please try again.');
+    } finally {
+      checkingDiscordBot = false;
+    }
+  }
+
+  // Check if Discord tasks require bot setup
+  $: hasDiscordTask = tasks.some(task => task.type === 'discord');
+  $: discordSetupComplete = !hasDiscordTask || (discordBotSetup.connected && discordBotSetup.selectedGuildId && discordBotSetup.botAdded);
+  $: canSubmitForm = discordSetupComplete;
 
   function handleBannerUpload(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
@@ -1604,9 +1683,116 @@
       </div>
     </div>
 
-    <button type="submit" class="primary-btn" disabled={isSaving}>
+    <!-- Discord Bot Setup (if Discord task is added) -->
+    {#if hasDiscordTask}
+      <div class="discord-setup-section">
+        <h3>🤖 Discord Bot Setup Required</h3>
+        <p class="setup-description">
+          To verify Discord membership, our bot needs to be added to your server.
+        </p>
+
+        <!-- Step 1: Connect Discord -->
+        <div class="setup-step" class:completed={discordBotSetup.connected}>
+          <div class="step-header">
+            <span class="step-number">1</span>
+            <h4>Connect Your Discord Account</h4>
+            {#if discordBotSetup.connected}
+              <span class="check-icon">✓</span>
+            {/if}
+          </div>
+          {#if !discordBotSetup.connected}
+            <button type="button" class="secondary-btn" on:click={connectDiscord}>
+              Connect Discord
+            </button>
+          {:else}
+            <p class="success-text">✓ Discord connected</p>
+          {/if}
+        </div>
+
+        <!-- Step 2: Select Server -->
+        {#if discordBotSetup.connected}
+          <div class="setup-step" class:completed={discordBotSetup.selectedGuildId}>
+            <div class="step-header">
+              <span class="step-number">2</span>
+              <h4>Select Your Server</h4>
+              {#if discordBotSetup.selectedGuildId}
+                <span class="check-icon">✓</span>
+              {/if}
+            </div>
+            {#if discordBotSetup.guilds.length > 0}
+              <select 
+                class="guild-select" 
+                on:change={(e) => {
+                  const guild = discordBotSetup.guilds.find(g => g.id === e.currentTarget.value);
+                  if (guild) selectDiscordGuild(guild.id, guild.name);
+                }}
+                value={discordBotSetup.selectedGuildId || ''}
+              >
+                <option value="">Select a server...</option>
+                {#each discordBotSetup.guilds as guild}
+                  <option value={guild.id}>{guild.name}</option>
+                {/each}
+              </select>
+            {:else}
+              <p class="info-text">No servers found. Make sure you own or manage a Discord server.</p>
+            {/if}
+          </div>
+        {/if}
+
+        <!-- Step 3: Add Bot to Server -->
+        {#if discordBotSetup.selectedGuildId}
+          <div class="setup-step" class:completed={discordBotSetup.botAdded}>
+            <div class="step-header">
+              <span class="step-number">3</span>
+              <h4>Add Bot to {discordBotSetup.selectedGuildName}</h4>
+              {#if discordBotSetup.botAdded}
+                <span class="check-icon">✓</span>
+              {/if}
+            </div>
+            {#if !discordBotSetup.botAdded}
+              <div class="bot-invite-section">
+                <p class="info-text">Click the button below to add our verification bot to your server:</p>
+                <a 
+                  href={getBotInviteUrl()} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  class="primary-btn"
+                >
+                  Add Bot to Server
+                </a>
+                <p class="helper-text">After adding the bot, click "Verify Bot Added" below</p>
+                <button 
+                  type="button" 
+                  class="secondary-btn" 
+                  on:click={verifyBotAdded}
+                  disabled={checkingDiscordBot}
+                >
+                  {checkingDiscordBot ? 'Checking...' : 'Verify Bot Added'}
+                </button>
+              </div>
+            {:else}
+              <p class="success-text">✓ Bot successfully added to server</p>
+            {/if}
+          </div>
+        {/if}
+
+        {#if !discordSetupComplete}
+          <div class="setup-warning">
+            ⚠️ Complete all Discord setup steps before creating the event
+          </div>
+        {/if}
+      </div>
+    {/if}
+
+    <button type="submit" class="primary-btn" disabled={isSaving || !canSubmitForm}>
       {isSaving ? "Saving..." : "Create Event"}
     </button>
+
+    {#if !canSubmitForm && hasDiscordTask}
+      <p class="submit-blocked-message">
+        Complete Discord bot setup to create event
+      </p>
+    {/if}
 
     {#if uploadError}
       <div class="upload-error">{uploadError}</div>
@@ -1867,9 +2053,141 @@
     transition: transform 0.15s ease, opacity 0.15s ease;
   }
 
-  .primary-btn:hover {
+  .primary-btn:hover:not(:disabled) {
     transform: translateY(-1px);
     opacity: 0.94;
+  }
+
+  .primary-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Discord Setup Section */
+  .discord-setup-section {
+    background: rgba(88, 101, 242, 0.05);
+    border: 2px solid rgba(88, 101, 242, 0.2);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 2rem 0;
+  }
+
+  .discord-setup-section h3 {
+    font-size: 1.5rem;
+    color: #f2f3ff;
+    margin: 0 0 0.5rem;
+  }
+
+  .setup-description {
+    color: rgba(242, 243, 255, 0.7);
+    margin: 0 0 2rem;
+  }
+
+  .setup-step {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.3s ease;
+  }
+
+  .setup-step.completed {
+    border-color: rgba(40, 167, 69, 0.4);
+    background: rgba(40, 167, 69, 0.05);
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .step-number {
+    background: rgba(88, 101, 242, 0.2);
+    color: #5865f2;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .setup-step.completed .step-number {
+    background: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+  }
+
+  .step-header h4 {
+    flex: 1;
+    margin: 0;
+    font-size: 1.1rem;
+    color: #f2f3ff;
+  }
+
+  .check-icon {
+    color: #28a745;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .guild-select {
+    width: 100%;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #f2f3ff;
+    font-size: 1rem;
+  }
+
+  .guild-select option {
+    background: #1a1c2d;
+    color: #f2f3ff;
+  }
+
+  .bot-invite-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .success-text {
+    color: #28a745;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .info-text {
+    color: rgba(242, 243, 255, 0.7);
+    margin: 0;
+  }
+
+  .helper-text {
+    color: rgba(242, 243, 255, 0.5);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .setup-warning {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 8px;
+    padding: 1rem;
+    color: #ffc107;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .submit-blocked-message {
+    color: #ff6b6b;
+    text-align: center;
+    margin: 1rem 0 0;
+    font-weight: 600;
   }
 
   .group-header {

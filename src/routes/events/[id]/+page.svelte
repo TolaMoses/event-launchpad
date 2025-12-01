@@ -103,31 +103,68 @@
 		}
 	}
 
-	async function submitTask(taskId: string, taskType: string) {
+	async function verifyAndSubmitTask(taskId: string, taskType: string, config: any) {
 		if (!userId || !event) return;
 
-		taskStates[taskId] = { ...taskStates[taskId], submitting: true };
+		// Call appropriate verification API based on task type
+		let verificationEndpoint = '';
+		let verificationPayload: any = {};
 
-		// Get task config
-		const task = event.tasks.find(t => t.id === taskId);
-		if (!task) return;
+		switch (taskType) {
+			case 'twitter':
+				verificationEndpoint = '/api/tasks/verify-twitter';
+				verificationPayload = {
+					action: config.action,
+					username: config.username,
+					tweetUrl: config.tweetUrl
+				};
+				break;
+			case 'discord':
+				verificationEndpoint = '/api/tasks/verify-discord';
+				verificationPayload = {
+					serverId: config.serverId,
+					action: config.action
+				};
+				break;
+			case 'telegram':
+				verificationEndpoint = '/api/tasks/verify-telegram';
+				verificationPayload = {
+					channelName: config.channelName,
+					action: config.action
+				};
+				break;
+			default:
+				throw new Error('Unsupported task type');
+		}
 
-		// For now, we'll just mark as submitted
-		// In a real app, you'd validate the submission based on task type
+		// Verify with external API
+		const verifyResponse = await fetch(verificationEndpoint, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(verificationPayload)
+		});
+
+		if (!verifyResponse.ok) {
+			const errorData = await verifyResponse.json();
+			throw new Error(errorData.message || 'Verification failed');
+		}
+
+		// If verified, submit to database
 		const { error } = await supabase
 			.from('task_submissions')
 			.insert({
 				task_id: taskId,
 				user_id: userId,
-				submission: { completed: true },
-				verified: false // Needs manual verification
+				submission: { completed: true, verified_at: new Date().toISOString() },
+				verified: true
 			});
 
-		if (!error) {
-			taskStates[taskId] = { completed: false, submitting: false };
-		} else {
-			taskStates[taskId] = { ...taskStates[taskId], submitting: false };
+		if (error) {
+			throw new Error('Failed to save submission');
 		}
+
+		// Update local state
+		taskStates[taskId] = { completed: true, submitting: false };
 	}
 
 	function getVideoEmbedUrl(url: string): string | null {
@@ -260,24 +297,13 @@
 											this={taskEntry.component} 
 											config={task.config}
 											readonly={isCompleted}
+											onComplete={async () => await verifyAndSubmitTask(task.id, task.type, task.config)}
 										/>
 									{:else}
 										<p>Task type: {task.type}</p>
 										<pre>{JSON.stringify(task.config, null, 2)}</pre>
 									{/if}
 								</div>
-
-								{#if !isCompleted}
-									<div class="task-actions">
-										<button 
-											class="primary-btn" 
-											on:click={() => submitTask(task.id, task.type)}
-											disabled={isSubmitting}
-										>
-											{isSubmitting ? 'Submitting...' : 'Submit Task'}
-										</button>
-									</div>
-								{/if}
 							</div>
 						{/each}
 					</div>
