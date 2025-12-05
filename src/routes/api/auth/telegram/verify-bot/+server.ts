@@ -20,43 +20,68 @@ export async function POST({ request, locals }: any) {
 			throw error(500, 'Telegram bot token not configured');
 		}
 
-		// Check if bot is in the chat (channel/group)
-		// Telegram API uses GET with query params
-		const url = new URL(`https://api.telegram.org/bot${botToken}/getChat`);
+		// STEP 1: Get bot's own Telegram userId
+		const getMeUrl = `https://api.telegram.org/bot${botToken}/getMe`;
+		const meRes = await fetch(getMeUrl);
+		const meData = await meRes.json();
+
+		if (!meData.ok) {
+			console.error("Failed to get bot info:", meData);
+			throw error(500, 'Failed to read bot identity');
+		}
+
+		const botUserId = meData.result.id;
+		console.log("Bot Telegram User ID:", botUserId);
+
+		// STEP 2: Check bot membership using getChatMember
+		const url = new URL(`https://api.telegram.org/bot${botToken}/getChatMember`);
 		url.searchParams.set('chat_id', chatId);
-		
+		url.searchParams.set('user_id', botUserId.toString());
+
 		console.log('Calling Telegram API:', url.toString().replace(botToken, 'REDACTED'));
-		
+
 		const response = await fetch(url.toString());
 		const data = await response.json();
 
-		console.log('Telegram API response:', { 
-			ok: response.ok, 
+		console.log('Telegram API response:', {
+			ok: response.ok,
 			status: response.status,
-			dataOk: data.ok,
-			errorCode: data.error_code,
-			description: data.description
+			data,
 		});
 
-		if (!response.ok || !data.ok) {
-			// Bot not in chat or chat doesn't exist
-			if (data.error_code === 400 || data.error_code === 403) {
-				console.log('Bot not in chat (400/403)');
-				return json({ botInChat: false, error: data.description });
-			}
-			
-			console.error('Telegram API error:', data);
-			throw error(400, data.description || 'Failed to check bot status');
+		if (!data.ok) {
+			// Bot not in chat / insufficient permissions / invalid chat
+			return json({
+				botInChat: false,
+				error: data.description ?? 'Bot not found in chat',
+			});
 		}
 
-		// Bot can access the chat, so it's a member
-		console.log('Bot verified in chat:', chatId);
-		return json({ botInChat: true, chatInfo: data.result });
+		const status = data.result.status;
+
+		// Valid statuses include "administrator", "member", "creator"
+		const isMember =
+			status === 'administrator' ||
+			status === 'creator' ||
+			status === 'member';
+
+		if (!isMember) {
+			return json({
+				botInChat: false,
+				error: `Bot found but not a member (status: ${status})`,
+			});
+		}
+
+		// Success
+		return json({
+			botInChat: true,
+			status,
+			memberInfo: data.result,
+		});
+
 	} catch (err: any) {
 		console.error('Telegram bot verification error:', err);
-		if (err.status) {
-			throw err; // Re-throw SvelteKit errors
-		}
+		if (err.status) throw err;
 		throw error(500, err.message || 'Failed to verify bot');
 	}
 }
