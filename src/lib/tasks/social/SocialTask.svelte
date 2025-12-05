@@ -130,24 +130,29 @@
         body: JSON.stringify({ chatId: telegramSetup.channelId })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        telegramSetup.botAdded = data.botInChat;
-        if (!data.botInChat) {
-          alert('Bot not found in channel/group. Please make sure you added the bot as admin and try again.');
-        } else {
-          config = {
-            ...config,
-            telegram: {
-              ...config.telegram,
-              channelId: telegramSetup.channelId
-            }
-          };
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      telegramSetup.botAdded = data.botInChat;
+      
+      if (!data.botInChat) {
+        alert('Bot not found in channel/group. Please make sure you added the bot as admin and try again.');
+      } else {
+        alert('✓ Bot verified successfully!');
+        config = {
+          ...config,
+          telegram: {
+            ...config.telegram,
+            channelId: telegramSetup.channelId
+          }
+        };
       }
     } catch (err) {
       console.error('Failed to verify bot:', err);
-      alert('Failed to verify bot. Please try again.');
+      alert(`Failed to verify bot: ${err instanceof Error ? err.message : 'Please try again'}`);
     } finally {
       telegramSetup.checking = false;
     }
