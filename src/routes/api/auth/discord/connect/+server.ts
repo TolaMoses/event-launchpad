@@ -28,13 +28,22 @@ export async function GET({ url, locals, cookies }: any) {
 		maxAge: 60 * 10
 	});
 
+	// Check if Discord OAuth is configured
+	const clientId = process.env.DISCORD_CLIENT_ID;
+	if (!clientId) {
+		console.error('DISCORD_CLIENT_ID environment variable is not set');
+		throw error(500, 'Discord OAuth is not configured. Please set DISCORD_CLIENT_ID in your .env file.');
+	}
+
 	// Build Discord OAuth URL
 	const discordAuthUrl = new URL('https://discord.com/api/oauth2/authorize');
 	discordAuthUrl.searchParams.set('response_type', 'code');
-	discordAuthUrl.searchParams.set('client_id', process.env.DISCORD_CLIENT_ID || '');
+	discordAuthUrl.searchParams.set('client_id', clientId);
 	discordAuthUrl.searchParams.set('redirect_uri', `${url.origin}/api/auth/discord/callback`);
 	discordAuthUrl.searchParams.set('scope', 'identify guilds guilds.members.read');
 	discordAuthUrl.searchParams.set('state', state);
+
+	console.log('Redirecting to Discord OAuth with client_id:', clientId);
 
 	throw redirect(302, discordAuthUrl.toString());
 }

@@ -152,7 +152,12 @@
       }
     } catch (err) {
       console.error('Failed to verify bot:', err);
-      alert(`Failed to verify bot: ${err instanceof Error ? err.message : 'Please try again'}`);
+      const errorMsg = err instanceof Error ? err.message : 'Please try again';
+      if (errorMsg.includes('Unauthorized')) {
+        alert('Please log in first to verify the bot.');
+      } else {
+        alert(`Failed to verify bot: ${errorMsg}`);
+      }
     } finally {
       telegramSetup.checking = false;
     }
