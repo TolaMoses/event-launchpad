@@ -84,10 +84,23 @@
     };
   }
 
-  function getDiscordBotInviteUrl(): string {
-    const botClientId = 'YOUR_BOT_CLIENT_ID'; // Should come from env/config
-    const permissions = '268437504';
-    return `https://discord.com/oauth2/authorize?client_id=${botClientId}&permissions=${permissions}&scope=bot`;
+  async function getDiscordBotInviteUrl(): Promise<string> {
+    // Fetch the bot client ID from the backend
+    const response = await fetch('/api/config/discord-bot');
+    const data = await response.json();
+    const botClientId = data.clientId || '';
+    const permissions = '268437504'; // Read Members + Read Messages
+    const guildId = discordSetup.selectedGuildId;
+    
+    // Pre-select the guild to make it easier for the creator
+    return `https://discord.com/oauth2/authorize?client_id=${botClientId}&permissions=${permissions}&scope=bot${guildId ? `&guild_id=${guildId}` : ''}`;
+  }
+
+  async function addBotToServer() {
+    if (!discordSetup.selectedGuildId) return;
+    
+    const inviteUrl = await getDiscordBotInviteUrl();
+    window.open(inviteUrl, '_blank');
   }
 
   async function verifyDiscordBot() {
@@ -101,16 +114,35 @@
         body: JSON.stringify({ guildId: discordSetup.selectedGuildId })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        discordSetup.botAdded = data.botInGuild;
-        if (!data.botInGuild) {
-          alert('Bot not found in server. Please make sure you added the bot and try again.');
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      discordSetup.botAdded = data.botInGuild;
+      
+      if (!data.botInGuild) {
+        alert('Bot not found in server. Please make sure you added the bot and try again.');
+      } else {
+        alert('✓ Bot verified successfully!');
+        config = {
+          ...config,
+          discord: {
+            ...config.discord,
+            serverId: discordSetup.selectedGuildId,
+            serverName: discordSetup.selectedGuildName
+          }
+        };
       }
     } catch (err) {
       console.error('Failed to verify bot:', err);
-      alert('Failed to verify bot. Please try again.');
+      const errorMsg = err instanceof Error ? err.message : 'Please try again';
+      if (errorMsg.includes('Unauthorized')) {
+        alert('Please log in first to verify the bot.');
+      } else {
+        alert(`Failed to verify bot: ${errorMsg}`);
+      }
     } finally {
       discordSetup.checking = false;
     }
@@ -350,14 +382,13 @@
               {#if discordSetup.botAdded}<span class="check">✓</span>{/if}
             </div>
             {#if !discordSetup.botAdded}
-              <a 
-                href={getDiscordBotInviteUrl()} 
-                target="_blank" 
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                on:click={addBotToServer}
                 class="primary-btn"
               >
                 Add Bot to Server
-              </a>
+              </button>
               <p class="helper-text">After adding the bot, click verify below:</p>
               <button 
                 type="button" 

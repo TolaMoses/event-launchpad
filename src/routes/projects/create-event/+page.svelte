@@ -379,7 +379,7 @@
   }
 
   function getBotInviteUrl(): string {
-    const botClientId = 'YOUR_BOT_CLIENT_ID'; // This should come from env or config
+    const botClientId = process.env.DISCORD_CLIENT_ID; // This should come from env or config
     const permissions = '268437504'; // Read Members + Read Messages
     return `https://discord.com/oauth2/authorize?client_id=${botClientId}&permissions=${permissions}&scope=bot`;
   }
