@@ -20,6 +20,22 @@ export async function GET({ url, locals, cookies }: any) {
 	}
 
 	try {
+		const clientId = process.env.DISCORD_CLIENT_ID;
+		const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+
+		if (!clientId || !clientSecret) {
+			console.error('Discord OAuth not configured:', { 
+				hasClientId: !!clientId, 
+				hasClientSecret: !!clientSecret 
+			});
+			throw error(500, 'Discord OAuth is not configured. Please set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET.');
+		}
+
+		console.log('Exchanging Discord code for token...', { 
+			userId: locals.user.id,
+			redirectUri: `${url.origin}/api/auth/discord/callback`
+		});
+
 		// Exchange code for access token
 		const tokenResponse = await fetch('https://discord.com/api/v10/oauth2/token', {
 			method: 'POST',
@@ -27,8 +43,8 @@ export async function GET({ url, locals, cookies }: any) {
 				'Content-Type': 'application/x-www-form-urlencoded'
 			},
 			body: new URLSearchParams({
-				client_id: process.env.DISCORD_CLIENT_ID || '',
-				client_secret: process.env.DISCORD_CLIENT_SECRET || '',
+				client_id: clientId,
+				client_secret: clientSecret,
 				grant_type: 'authorization_code',
 				code,
 				redirect_uri: `${url.origin}/api/auth/discord/callback`
@@ -36,7 +52,12 @@ export async function GET({ url, locals, cookies }: any) {
 		});
 
 		if (!tokenResponse.ok) {
-			throw new Error('Failed to exchange code for token');
+			const errorData = await tokenResponse.json().catch(() => ({}));
+			console.error('Discord token exchange failed:', { 
+				status: tokenResponse.status,
+				error: errorData 
+			});
+			throw new Error(`Failed to exchange code for token: ${errorData.error || tokenResponse.status}`);
 		}
 
 		const tokens = await tokenResponse.json();
@@ -49,19 +70,28 @@ export async function GET({ url, locals, cookies }: any) {
 		});
 
 		if (!userResponse.ok) {
+			const errorData = await userResponse.json().catch(() => ({}));
+			console.error('Failed to fetch Discord user info:', { 
+				status: userResponse.status,
+				error: errorData 
+			});
 			throw new Error('Failed to fetch user info');
 		}
 
 		const discordUser = await userResponse.json();
+		console.log('Discord user fetched:', { 
+			discordId: discordUser.id, 
+			username: discordUser.username 
+		});
 
 		// Store connection in database
-		await supabaseAdmin
+		const { data: dbData, error: dbError } = await supabaseAdmin
 			.from('social_connections')
 			.upsert({
 				user_id: locals.user.id,
 				platform: 'discord',
 				platform_user_id: discordUser.id,
-				username: `${discordUser.username}#${discordUser.discriminator}`,
+				username: `${discordUser.username}#${discordUser.discriminator || '0'}`,
 				access_token: tokens.access_token,
 				refresh_token: tokens.refresh_token,
 				token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
@@ -74,6 +104,13 @@ export async function GET({ url, locals, cookies }: any) {
 				onConflict: 'user_id,platform'
 			});
 
+		if (dbError) {
+			console.error('Failed to store Discord connection:', dbError);
+			throw new Error(`Database error: ${dbError.message}`);
+		}
+
+		console.log('Discord connection stored successfully');
+
 		// Clear cookies
 		cookies.delete('discord_oauth_state', { path: '/' });
 
@@ -82,8 +119,12 @@ export async function GET({ url, locals, cookies }: any) {
 		cookies.delete('oauth_return_to', { path: '/' });
 
 		throw redirect(302, returnTo);
-	} catch (err) {
+	} catch (err: any) {
+		// Allow SvelteKit redirects/errors to bubble up
+		if (err && typeof err === 'object' && 'status' in err) {
+			throw err;
+		}
 		console.error('Discord OAuth error:', err);
-		throw error(500, 'Failed to connect Discord account');
+		throw error(500, err?.message || 'Failed to connect Discord account');
 	}
 }
