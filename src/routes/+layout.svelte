@@ -51,6 +51,9 @@
   );
 
   export let data;
+  
+  // Reactively hydrate wallet store from server session on each navigation
+  $: hydrateWalletFromSession(data?.me ?? null);
 
   let selectedChainId = "";
   let chainMenuOpen = false;
