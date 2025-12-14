@@ -1,3 +1,7 @@
+<script context="module" lang="ts">
+  export const ssr = false;
+</script>
+
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { ethers } from "ethers";
@@ -357,7 +361,9 @@
     loadFormDraft();
     checkDiscordConnection();
     // Ensure we don't lose the latest edits when navigating away (e.g., Discord OAuth)
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    if (browser) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
   });
 
   // Discord bot setup functions
@@ -375,6 +381,7 @@
   }
 
   function connectDiscord() {
+    if (!browser) return;
     const currentUrl = window.location.href;
     // Persist draft before the hard redirect to Discord OAuth
     saveFormDraft();
@@ -391,7 +398,11 @@
     try {
       const res = await fetch('/api/config/discord-bot');
       const data = await res.json().catch(() => ({}));
-      const botClientId = data.clientId || '';
+      const botClientId: string | undefined = data.clientId;
+      if (!botClientId) {
+        console.error('DISCORD_CLIENT_ID not configured');
+        return '';
+      }
       const permissions = '268437504'; // Read Members + Read Messages
       const guildId = discordBotSetup.selectedGuildId;
       return `https://discord.com/oauth2/authorize?client_id=${botClientId}&permissions=${permissions}&scope=bot${guildId ? `&guild_id=${guildId}` : ''}`;
@@ -403,8 +414,9 @@
 
   async function addBotToServer() {
     if (!discordBotSetup.selectedGuildId) return;
+    if (!browser) return;
     const inviteUrl = await getBotInviteUrl();
-    if (!inviteUrl || inviteUrl.includes('client_id=')) {
+    if (!inviteUrl) {
       alert('Discord Bot Client ID is not configured.');
       return;
     }
@@ -499,13 +511,15 @@
   }
 
   onDestroy(() => {
-    if (bannerPreview) {
-      URL.revokeObjectURL(bannerPreview);
+    if (browser) {
+      if (bannerPreview) {
+        URL.revokeObjectURL(bannerPreview);
+      }
+      if (logoPreview) {
+        URL.revokeObjectURL(logoPreview);
+      }
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     }
-    if (logoPreview) {
-      URL.revokeObjectURL(logoPreview);
-    }
-    window.removeEventListener('beforeunload', handleBeforeUnload);
   });
 
   function updateDateTimes() {
