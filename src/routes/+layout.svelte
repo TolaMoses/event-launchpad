@@ -57,6 +57,23 @@
   // Reactively hydrate wallet store from server session on each navigation
   $: hydrateWalletFromSession(data?.me ?? null);
 
+  $: sessionUser = data?.user ?? null;
+  $: walletState = $walletStore;
+  $: derivedUser = sessionUser
+    ? sessionUser
+    : walletState.connected
+    ? {
+        username: sessionUser?.username ??
+          (sessionUser?.user_metadata?.username ?? walletState.truncatedAddress ?? "Connected Wallet"),
+        wallet_address: walletState.address,
+        profile_picture:
+          sessionUser?.profile_picture ??
+          sessionUser?.user_metadata?.profile_picture ??
+          null
+      }
+    : null;
+  $: isLoggedIn = Boolean(derivedUser);
+
   let selectedChainId = "";
   let chainMenuOpen = false;
   let mobileMenuOpen = false;
@@ -206,58 +223,40 @@
 				<button class="green-button">Create Event</button>
 			</a>
 			<a class="home-link nav-link" href="/">Home</a>
-			<a class="dashboard-link nav-link" href="/giveaways">Giveaways</a>
+			<a class="dashboard-link nav-link" href="/giveaway">Giveaway</a>
 			<a class="dashboard-link nav-link" href="/games">Games</a>
       <a class="dashboard-link nav-link" href="/projects">My Events</a>
-			<div class="wallet-area">
-				<LoginDropdown 
-					user={data?.me}
-					isLoggedIn={!!data?.me}
-					on:connectWallet={handleConnect}
-					on:logout={handleDisconnect}
-				/>
+			      <div class="wallet-area">
+        <LoginDropdown 
+          user={derivedUser}
+          isLoggedIn={isLoggedIn}
+          on:connectWallet={handleConnect}
+          on:logout={handleDisconnect}
+        />
 			</div>
 			<label
 				class="hamburger-button"
 				for="mobile-menu-toggle"
 				aria-label="Toggle navigation menu"
-				aria-controls="mobile-menu"
-				aria-expanded={mobileMenuOpen}
-			>
-				<span></span>
-				<span></span>
-				<span></span>
-			</label>
-		</div>
-	</div>
-	<div id="mobile-menu" class="mobile-menu-overlay">
-		<div class="mobile-menu-content">
-			<div class="mobile-menu-header">
-				<a href="/" aria-label="MoonFlux home" class="logo-link mobile-logo">
-					<img src={logo} alt="MoonFlux.fun's logo" />
-				</a>
-				<label
-					for="mobile-menu-toggle"
-					class="close-button"
-					aria-label="Close navigation menu"
-				>
+{{ ... }}
 					×
 				</label>
 			</div>
 			<hr />
 			<div class="mobile-menu-links">
-				<div class="mobile-login-wrapper">
-					<LoginDropdown 
-						user={data?.me}
-						isLoggedIn={!!data?.me}
-						on:connectWallet={handleConnect}
-						on:logout={handleDisconnect}
-					/>
+				        <div class="mobile-login-wrapper">
+          <LoginDropdown 
+            user={derivedUser}
+            isLoggedIn={isLoggedIn}
+            on:connectWallet={handleConnect}
+            on:logout={handleDisconnect}
+          />
 				</div>
 				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/">Home</a>
         <a class="mobile-menu-link" on:click={closeMobileMenu} href="/projects">My Events</a>
-				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/giveaways">Giveaways</a>
+				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/giveaway">Giveaway</a>
 				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/games">Games</a>
+{{ ... }}
 				<div class="top-nav-socials mobile-socials">
 					<img src={xLogo} alt="Twitter X logo" />
 					<img src={discordLogo} alt="Discord logo" />
