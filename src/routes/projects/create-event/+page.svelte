@@ -183,6 +183,24 @@
   let editingRewardId: string | null = null;
 
   // Legacy variables kept for backward compatibility during migration
+  let prizeType = "";
+  let prizeAddress = "";
+  let prizePool = "";
+  let distributionType: "even" | "custom" = "even";
+  let positionRewards: PositionReward[] = [];
+  let customTokenSymbol = "";
+  let customTokenAddress = "";
+  let customTokenDecimals = "";
+  let nfts: NftInput[] = [];
+  let nftDistributionType: "even" | "custom" = "even";
+  let nftPositionDistribution: NftDistributionPosition[] = [];
+  let mintableNfts: MintableNft[] = [];
+  let mintableNftDistributionType: "random" | "custom" = "random";
+  let mintableNftPositionDistribution: NftDistributionPosition[] = [];
+  let giftDescription = "";
+  let giftValue = "";
+  let voucherDescription = "";
+  let voucherCodes: string[] = [];
   let maxTickets = "";
   let videoUrl = "";
   let availableTokens: { symbol: string; address: string; decimals: number }[] = [];
