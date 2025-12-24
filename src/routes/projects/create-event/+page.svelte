@@ -1976,8 +1976,16 @@
   }
 
   .section-title {
+    margin: 0;
+    font-size: 1.32rem;
+    font-weight: 700;
+  }
+
   .section-description {
-    gap: 1.2rem;
+    margin: -0.25rem 0 0;
+    color: rgba(242, 243, 255, 0.78);
+    font-size: 0.95rem;
+    line-height: 1.6;
   }
 
   .form-group {
