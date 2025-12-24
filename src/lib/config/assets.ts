@@ -64,13 +64,19 @@ export const ASSETS = {
 		]
 	},
 
+	// General Images
+	images: {
+		banner: '/images/phaeton-banner.png',
+		pfp: '/icons/pfp.png'
+	},
+
 	// Icons
 	icons: {
 		// Social Media
 		social: {
-			discord: '/icons/social/discord.svg',
-			telegram: '/icons/social/telegram.svg',
-			twitter: '/icons/social/twitter.svg',
+			discord: '/icons/discord-logo.svg',
+			telegram: '/icons/telegram-logo.svg',
+			twitter: '/icons/x-logo.svg',
 			github: '/icons/social/github.svg'
 		},
 		// Wallets

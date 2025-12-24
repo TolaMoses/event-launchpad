@@ -12,7 +12,6 @@
   import { taskRegistry } from "$lib/tasks";
   import type { TaskInstance, TaskRegistryEntry, TaskTypeKey } from "$lib/tasks/TaskTypes";
   import { browser } from "$app/environment";
-  import RewardsModal from "$lib/components/RewardsModal.svelte";
 
   type NftInput = {
     id: string;
@@ -54,7 +53,8 @@
     { value: "NFT", label: "Existing NFT" },
     { value: "MintableNFT", label: "Mintable NFT (participants mint after tasks)" },
     { value: "Gift", label: "Gift/Merch (physical items shipped to winners)" },
-    { value: "Voucher", label: "Voucher/Code (digital codes sent to winners)" }
+    { value: "Voucher", label: "Voucher/Code (digital codes sent to winners)" },
+    { value: "CustomPoints", label: "Custom Points (point-based reward system)" }
   ];
 
   const MAX_BANNER_SIZE = 500 * 1024;
@@ -105,6 +105,16 @@
   let eventStartISO: string | null = null;
   let eventEndISO: string | null = null;
   let scheduleError = "";
+  
+  // Auto-scroll to form when event type is selected
+  $: if (eventType && browser) {
+    setTimeout(() => {
+      const formSection = document.querySelector('.form-block');
+      if (formSection) {
+        formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  }
 
   let numWinners = "";
   let bannerFile: File | null = null;
@@ -143,10 +153,9 @@
   let maxTickets = "";
   let nfts: NftInput[] = [];
   
-  // Advanced rewards modal
-  let showRewardsModal = false;
-  let advancedRewards: any[] = [];
-  let pointSystem: any = null;
+  // Custom Points configuration
+  let customPointName = "";
+  let leaderboardEnabled = false;
   let nftDistributionType: "even" | "custom" = "even";
   let nftPositionDistribution: NftDistributionPosition[] = [];
   let mintableNfts: MintableNft[] = [];
@@ -903,13 +912,6 @@
     return errors.length === 0;
   }
 
-  function handleRewardsSaved(event: CustomEvent) {
-    const { rewards, pointSystem: ps } = event.detail;
-    advancedRewards = rewards;
-    pointSystem = ps;
-    showRewardsModal = false;
-  }
-
   async function createEvent() {
     submitAttempted = true;
     validationErrors = [];
@@ -1292,17 +1294,10 @@
 
     {#if eventType === "quick_event"}
     <div class="form-block">
-      <div class="section-header-with-action">
-        <div>
-          <h2 class="section-title">Reward Configuration</h2>
-          <p class="section-description">
-            Detail the exact reward mechanics that will be enforced by smart contracts or backend logic.
-          </p>
-        </div>
-        <button type="button" class="ghost-btn" on:click={() => showRewardsModal = true}>
-          ⚡ Advanced Rewards
-        </button>
-      </div>
+      <h2 class="section-title">Reward Configuration</h2>
+      <p class="section-description">
+        Detail the exact reward mechanics that will be enforced by smart contracts or backend logic.
+      </p>
 
       <div class="form-group">
         <label for="prize-type-detail">Detailed prize type</label>
@@ -1770,6 +1765,28 @@
         </div>
       {/if}
 
+      {#if prizeType === "CustomPoints"}
+        <div class="form-group">
+          <label for="custom-point-name">Point Name</label>
+          <input
+            id="custom-point-name"
+            type="text"
+            placeholder="e.g., XP, Stars, Credits"
+            bind:value={customPointName}
+            required
+          />
+          <p class="field-hint">Choose a name for your custom points (e.g., "XP", "Stars", "Credits")</p>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" bind:checked={leaderboardEnabled} />
+            <span>Enable Leaderboard</span>
+          </label>
+          <p class="field-hint">Display a leaderboard showing top participants by points earned</p>
+        </div>
+      {/if}
+
       <div class="form-group readonly">
         <label>Reward distribution summary</label>
         <input
@@ -1789,6 +1806,8 @@
               ? `Physical gift/merch (est. $${giftValue || 0}) - shipped to winners`
               : prizeType === "Voucher"
               ? `${voucherCodes.length} voucher code${voucherCodes.length === 1 ? "" : "s"} - sent digitally to winners`
+              : prizeType === "CustomPoints"
+              ? `Point-based system${customPointName ? ` (${customPointName})` : ""}${leaderboardEnabled ? " with leaderboard" : ""}`
               : numWinners
               ? "—"
               : "All eligible participants rewarded"
@@ -1928,17 +1947,6 @@
   </form>
 </section>
 
-<!-- Advanced Rewards Modal -->
-{#if showRewardsModal}
-  <RewardsModal
-    eventId=""
-    existingRewards={advancedRewards}
-    existingPointSystem={pointSystem}
-    on:saved={handleRewardsSaved}
-    on:close={() => showRewardsModal = false}
-  />
-{/if}
-
 <style>
   .form-section {
     max-width: 980px;
@@ -1967,30 +1975,8 @@
     border: 1px solid rgba(255, 255, 255, 0.07);
   }
 
-  .section-header-with-action {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-  }
-
   .section-title {
-    margin: 0;
-    font-size: 1.32rem;
-    font-weight: 700;
-  }
-
   .section-description {
-    margin: -0.25rem 0 0;
-    color: rgba(242, 243, 255, 0.78);
-    font-size: 0.95rem;
-    line-height: 1.6;
-  }
-
-  .grid-two {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.2rem;
   }
 
@@ -2564,6 +2550,24 @@
     color: rgba(242, 243, 255, 0.85);
     font-size: 0.9rem;
     padding-left: 0.5rem;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+  }
+
+  .checkbox-label span {
+    user-select: none;
   }
 
   @media (max-width: 720px) {
