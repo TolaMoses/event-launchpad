@@ -619,57 +619,6 @@
     editingTaskIndex = null;
   }
 
-  function addMintableNft() {
-    const defaultPercentage = mintableNfts.length === 0 ? "100" : "0";
-    mintableNfts = [
-      ...mintableNfts,
-      {
-        id: generateId(),
-        name: "",
-        description: "",
-        imageFile: null,
-        imagePreview: "",
-        supply: "",
-        rarity: "Common",
-        rarityPercentage: defaultPercentage,
-        uploadedImage: null
-      }
-    ];
-  }
-
-  function removeMintableNft(index: number) {
-    if (mintableNfts[index].imagePreview) {
-      URL.revokeObjectURL(mintableNfts[index].imagePreview);
-    }
-    mintableNfts = mintableNfts.filter((_, i) => i !== index);
-  }
-
-  function handleMintableNftImageUpload(index: number, event: Event) {
-    const input = event.currentTarget as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-
-    if (mintableNfts[index].imagePreview) {
-      URL.revokeObjectURL(mintableNfts[index].imagePreview);
-    }
-
-    if (!file) {
-      mintableNfts[index].imageFile = null;
-      mintableNfts[index].imagePreview = "";
-      return;
-    }
-
-    const MAX_NFT_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
-    if (file.size > MAX_NFT_IMAGE_SIZE) {
-      alert("NFT image must be 2 MB or less.");
-      input.value = "";
-      return;
-    }
-
-    mintableNfts[index].imageFile = file;
-    mintableNfts[index].imagePreview = URL.createObjectURL(file);
-    mintableNfts = [...mintableNfts];
-  }
-
   function editTask(index: number) {
     const task = tasks[index];
     if (!task) return;
@@ -900,10 +849,6 @@
 
   function updateNftField(index: number, field: "contract" | "tokenId", value: string) {
     // No-op - direct binding now used
-  }
-
-  function addMintableNft() {
-    // No-op - replaced by addMintableNftToReward
   }
 
   function removeMintableNft(index: number) {
