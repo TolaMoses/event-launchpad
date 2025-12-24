@@ -34,12 +34,39 @@
     nativeCurrency: { symbol: chainSymbols[Number(id)] ?? "ETH" }
   }));
 
+  type WalletView = {
+    address: string | null;
+    chainId: number | null;
+    chainName: string;
+    truncatedAddress: string;
+    connecting: boolean;
+    connected: boolean;
+    error: string | null;
+  };
+
+  type SessionUser = {
+    username?: string | null;
+    wallet_address?: string | null;
+    profile_picture?: string | null;
+    user_metadata?: {
+      username?: string | null;
+      wallet_address?: string | null;
+      profile_picture?: string | null;
+    } | null;
+  } | null;
+
+  type DerivedUserInfo = {
+    username?: string | null;
+    wallet_address?: string | null;
+    profile_picture?: string | null;
+  } | null;
+
   const connecting = writable(false);
   const walletError = writable<string | null>(null);
 
   const walletStore = derived(
     [walletAddress, chainId, chainName, connecting, walletError],
-    ([$walletAddress, $chainId, $chainName, $connecting, $error]) => ({
+    ([$walletAddress, $chainId, $chainName, $connecting, $error]): WalletView => ({
       address: $walletAddress,
       chainId: $chainId,
       chainName: $chainName ?? "Select chain",
@@ -57,19 +84,40 @@
   // Reactively hydrate wallet store from server session on each navigation
   $: hydrateWalletFromSession(data?.me ?? null);
 
-  $: sessionUser = data?.user ?? null;
+  let sessionUser: SessionUser = null;
+  let walletState: WalletView = {
+    address: null,
+    chainId: null,
+    chainName: "Select chain",
+    truncatedAddress: "",
+    connecting: false,
+    connected: false,
+    error: null
+  };
+  let derivedUser: DerivedUserInfo = null;
+  let isLoggedIn = false;
+
+  $: sessionUser = (data?.user ?? null) as SessionUser;
   $: walletState = $walletStore;
   $: derivedUser = sessionUser
-    ? sessionUser
+    ? {
+        username: sessionUser.username ??
+          sessionUser.user_metadata?.username ??
+          (walletState.truncatedAddress || "Connected Wallet"),
+        wallet_address:
+          sessionUser.wallet_address ??
+          sessionUser.user_metadata?.wallet_address ??
+          walletState.address,
+        profile_picture:
+          sessionUser.profile_picture ??
+          sessionUser.user_metadata?.profile_picture ??
+          null
+      }
     : walletState.connected
     ? {
-        username: sessionUser?.username ??
-          (sessionUser?.user_metadata?.username ?? walletState.truncatedAddress ?? "Connected Wallet"),
+        username: walletState.truncatedAddress || "Connected Wallet",
         wallet_address: walletState.address,
-        profile_picture:
-          sessionUser?.profile_picture ??
-          sessionUser?.user_metadata?.profile_picture ??
-          null
+        profile_picture: null
       }
     : null;
   $: isLoggedIn = Boolean(derivedUser);
@@ -94,6 +142,12 @@
 
   function closeMobileMenu() {
     mobileMenuOpen = false;
+  }
+
+  function handleOverlayKey(event: KeyboardEvent) {
+    if (event.key === "Escape" || event.key === "Enter" || event.key === " ") {
+      closeMobileMenu();
+    }
   }
 
   async function handleConnect() {
@@ -225,39 +279,62 @@
 			<a class="home-link nav-link" href="/">Home</a>
 			<a class="dashboard-link nav-link" href="/giveaway">Giveaway</a>
 			<a class="dashboard-link nav-link" href="/games">Games</a>
-      <a class="dashboard-link nav-link" href="/projects">My Events</a>
-			      <div class="wallet-area">
-        <LoginDropdown 
-          user={derivedUser}
-          isLoggedIn={isLoggedIn}
-          on:connectWallet={handleConnect}
-          on:logout={handleDisconnect}
-        />
+			<a class="dashboard-link nav-link" href="/projects">My Events</a>
+			<div class="wallet-area">
+				<LoginDropdown
+					user={derivedUser}
+					isLoggedIn={isLoggedIn}
+					on:connectWallet={handleConnect}
+					on:logout={handleDisconnect}
+				/>
 			</div>
 			<label
 				class="hamburger-button"
 				for="mobile-menu-toggle"
 				aria-label="Toggle navigation menu"
-{{ ... }}
+			>
+				<span></span>
+				<span></span>
+				<span></span>
+			</label>
+		</div>
+	</div>
+	<div
+		class="mobile-menu-overlay"
+		tabindex="0"
+		role="button"
+		aria-label="Close navigation menu"
+		on:click={closeMobileMenu}
+		on:keydown={handleOverlayKey}
+	>
+		<div class="mobile-menu-content" on:click|stopPropagation>
+			<div class="mobile-menu-header">
+				<a href="/" aria-label="MoonFlux home" class="mobile-logo" on:click={closeMobileMenu}>
+					<img src={logo} alt="MoonFlux.fun's logo" />
+				</a>
+				<button
+					type="button"
+					class="close-button"
+					on:click|stopPropagation={closeMobileMenu}
+					aria-label="Close navigation menu"
+				>
 					×
-				</label>
+				</button>
 			</div>
-			<hr />
-			<div class="mobile-menu-links">
-				        <div class="mobile-login-wrapper">
-          <LoginDropdown 
-            user={derivedUser}
-            isLoggedIn={isLoggedIn}
-            on:connectWallet={handleConnect}
-            on:logout={handleDisconnect}
-          />
+			<div class="mobile-menu-links" role="menu">
+				<div class="mobile-login-wrapper">
+					<LoginDropdown
+						user={derivedUser}
+						isLoggedIn={isLoggedIn}
+						on:connectWallet={handleConnect}
+						on:logout={handleDisconnect}
+					/>
 				</div>
-				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/">Home</a>
-        <a class="mobile-menu-link" on:click={closeMobileMenu} href="/projects">My Events</a>
-				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/giveaway">Giveaway</a>
-				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/games">Games</a>
-{{ ... }}
-				<div class="top-nav-socials mobile-socials">
+				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/" role="menuitem">Home</a>
+				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/projects" role="menuitem">My Events</a>
+				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/giveaway" role="menuitem">Giveaway</a>
+				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/games" role="menuitem">Games</a>
+				<div class="mobile-socials top-nav-socials">
 					<img src={xLogo} alt="Twitter X logo" />
 					<img src={discordLogo} alt="Discord logo" />
 					<img src={telegramLogo} alt="Telegram logo" />
@@ -266,7 +343,7 @@
 		</div>
 	</div>
 	{#if $walletStore.error && !$walletStore.connecting}
-		<p class="wallet-error">{$walletStore.error}</p>
+		<p class="wallet-error" role="alert">{$walletStore.error}</p>
 	{/if}
 </nav>
 <hr />
@@ -352,110 +429,6 @@
 		align-items: center;
 		margin-left: auto;
 	}
-	.wallet-info {
-		height: 0.8rem;
-		gap: 0.5rem;
-		margin: 0;
-		line-height: 1;
-		align-content: center;
-		background-color: #fff;
-		padding: 1rem;
-		border-radius: 1rem;
-	}
-	.wallet-details {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		line-height: 1.2;
-	}
-	.wallet-info div {
-		line-height: 0;
-		padding: 0;
-		margin: 0;
-	}
-	.chain-selector {
-		position: relative;
-	}
-	.chain-selector.open .chain-chevron {
-		transform: rotate(180deg);
-	}
-	.chain-button {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		background: #fff;
-		border: none;
-		padding: 0;
-		cursor: pointer;
-		font-size: 0.85rem;
-		color: var(--text-color, #000);
-	}
-	.chain-button:hover {
-		opacity: 0.8;
-	}
-	.chain-chevron {
-		font-size: 0.7rem;
-		transition: transform 0.2s ease;
-	}
-	.chain-dropdown {
-		position: absolute;
-		top: calc(100% + 0.5rem);
-		left: 0;
-		background: #0c0d11;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: 0.5rem;
-		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
-		min-width: 12rem;
-		padding: 0.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-		z-index: 1100;
-	}
-	.chain-dropdown.mobile {
-		position: static;
-		width: 100%;
-		margin-top: 0.75rem;
-	}
-	.chain-dropdown button {
-		background: transparent;
-		border: none;
-		color: rgb(13, 112, 199);
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.5rem 0.75rem;
-		border-radius: 0.4rem;
-		cursor: pointer;
-		transition: background 0.2s ease;
-		font-size: 0.85rem;
-	}
-	.chain-dropdown button:hover,
-	.chain-dropdown button.selected {
-		background: rgba(80, 118, 255, 0.18);
-	}
-	.chain-option-name {
-		font-weight: 600;
-	}
-	.chain-option-symbol {
-		opacity: 0.65;
-		font-weight: 500;
-	}
-	.connect-wallet {
-		background-color: var(--blue-color);
-		color: black;
-		border: none;
-		padding: 0.5rem 1rem;
-		border-radius: 1rem;
-		cursor: pointer;
-	}
-	.disconnect-wallet {
-		background-color: var(--red-color);
-	}
-	.connect-wallet:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
 	.hamburger-button {
 		display: none;
 		flex-direction: column;
@@ -500,9 +473,7 @@
 		font-size: 1.1rem;
 		font-weight: 600;
 	}
-	.mobile-wallet {
-		width: fit-content;
-	}
+	
 	.mobile-socials {
 		display: none;
 	}
@@ -579,9 +550,7 @@
 			display: flex;
 			justify-content: space-between;
 		}
-		.mobile-menu-content .wallet-info {
-			margin-top: 0.5rem;
-		}
+		
 		.mobile-socials {
 			display: flex;
 			width: fit-content;
