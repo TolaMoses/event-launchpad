@@ -1,0 +1,1 @@
+// Replace prize_details payload logic in createEvent() with the rewards array. This is a reminder note.

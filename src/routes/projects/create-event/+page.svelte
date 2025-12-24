@@ -12,6 +12,7 @@
   import { taskRegistry } from "$lib/tasks";
   import type { TaskInstance, TaskRegistryEntry, TaskTypeKey } from "$lib/tasks/TaskTypes";
   import { browser } from "$app/environment";
+  import RewardBuilder from "$lib/components/RewardBuilder.svelte";
 
   type NftInput = {
     id: string;
@@ -39,6 +40,37 @@
   type NftDistributionPosition = {
     position: number;
     nftId: string; // references nft.id or mintableNft.id
+  };
+
+  type RewardConfig = {
+    id: string;
+    type: string; // "Token", "ETH", "NFT", etc.
+    // Token/ETH specific
+    chain?: string;
+    tokenAddress?: string;
+    prizePool?: string;
+    distributionType?: "even" | "custom";
+    positionRewards?: PositionReward[];
+    customTokenSymbol?: string;
+    customTokenAddress?: string;
+    customTokenDecimals?: string;
+    // NFT specific
+    nfts?: NftInput[];
+    nftDistributionType?: "even" | "custom";
+    nftPositionDistribution?: NftDistributionPosition[];
+    // Mintable NFT specific
+    mintableNfts?: MintableNft[];
+    mintableNftDistributionType?: "random" | "custom";
+    mintableNftPositionDistribution?: NftDistributionPosition[];
+    // Gift specific
+    giftDescription?: string;
+    giftValue?: string;
+    // Voucher specific
+    voucherDescription?: string;
+    voucherCodes?: string[];
+    // Custom Points specific
+    customPointName?: string;
+    leaderboardEnabled?: boolean;
   };
 
   const registryEntries = Object.entries(taskRegistry) as [TaskTypeKey, TaskRegistryEntry][];
@@ -145,33 +177,17 @@
   };
   let checkingDiscordBot = false;
 
-  let prizeType = "";
-  let prizeAddress = "";
-  let prizePool = "";
-  let distributionType: "even" | "custom" = "even";
-  let positionRewards: PositionReward[] = [];
+  // Rewards array - replaces single prizeType
+  let rewards: RewardConfig[] = [];
+  let selectedRewardType = "";
+  let editingRewardId: string | null = null;
+
+  // Legacy variables kept for backward compatibility during migration
   let maxTickets = "";
-  let nfts: NftInput[] = [];
-  
-  // Custom Points configuration
-  let customPointName = "";
-  let leaderboardEnabled = false;
-  let nftDistributionType: "even" | "custom" = "even";
-  let nftPositionDistribution: NftDistributionPosition[] = [];
-  let mintableNfts: MintableNft[] = [];
-  let mintableNftDistributionType: "random" | "custom" = "random";
-  let mintableNftPositionDistribution: NftDistributionPosition[] = [];
-  let giftDescription = "";
-  let giftValue = "";
-  let voucherDescription = "";
-  let voucherCodes: string[] = [];
-  let voucherCodeInput = "";
   let videoUrl = "";
   let availableTokens: { symbol: string; address: string; decimals: number }[] = [];
   let selectedChain = "";
-  let customTokenSymbol = "";
-  let customTokenAddress = "";
-  let customTokenDecimals = "";
+  let voucherCodeInput = "";
 
   let submitAttempted = false;
   let validationErrors: string[] = [];
@@ -666,15 +682,255 @@
     tasks = tasks.filter((_, i) => i !== index);
   }
 
+  // Reward management functions
+  function addReward() {
+    if (!selectedRewardType) return;
+    
+    const newReward: RewardConfig = {
+      id: generateId(),
+      type: selectedRewardType
+    };
+
+    // Initialize type-specific defaults
+    if (selectedRewardType === "Token" || selectedRewardType === "ETH") {
+      newReward.distributionType = "even";
+      newReward.positionRewards = [];
+      newReward.prizePool = "";
+      if (selectedRewardType === "Token") {
+        newReward.chain = selectedChain || "";
+        newReward.tokenAddress = "";
+      }
+    } else if (selectedRewardType === "NFT") {
+      newReward.nfts = [{ id: generateId(), contract: "", tokenId: "" }];
+      newReward.nftDistributionType = "even";
+      newReward.nftPositionDistribution = [];
+    } else if (selectedRewardType === "MintableNFT") {
+      newReward.mintableNfts = [{
+        id: generateId(),
+        name: "",
+        description: "",
+        imageFile: null,
+        imagePreview: "",
+        supply: "",
+        rarity: "Common",
+        rarityPercentage: "100",
+        uploadedImage: null
+      }];
+      newReward.mintableNftDistributionType = "random";
+      newReward.mintableNftPositionDistribution = [];
+    } else if (selectedRewardType === "Gift") {
+      newReward.giftDescription = "";
+      newReward.giftValue = "";
+    } else if (selectedRewardType === "Voucher") {
+      newReward.voucherDescription = "";
+      newReward.voucherCodes = [];
+    } else if (selectedRewardType === "CustomPoints") {
+      newReward.customPointName = "";
+      newReward.leaderboardEnabled = false;
+    }
+
+    rewards = [...rewards, newReward];
+    editingRewardId = newReward.id;
+    selectedRewardType = "";
+  }
+
+  function removeReward(id: string) {
+    // Clean up any image previews for mintable NFTs
+    const reward = rewards.find(r => r.id === id);
+    if (reward?.mintableNfts) {
+      reward.mintableNfts.forEach(nft => {
+        if (nft.imagePreview) {
+          URL.revokeObjectURL(nft.imagePreview);
+        }
+      });
+    }
+    rewards = rewards.filter(r => r.id !== id);
+    if (editingRewardId === id) {
+      editingRewardId = null;
+    }
+  }
+
+  function editReward(id: string) {
+    editingRewardId = editingRewardId === id ? null : id;
+  }
+
+  function getRewardLabel(reward: RewardConfig): string {
+    const option = detailedPrizeOptions.find(opt => opt.value === reward.type);
+    return option?.label || reward.type;
+  }
+
+  function getRewardSummary(reward: RewardConfig): string {
+    switch (reward.type) {
+      case "Token":
+        return reward.prizePool ? `${reward.prizePool} tokens` : "Token reward";
+      case "ETH":
+        return reward.prizePool ? `${reward.prizePool} ETH` : "ETH reward";
+      case "NFT":
+        return reward.nfts ? `${reward.nfts.length} NFT${reward.nfts.length === 1 ? "" : "s"}` : "NFT reward";
+      case "MintableNFT":
+        return reward.mintableNfts ? `${reward.mintableNfts.length} variant${reward.mintableNfts.length === 1 ? "" : "s"}` : "Mintable NFT";
+      case "Gift":
+        return reward.giftValue ? `Gift ($${reward.giftValue})` : "Gift/Merch";
+      case "Voucher":
+        return reward.voucherCodes ? `${reward.voucherCodes.length} code${reward.voucherCodes.length === 1 ? "" : "s"}` : "Voucher codes";
+      case "CustomPoints":
+        return reward.customPointName ? `${reward.customPointName} points` : "Custom points";
+      default:
+        return reward.type;
+    }
+  }
+
+  // Helper functions for reward-specific operations
+  function addNftToReward(rewardId: string) {
+    rewards = rewards.map(r => {
+      if (r.id === rewardId && r.nfts) {
+        return { ...r, nfts: [...r.nfts, { id: generateId(), contract: "", tokenId: "" }] };
+      }
+      return r;
+    });
+  }
+
+  function removeNftFromReward(rewardId: string, nftIndex: number) {
+    rewards = rewards.map(r => {
+      if (r.id === rewardId && r.nfts) {
+        return { ...r, nfts: r.nfts.filter((_, i) => i !== nftIndex) };
+      }
+      return r;
+    });
+  }
+
+  function addMintableNftToReward(rewardId: string) {
+    rewards = rewards.map(r => {
+      if (r.id === rewardId && r.mintableNfts) {
+        const defaultPercentage = r.mintableNfts.length === 0 ? "100" : "0";
+        return {
+          ...r,
+          mintableNfts: [
+            ...r.mintableNfts,
+            {
+              id: generateId(),
+              name: "",
+              description: "",
+              imageFile: null,
+              imagePreview: "",
+              supply: "",
+              rarity: "Common",
+              rarityPercentage: defaultPercentage,
+              uploadedImage: null
+            }
+          ]
+        };
+      }
+      return r;
+    });
+  }
+
+  function removeMintableNftFromReward(rewardId: string, nftIndex: number) {
+    rewards = rewards.map(r => {
+      if (r.id === rewardId && r.mintableNfts) {
+        const nft = r.mintableNfts[nftIndex];
+        if (nft?.imagePreview) {
+          URL.revokeObjectURL(nft.imagePreview);
+        }
+        return { ...r, mintableNfts: r.mintableNfts.filter((_, i) => i !== nftIndex) };
+      }
+      return r;
+    });
+  }
+
+  function handleMintableNftImageUploadForReward(rewardId: string, nftIndex: number, event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+
+    rewards = rewards.map(r => {
+      if (r.id === rewardId && r.mintableNfts) {
+        const nft = r.mintableNfts[nftIndex];
+        if (nft.imagePreview) {
+          URL.revokeObjectURL(nft.imagePreview);
+        }
+
+        if (!file) {
+          r.mintableNfts[nftIndex].imageFile = null;
+          r.mintableNfts[nftIndex].imagePreview = "";
+          return { ...r, mintableNfts: [...r.mintableNfts] };
+        }
+
+        const MAX_NFT_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
+        if (file.size > MAX_NFT_IMAGE_SIZE) {
+          alert("NFT image must be 2 MB or less.");
+          input.value = "";
+          return r;
+        }
+
+        r.mintableNfts[nftIndex].imageFile = file;
+        r.mintableNfts[nftIndex].imagePreview = URL.createObjectURL(file);
+        return { ...r, mintableNfts: [...r.mintableNfts] };
+      }
+      return r;
+    });
+  }
+
+  function addVoucherCodeToReward(rewardId: string, code: string) {
+    if (!code.trim()) return;
+    rewards = rewards.map(r => {
+      if (r.id === rewardId && r.voucherCodes) {
+        return { ...r, voucherCodes: [...r.voucherCodes, code.trim()] };
+      }
+      return r;
+    });
+  }
+
+  function removeVoucherCodeFromReward(rewardId: string, codeIndex: number) {
+    rewards = rewards.map(r => {
+      if (r.id === rewardId && r.voucherCodes) {
+        return { ...r, voucherCodes: r.voucherCodes.filter((_, i) => i !== codeIndex) };
+      }
+      return r;
+    });
+  }
+
+  // Legacy functions - kept for backward compatibility
   function addNftField() {
-    nfts = [...nfts, { id: generateId(), contract: "", tokenId: "" }];
+    // No-op - replaced by addNftToReward
   }
 
   function removeNftField(index: number) {
-    nfts = nfts.filter((_, i) => i !== index);
+    // No-op - replaced by removeNftFromReward
   }
 
   function updateNftField(index: number, field: "contract" | "tokenId", value: string) {
+    // No-op - direct binding now used
+  }
+
+  function addMintableNft() {
+    // No-op - replaced by addMintableNftToReward
+  }
+
+  function removeMintableNft(index: number) {
+    // No-op - replaced by removeMintableNftFromReward
+  }
+
+  function handleMintableNftImageUpload(index: number, event: Event) {
+    // No-op - replaced by handleMintableNftImageUploadForReward
+  }
+
+  function addVoucherCode() {
+    // No-op - replaced by addVoucherCodeToReward
+  }
+
+  function removeVoucherCode(index: number) {
+    // No-op - replaced by removeVoucherCodeFromReward
+  }
+
+  function oldAddNftField() {
+    nfts = [...nfts, { id: generateId(), contract: "", tokenId: "" }];
+  }
+
+  function oldRemoveNftField(index: number) {
+    nfts = nfts.filter((_, i) => i !== index);
+  }
+
+  function oldUpdateNftField(index: number, field: "contract" | "tokenId", value: string) {
     nfts = nfts.map((nft, i) =>
       i === index
         ? {
@@ -724,7 +980,6 @@
       }
     }
 
-    // For quick events, tasks are required. For communities, they're optional
     if (eventType === "quick_event" && tasks.length === 0) {
       errors.push("Add at least one event task");
     }
@@ -735,178 +990,143 @@
       errors.push("Upload a logo image (150 KB max).");
     }
 
-    // Prize validation - required for quick events, optional for communities
-    if (eventType === "community" && !prizeType) {
-      // Prize is optional for communities, skip validation
-    } else if (prizeType === "Token") {
-      if (!selectedChain) {
-        errors.push("Select a chain for the token prize");
-      }
+    if (eventType === "quick_event" && rewards.length === 0) {
+      errors.push("Add at least one reward for your event");
+    }
 
-      if (!prizeAddress) {
-        errors.push("Select or enter a prize token");
-      }
+    rewards.forEach((reward, index) => {
+      const label = getRewardLabel(reward) || `Reward #${index + 1}`;
 
-      if (prizeAddress === "custom") {
-        if (!customTokenSymbol.trim()) errors.push("Enter custom token symbol");
-        if (!customTokenAddress.trim()) {
-          errors.push("Enter custom token contract address");
-        } else if (!isValidEthereumAddress(customTokenAddress.trim())) {
-          errors.push("Custom token address is not a valid Ethereum address");
+      if (reward.type === "Token") {
+        if (!reward.chain) {
+          errors.push(`${label}: Select a chain`);
         }
-        if (!customTokenDecimals.trim()) {
-          errors.push("Enter custom token decimals");
-        } else if (Number.isNaN(Number(customTokenDecimals)) || Number(customTokenDecimals) < 0) {
-          errors.push("Token decimals must be a non-negative number");
+        if (!reward.tokenAddress) {
+          errors.push(`${label}: Select a token`);
         }
-      }
-
-      if (distributionType === "even") {
-        if (!prizePool || Number(prizePool) <= 0) {
-          errors.push("Enter a positive prize pool");
-        } else {
-          const token = availableTokens.find((t) => t.address === prizeAddress);
-          if (token) {
-            try {
-              const amountWei = ethers.parseUnits(String(prizePool), token.decimals);
-              if (winnersInt && winnersInt > 0) {
-                const winnersBigInt = BigInt(winnersInt);
-                if (amountWei % winnersBigInt !== 0n) {
-                  errors.push(
-                    `Prize pool must divide evenly among winners in ${token.symbol} smallest units`
-                  );
-                }
-              }
-            } catch (error) {
-              errors.push("Invalid prize pool format for selected token");
-            }
+        if (reward.tokenAddress === "custom") {
+          if (!reward.customTokenSymbol?.trim()) {
+            errors.push(`${label}: Enter custom token symbol`);
+          }
+          if (!reward.customTokenAddress?.trim()) {
+            errors.push(`${label}: Enter custom token address`);
+          } else if (!isValidEthereumAddress(reward.customTokenAddress.trim())) {
+            errors.push(`${label}: Custom token address is not valid`);
+          }
+          if (!reward.customTokenDecimals?.trim()) {
+            errors.push(`${label}: Enter token decimals`);
+          } else if (Number.isNaN(Number(reward.customTokenDecimals)) || Number(reward.customTokenDecimals) < 0) {
+            errors.push(`${label}: Token decimals must be non-negative`);
           }
         }
-      } else if (distributionType === "custom") {
-        if (positionRewards.length === 0) {
-          errors.push("Enter rewards for each winner position");
+
+        if (reward.distributionType === "even") {
+          if (!reward.prizePool || Number(reward.prizePool) <= 0) {
+            errors.push(`${label}: Enter a positive prize pool`);
+          }
+        } else if (reward.distributionType === "custom") {
+          const totalPositions = reward.positionRewards?.length || 0;
+          const filled = reward.positionRewards?.filter((pos) => pos.amount && Number(pos.amount) > 0).length || 0;
+          if (totalPositions === 0) {
+            errors.push(`${label}: Add rewards for each winner position`);
+          } else if (filled < totalPositions) {
+            errors.push(`${label}: Fill in all position-based rewards`);
+          }
+        }
+      }
+
+      if (reward.type === "ETH") {
+        if (reward.distributionType === "even") {
+          if (!reward.prizePool || Number(reward.prizePool) <= 0) {
+            errors.push(`${label}: Enter a positive ETH prize pool`);
+          }
+        } else if (reward.distributionType === "custom") {
+          const totalPositions = reward.positionRewards?.length || 0;
+          const filled = reward.positionRewards?.filter((pos) => pos.amount && Number(pos.amount) > 0).length || 0;
+          if (totalPositions === 0) {
+            errors.push(`${label}: Add rewards for each winner position`);
+          } else if (filled < totalPositions) {
+            errors.push(`${label}: Fill in all position-based rewards`);
+          }
+        }
+      }
+
+      if (reward.type === "NFT") {
+        if (!reward.nfts || reward.nfts.length === 0) {
+          errors.push(`${label}: Add at least one NFT`);
         } else {
-          let totalCustomRewards = 0;
-          positionRewards.forEach((reward, i) => {
-            if (!reward.amount || Number(reward.amount) <= 0) {
-              errors.push(`Position #${i + 1}: Enter a positive reward amount`);
-            } else {
-              totalCustomRewards += Number(reward.amount);
+          reward.nfts.forEach((nft, nftIndex) => {
+            if (!nft.contract.trim()) {
+              errors.push(`${label} - NFT #${nftIndex + 1}: Enter contract address`);
+            } else if (!isValidEthereumAddress(nft.contract.trim())) {
+              errors.push(`${label} - NFT #${nftIndex + 1}: Invalid contract address`);
+            }
+            if (!nft.tokenId.trim()) {
+              errors.push(`${label} - NFT #${nftIndex + 1}: Enter token ID`);
             }
           });
-          const token = availableTokens.find((t) => t.address === prizeAddress);
-          if (token && totalCustomRewards > 0) {
-            try {
-              ethers.parseUnits(String(totalCustomRewards), token.decimals);
-            } catch {
-              errors.push("Total custom rewards exceed token precision");
+        }
+      }
+
+      if (reward.type === "MintableNFT") {
+        if (!reward.mintableNfts || reward.mintableNfts.length === 0) {
+          errors.push(`${label}: Add at least one NFT variant`);
+        } else {
+          reward.mintableNfts.forEach((nft, variantIndex) => {
+            if (!nft.name.trim()) errors.push(`${label} - Variant #${variantIndex + 1}: Enter name`);
+            if (!nft.description.trim()) errors.push(`${label} - Variant #${variantIndex + 1}: Enter description`);
+            if (!nft.supply.trim() || Number(nft.supply) <= 0) {
+              errors.push(`${label} - Variant #${variantIndex + 1}: Enter valid supply`);
             }
-          }
-        }
-      }
-    }
-
-    if (prizeType === "ETH" && (!prizePool || Number(prizePool) <= 0)) {
-      errors.push("Enter a positive native coin prize pool");
-    }
-
-    if (prizeType === "NFT") {
-      if (nfts.length === 0) {
-        errors.push("Add at least one NFT prize");
-      } else {
-        nfts.forEach((nft, i) => {
-          if (!nft.contract.trim()) {
-            errors.push(`NFT #${i + 1}: Enter contract address`);
-          } else if (!isValidEthereumAddress(nft.contract.trim())) {
-            errors.push(`NFT #${i + 1}: Invalid Ethereum contract address`);
-          }
-          if (!nft.tokenId.trim()) errors.push(`NFT #${i + 1}: Enter token ID`);
-        });
-
-        if (nftDistributionType === "even") {
-          if (winnersInt && winnersInt > 0 && nfts.length % winnersInt !== 0) {
-            errors.push("Number of NFTs must be divisible by number of winners for even distribution");
-          }
-        } else if (nftDistributionType === "custom") {
-          if (nftPositionDistribution.length === 0) {
-            errors.push("Assign NFTs to winner positions");
-          } else {
-            nftPositionDistribution.forEach((pos, i) => {
-              if (!pos.nftId) {
-                errors.push(`Position #${i + 1}: Select an NFT to assign`);
-              }
-            });
-          }
-        }
-      }
-    }
-
-    if (prizeType === "MintableNFT") {
-      if (mintableNfts.length === 0) {
-        errors.push("Add at least one mintable NFT variant");
-      } else {
-        mintableNfts.forEach((nft, i) => {
-          if (!nft.name.trim()) errors.push(`NFT #${i + 1}: Enter NFT name`);
-          if (!nft.description.trim()) errors.push(`NFT #${i + 1}: Enter description`);
-          if (!nft.supply.trim() || Number(nft.supply) <= 0) {
-            errors.push(`NFT #${i + 1}: Enter a valid supply limit`);
-          }
-          if (!nft.imageFile && !nft.uploadedImage) {
-            errors.push(`NFT #${i + 1}: Upload an NFT image`);
-          }
-        });
-
-        // Validate rarity percentages for random distribution
-        if (mintableNftDistributionType === "random" && mintableNfts.length > 1) {
-          let totalPercentage = 0;
-          mintableNfts.forEach((nft, i) => {
-            const percentage = Number(nft.rarityPercentage);
-            if (!nft.rarityPercentage.trim() || percentage < 0 || percentage > 100) {
-              errors.push(`NFT #${i + 1}: Rarity percentage must be between 0 and 100`);
-            } else {
-              totalPercentage += percentage;
+            if (!nft.imageFile && !nft.uploadedImage) {
+              errors.push(`${label} - Variant #${variantIndex + 1}: Upload an image`);
             }
           });
-          if (Math.abs(totalPercentage - 100) > 0.01) {
-            errors.push(`Total rarity percentages must equal 100% (currently ${totalPercentage.toFixed(1)}%)`);
-          }
-        }
 
-        // Validate custom distribution
-        if (mintableNftDistributionType === "custom") {
-          if (mintableNftPositionDistribution.length === 0) {
-            errors.push("Assign NFT variants to winner positions");
-          } else {
-            mintableNftPositionDistribution.forEach((pos, i) => {
-              if (!pos.nftId) {
-                errors.push(`Position #${i + 1}: Select an NFT variant to assign`);
+          if (reward.mintableNftDistributionType === "random" && reward.mintableNfts.length > 1) {
+            let totalPercentage = 0;
+            reward.mintableNfts.forEach((nft, variantIndex) => {
+              const pct = Number(nft.rarityPercentage);
+              if (!nft.rarityPercentage.trim() || Number.isNaN(pct) || pct < 0 || pct > 100) {
+                errors.push(`${label} - Variant #${variantIndex + 1}: Rarity percentage must be 0-100`);
+              } else {
+                totalPercentage += pct;
               }
             });
+            if (Math.abs(totalPercentage - 100) > 0.01) {
+              errors.push(`${label}: Total rarity percentages must equal 100% (currently ${totalPercentage.toFixed(1)}%)`);
+            }
           }
         }
       }
-    }
 
-    if (prizeType === "Gift") {
-      if (!giftDescription.trim()) {
-        errors.push("Enter a gift/merch description");
+      if (reward.type === "Gift") {
+        if (!reward.giftDescription?.trim()) {
+          errors.push(`${label}: Enter gift description`);
+        }
+        if (!reward.giftValue || Number(reward.giftValue) <= 0) {
+          errors.push(`${label}: Enter estimated value`);
+        }
       }
-      if (!giftValue.trim() || Number(giftValue) <= 0) {
-        errors.push("Enter an estimated gift value");
-      }
-    }
 
-    if (prizeType === "Voucher") {
-      if (!voucherDescription.trim()) {
-        errors.push("Enter voucher description");
+      if (reward.type === "Voucher") {
+        if (!reward.voucherDescription?.trim()) {
+          errors.push(`${label}: Enter voucher description`);
+        }
+        if (!reward.voucherCodes || reward.voucherCodes.length === 0) {
+          errors.push(`${label}: Add at least one voucher code`);
+        }
+        if (winnersInt && winnersInt > 0 && reward.voucherCodes && reward.voucherCodes.length < winnersInt) {
+          errors.push(`${label}: Need at least ${winnersInt} codes (currently ${reward.voucherCodes.length})`);
+        }
       }
-      if (voucherCodes.length === 0) {
-        errors.push("Add at least one voucher code");
+
+      if (reward.type === "CustomPoints") {
+        if (!reward.customPointName?.trim()) {
+          errors.push(`${label}: Enter a point name`);
+        }
       }
-      if (winnersInt && winnersInt > 0 && voucherCodes.length < winnersInt) {
-        errors.push(`Need at least ${winnersInt} voucher codes for ${winnersInt} winners (currently have ${voucherCodes.length})`);
-      }
-    }
+    });
 
     validationErrors = errors;
     return errors.length === 0;
@@ -1296,528 +1516,79 @@
     <div class="form-block">
       <h2 class="section-title">Reward Configuration</h2>
       <p class="section-description">
-        Detail the exact reward mechanics that will be enforced by smart contracts or backend logic.
+        Add one or more rewards for your event. You can combine different reward types.
       </p>
 
+      <!-- Reward Type Selector -->
       <div class="form-group">
-        <label for="prize-type-detail">Detailed prize type</label>
-        <select id="prize-type-detail" bind:value={prizeType} required>
-          <option disabled hidden value="">Select prize type</option>
-          {#each detailedPrizeOptions as option}
-            <option value={option.value}>{option.label}</option>
-          {/each}
-        </select>
+        <label for="reward-type-selector">Add Reward Type</label>
+        <div class="task-selector-row">
+          <select id="reward-type-selector" bind:value={selectedRewardType}>
+            <option value="">Select reward type to add...</option>
+            {#each detailedPrizeOptions as option}
+              <option value={option.value}>{option.label}</option>
+            {/each}
+          </select>
+          <button
+            type="button"
+            class="ghost-btn"
+            on:click={addReward}
+            disabled={!selectedRewardType}
+          >
+            + Add Reward
+          </button>
+        </div>
       </div>
 
-      {#if prizeType === "Token"}
-        <div class="form-group">
-          <label for="prize-chain">Token chain</label>
-          <select id="prize-chain" bind:value={selectedChain}>
-            <option disabled hidden value="">Select chain</option>
-            {#each chainOptions as option}
-              <option value={option.id}>{option.label}</option>
-            {/each}
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="prize-token">Prize token</label>
-          <select id="prize-token" bind:value={prizeAddress} on:change={handleTokenSelect}>
-            <option disabled hidden value="">Select token</option>
-            {#each availableTokens as token}
-              <option value={token.address}>
-                {token.symbol} ({token.decimals} decimals)
-              </option>
-            {/each}
-            <option value="custom">Add custom token…</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="distribution-type">Reward distribution</label>
-          <select id="distribution-type" bind:value={distributionType}>
-            <option value="even">Even split among winners</option>
-            <option value="custom">Custom amount per position</option>
-          </select>
-          <p class="field-hint">
-            {distributionType === "even" 
-              ? "Prize pool will be divided equally among all winners" 
-              : "Specify exact reward for each winner position (1st, 2nd, 3rd, etc.)"}
-          </p>
-        </div>
-
-        {#if distributionType === "even"}
-          <div class="form-group">
-            <label for="token-prize-pool">Total prize pool</label>
-            <input
-              id="token-prize-pool"
-              type="number"
-              min="0"
-              step="any"
-              bind:value={prizePool}
-              required
-            />
-          </div>
-        {:else if distributionType === "custom" && numWinners && Number(numWinners) > 0}
-          <div class="form-group">
-            <label>Position-based rewards (max 10 winners)</label>
-            <p class="field-hint">Enter the reward amount for each winner position</p>
-            <div class="position-rewards-list">
-              {#each positionRewards as reward (reward.position)}
-                <div class="position-reward-row">
-                  <span class="position-label">#{reward.position}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="Amount"
-                    bind:value={reward.amount}
-                    required
-                  />
+      <!-- Rewards List -->
+      {#if rewards.length > 0}
+        <div class="rewards-list">
+          {#each rewards as reward (reward.id)}
+            <div class="reward-card">
+              <div class="reward-card-header">
+                <div class="reward-info">
+                  <h3>{getRewardLabel(reward)}</h3>
+                  <p class="reward-summary">{getRewardSummary(reward)}</p>
                 </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
-
-        {#if prizeAddress === "custom"}
-          <div class="grid-two">
-            <div class="form-group">
-              <label for="custom-token-symbol">Token symbol</label>
-              <input
-                id="custom-token-symbol"
-                type="text"
-                placeholder="e.g. MYT"
-                bind:value={customTokenSymbol}
-              />
-            </div>
-            <div class="form-group">
-              <label for="custom-token-decimals">Token decimals</label>
-              <input
-                id="custom-token-decimals"
-                type="number"
-                min="0"
-                step="1"
-                bind:value={customTokenDecimals}
-              />
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="custom-token-address">Token contract address</label>
-            <input
-              id="custom-token-address"
-              type="text"
-              placeholder="0x..."
-              bind:value={customTokenAddress}
-            />
-          </div>
-        {/if}
-      {/if}
-
-      {#if prizeType === "ETH"}
-        <div class="form-group">
-          <label for="distribution-type-eth">Reward distribution</label>
-          <select id="distribution-type-eth" bind:value={distributionType}>
-            <option value="even">Even split among winners</option>
-            <option value="custom">Custom amount per position</option>
-          </select>
-          <p class="field-hint">
-            {distributionType === "even" 
-              ? "Prize pool will be divided equally among all winners" 
-              : "Specify exact reward for each winner position (1st, 2nd, 3rd, etc.)"}
-          </p>
-        </div>
-
-        {#if distributionType === "even"}
-          <div class="form-group">
-            <label for="native-prize-pool">Total prize pool (ETH)</label>
-            <input id="native-prize-pool" type="number" min="0" step="any" bind:value={prizePool} required />
-          </div>
-        {:else if distributionType === "custom" && numWinners && Number(numWinners) > 0}
-          <div class="form-group">
-            <label>Position-based rewards (max 10 winners)</label>
-            <p class="field-hint">Enter the ETH reward amount for each winner position</p>
-            <div class="position-rewards-list">
-              {#each positionRewards as reward (reward.position)}
-                <div class="position-reward-row">
-                  <span class="position-label">#{reward.position}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="ETH amount"
-                    bind:value={reward.amount}
-                    required
-                  />
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
-      {/if}
-
-      {#if prizeType === "NFT"}
-        <div class="form-group">
-          <label for="nft-distribution-type">NFT Distribution</label>
-          <select id="nft-distribution-type" bind:value={nftDistributionType}>
-            <option value="even">Even distribution (divide NFTs equally among winners)</option>
-            <option value="custom">Custom (assign specific NFTs to positions)</option>
-          </select>
-          <p class="field-hint">
-            {nftDistributionType === "even" 
-              ? "NFTs will be distributed evenly among all winners" 
-              : "Assign specific NFTs to winner positions (1st gets NFT #1, 2nd gets NFT #2, etc.)"}
-          </p>
-        </div>
-
-        <div class="form-group">
-          <div class="group-header">
-            <h3>NFT prizes</h3>
-            <button type="button" class="ghost-btn" on:click={addNftField}>+ Add NFT</button>
-          </div>
-          <div class="nft-list">
-            {#each nfts as nft, index (nft.id)}
-              <div class="nft-row">
-                <input
-                  type="text"
-                  placeholder="Contract address"
-                  bind:value={nft.contract}
-                  on:input={(e) => updateNftField(index, "contract", (e.currentTarget as HTMLInputElement).value)}
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="Token ID"
-                  bind:value={nft.tokenId}
-                  on:input={(e) => updateNftField(index, "tokenId", (e.currentTarget as HTMLInputElement).value)}
-                  required
-                />
-                <button type="button" class="ghost-btn danger" on:click={() => removeNftField(index)}>
-                  Remove
-                </button>
-              </div>
-            {/each}
-          </div>
-        </div>
-
-        {#if nftDistributionType === "custom" && numWinners && Number(numWinners) > 0}
-          <div class="form-group">
-            <label>Position-based NFT Assignment (max 10 winners)</label>
-            <p class="field-hint">Assign which NFT each winner position receives</p>
-            <div class="position-rewards-list">
-              {#each nftPositionDistribution as pos (pos.position)}
-                <div class="position-reward-row">
-                  <span class="position-label">#{pos.position}</span>
-                  <select bind:value={pos.nftId} required>
-                    <option value="">Select NFT</option>
-                    {#each nfts as nft, i}
-                      <option value={nft.id}>NFT #{i + 1} ({nft.contract.slice(0, 6)}...{nft.contract.slice(-4)} - Token {nft.tokenId})</option>
-                    {/each}
-                  </select>
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
-      {/if}
-
-      {#if prizeType === "MintableNFT"}
-        <div class="form-group">
-          <label for="mintable-nft-distribution-type">Mintable NFT Distribution</label>
-          <select id="mintable-nft-distribution-type" bind:value={mintableNftDistributionType}>
-            <option value="random">Random (probability-based on rarity %)</option>
-            <option value="custom">Custom (assign specific variants to positions)</option>
-          </select>
-          <p class="field-hint">
-            {mintableNftDistributionType === "random" 
-              ? "Participants randomly mint variants based on rarity percentages" 
-              : "Assign specific NFT variants to winner positions (1st gets Legendary, 2nd gets Epic, etc.)"}
-          </p>
-        </div>
-
-        <div class="form-group">
-          <div class="group-header">
-            <h3>Mintable NFT Variants</h3>
-            <button type="button" class="ghost-btn" on:click={addMintableNft}>+ Add NFT Variant</button>
-          </div>
-          <p class="field-hint">
-            {mintableNftDistributionType === "random" && mintableNfts.length > 1
-              ? "Add NFT variants with rarity percentages (must total 100%)"
-              : "Add one or more NFT variants that participants can mint after completing tasks"}
-          </p>
-          <div class="mintable-nft-list">
-            {#each mintableNfts as nft, index (nft.id)}
-              <div class="mintable-nft-card">
-                <div class="mintable-nft-header">
-                  <h4>NFT Variant #{index + 1}</h4>
-                  {#if mintableNfts.length > 1}
-                    <button type="button" class="ghost-btn danger small" on:click={() => removeMintableNft(index)}>
-                      Remove
-                    </button>
-                  {/if}
-                </div>
-
-                <div class="grid-two">
-                  <div class="form-group">
-                    <label for="nft-name-{index}">NFT Name</label>
-                    <input
-                      id="nft-name-{index}"
-                      type="text"
-                      placeholder="e.g. Golden Badge"
-                      bind:value={nft.name}
-                      required
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label for="nft-supply-{index}">Supply Limit</label>
-                    <input
-                      id="nft-supply-{index}"
-                      type="number"
-                      min="1"
-                      placeholder="Max number that can be minted"
-                      bind:value={nft.supply}
-                      required
-                    />
-                  </div>
-                </div>
-
-                {#if mintableNftDistributionType === "random" && mintableNfts.length > 1}
-                  <div class="grid-two">
-                    <div class="form-group">
-                      <label for="nft-rarity-{index}">Rarity Tier</label>
-                      <select id="nft-rarity-{index}" bind:value={nft.rarity}>
-                        <option value="Common">Common</option>
-                        <option value="Uncommon">Uncommon</option>
-                        <option value="Rare">Rare</option>
-                        <option value="Epic">Epic</option>
-                        <option value="Legendary">Legendary</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="nft-rarity-percentage-{index}">Rarity % (Mint Probability)</label>
-                      <input
-                        id="nft-rarity-percentage-{index}"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        placeholder="e.g. 25"
-                        bind:value={nft.rarityPercentage}
-                        required
-                      />
-                      <p class="field-hint">Probability this variant will be minted (all variants must total 100%)</p>
-                    </div>
-                  </div>
-                {:else}
-                  <div class="form-group">
-                    <label for="nft-rarity-{index}">Rarity Tier (optional)</label>
-                    <select id="nft-rarity-{index}" bind:value={nft.rarity}>
-                      <option value="Common">Common</option>
-                      <option value="Uncommon">Uncommon</option>
-                      <option value="Rare">Rare</option>
-                      <option value="Epic">Epic</option>
-                      <option value="Legendary">Legendary</option>
-                    </select>
-                  </div>
-                {/if}
-
-                <div class="form-group">
-                  <label for="nft-description-{index}">Description</label>
-                  <textarea
-                    id="nft-description-{index}"
-                    placeholder="Describe this NFT variant..."
-                    bind:value={nft.description}
-                    rows="3"
-                    required
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label for="nft-image-{index}">NFT Image (max 2MB)</label>
-                  <input
-                    id="nft-image-{index}"
-                    type="file"
-                    accept="image/*"
-                    on:change={(e) => handleMintableNftImageUpload(index, e)}
-                    required={!nft.uploadedImage}
-                  />
-                  {#if nft.imagePreview}
-                    <img src={nft.imagePreview} alt="NFT preview" class="nft-image-preview" />
-                  {/if}
-                </div>
-              </div>
-            {/each}
-          </div>
-        </div>
-
-        {#if mintableNftDistributionType === "custom" && numWinners && Number(numWinners) > 0}
-          <div class="form-group">
-            <label>Position-based NFT Variant Assignment (max 10 winners)</label>
-            <p class="field-hint">Assign which NFT variant each winner position receives</p>
-            <div class="position-rewards-list">
-              {#each mintableNftPositionDistribution as pos (pos.position)}
-                <div class="position-reward-row">
-                  <span class="position-label">#{pos.position}</span>
-                  <select bind:value={pos.nftId} required>
-                    <option value="">Select NFT Variant</option>
-                    {#each mintableNfts as nft, i}
-                      <option value={nft.id}>Variant #{i + 1}: {nft.name || 'Unnamed'} ({nft.rarity})</option>
-                    {/each}
-                  </select>
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
-      {/if}
-
-      {#if prizeType === "Gift"}
-        <div class="form-group">
-          <label for="gift-description">Gift/Merch Description</label>
-          <textarea
-            id="gift-description"
-            placeholder="Describe the physical item (e.g., 'Limited edition T-shirt, size L' or 'Gaming mouse + mousepad bundle')"
-            bind:value={giftDescription}
-            rows="4"
-            required
-          ></textarea>
-          <p class="field-hint">Describe what winners will receive. You'll handle shipping manually.</p>
-        </div>
-
-        <div class="form-group">
-          <label for="gift-value">Estimated Value (USD)</label>
-          <input
-            id="gift-value"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="e.g. 50"
-            bind:value={giftValue}
-            required
-          />
-          <p class="field-hint">Approximate value for transparency</p>
-        </div>
-      {/if}
-
-      {#if prizeType === "Voucher"}
-        <div class="form-group">
-          <label for="voucher-description">Voucher Description</label>
-          <textarea
-            id="voucher-description"
-            placeholder="Describe the voucher (e.g., '$25 Amazon Gift Card' or 'Premium subscription code for 3 months')"
-            bind:value={voucherDescription}
-            rows="3"
-            required
-          ></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="voucher-code-input">Voucher Codes</label>
-          <p class="field-hint">Add codes one at a time. You need at least {numWinners || 1} code{Number(numWinners) > 1 ? 's' : ''} for {numWinners || 1} winner{Number(numWinners) > 1 ? 's' : ''}.</p>
-          <div class="voucher-input-row">
-            <input
-              id="voucher-code-input"
-              type="text"
-              placeholder="Enter code and press Add"
-              bind:value={voucherCodeInput}
-              on:keypress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (voucherCodeInput.trim()) {
-                    voucherCodes = [...voucherCodes, voucherCodeInput.trim()];
-                    voucherCodeInput = '';
-                  }
-                }
-              }}
-            />
-            <button
-              type="button"
-              class="ghost-btn"
-              on:click={() => {
-                if (voucherCodeInput.trim()) {
-                  voucherCodes = [...voucherCodes, voucherCodeInput.trim()];
-                  voucherCodeInput = '';
-                }
-              }}
-            >
-              + Add Code
-            </button>
-          </div>
-          {#if voucherCodes.length > 0}
-            <div class="voucher-codes-list">
-              <p class="codes-count">{voucherCodes.length} code{voucherCodes.length > 1 ? 's' : ''} added:</p>
-              {#each voucherCodes as code, index}
-                <div class="voucher-code-item">
-                  <span class="code-text">{code}</span>
+                <div class="reward-actions">
                   <button
                     type="button"
-                    class="ghost-btn danger small"
-                    on:click={() => {
-                      voucherCodes = voucherCodes.filter((_, i) => i !== index);
-                    }}
+                    class="ghost-btn"
+                    on:click={() => editReward(reward.id)}
+                  >
+                    {editingRewardId === reward.id ? "▲ Collapse" : "▼ Configure"}
+                  </button>
+                  <button
+                    type="button"
+                    class="ghost-btn danger"
+                    on:click={() => removeReward(reward.id)}
                   >
                     Remove
                   </button>
                 </div>
-              {/each}
+              </div>
+
+              {#if editingRewardId === reward.id}
+                <div class="reward-config">
+                  <RewardBuilder
+                    bind:reward
+                    {numWinners}
+                    chainId={selectedChain || $chainId?.toString() || ""}
+                    on:update={(e) => {
+                      rewards = rewards.map(r => r.id === reward.id ? e.detail : r);
+                    }}
+                  />
+                </div>
+              {/if}
             </div>
-          {/if}
+          {/each}
         </div>
+      {:else}
+        <p class="empty-state">No rewards added yet. Add a reward type above to get started.</p>
       {/if}
-
-      {#if prizeType === "CustomPoints"}
-        <div class="form-group">
-          <label for="custom-point-name">Point Name</label>
-          <input
-            id="custom-point-name"
-            type="text"
-            placeholder="e.g., XP, Stars, Credits"
-            bind:value={customPointName}
-            required
-          />
-          <p class="field-hint">Choose a name for your custom points (e.g., "XP", "Stars", "Credits")</p>
-        </div>
-
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" bind:checked={leaderboardEnabled} />
-            <span>Enable Leaderboard</span>
-          </label>
-          <p class="field-hint">Display a leaderboard showing top participants by points earned</p>
-        </div>
-      {/if}
-
-      <div class="form-group readonly">
-        <label>Reward distribution summary</label>
-        <input
-          type="text"
-          value={
-            prizeType === "Token" && numWinners
-              ? `${Number(prizePool || 0) / Number(numWinners)} ${
-                  availableTokens.find((t) => t.address === prizeAddress)?.symbol ?? "tokens"
-                } each`
-              : prizeType === "ETH" && numWinners
-              ? `${Number(prizePool || 0) / Number(numWinners)} ETH each`
-              : prizeType === "NFT" && numWinners
-              ? `${nfts.length} NFT prize${nfts.length === 1 ? "" : "s"}`
-              : prizeType === "MintableNFT"
-              ? `${mintableNfts.length} NFT variant${mintableNfts.length === 1 ? "" : "s"} - participants mint after tasks`
-              : prizeType === "Gift"
-              ? `Physical gift/merch (est. $${giftValue || 0}) - shipped to winners`
-              : prizeType === "Voucher"
-              ? `${voucherCodes.length} voucher code${voucherCodes.length === 1 ? "" : "s"} - sent digitally to winners`
-              : prizeType === "CustomPoints"
-              ? `Point-based system${customPointName ? ` (${customPointName})` : ""}${leaderboardEnabled ? " with leaderboard" : ""}`
-              : numWinners
-              ? "—"
-              : "All eligible participants rewarded"
-          }
-          readonly
-        />
-      </div>
     </div>
     {/if}
-
+    
     <!-- Discord Bot Setup (if Discord task is added) -->
     {#if hasDiscordTask && eventType === "quick_event"}
       <div class="discord-setup-section">
@@ -2104,6 +1875,58 @@
   .empty-state {
     margin: 0;
     color: rgba(243, 243, 255, 0.6);
+  }
+
+  .task-selector-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .rewards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .reward-card {
+    background: rgba(12, 14, 30, 0.9);
+    border-radius: 14px;
+    padding: 1.25rem 1.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .reward-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .reward-info h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1.05rem;
+    color: #f2f3ff;
+  }
+
+  .reward-summary {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(242, 243, 255, 0.7);
+  }
+
+  .reward-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .reward-config {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .task-card {
@@ -2598,6 +2421,19 @@
 
     .nft-row {
       grid-template-columns: 1fr;
+    }
+
+    .task-selector-row {
+      grid-template-columns: 1fr;
+    }
+
+    .reward-card-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .reward-actions {
+      width: 100%;
     }
   }
 </style>

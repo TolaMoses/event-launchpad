@@ -1,0 +1,78 @@
+<!-- REPLACE THE ENTIRE REWARD CONFIGURATION SECTION (from line 1551 to 2075) WITH THIS: -->
+
+    {#if eventType === "quick_event"}
+    <div class="form-block">
+      <h2 class="section-title">Reward Configuration</h2>
+      <p class="section-description">
+        Add one or more rewards for your event. You can combine different reward types.
+      </p>
+
+      <!-- Reward Type Selector -->
+      <div class="form-group">
+        <label for="reward-type-selector">Add Reward Type</label>
+        <div class="task-selector-row">
+          <select id="reward-type-selector" bind:value={selectedRewardType}>
+            <option value="">Select reward type to add...</option>
+            {#each detailedPrizeOptions as option}
+              <option value={option.value}>{option.label}</option>
+            {/each}
+          </select>
+          <button
+            type="button"
+            class="ghost-btn"
+            on:click={addReward}
+            disabled={!selectedRewardType}
+          >
+            + Add Reward
+          </button>
+        </div>
+      </div>
+
+      <!-- Rewards List -->
+      {#if rewards.length > 0}
+        <div class="rewards-list">
+          {#each rewards as reward (reward.id)}
+            <div class="reward-card">
+              <div class="reward-card-header">
+                <div class="reward-info">
+                  <h3>{getRewardLabel(reward)}</h3>
+                  <p class="reward-summary">{getRewardSummary(reward)}</p>
+                </div>
+                <div class="reward-actions">
+                  <button
+                    type="button"
+                    class="ghost-btn"
+                    on:click={() => editReward(reward.id)}
+                  >
+                    {editingRewardId === reward.id ? "▲ Collapse" : "▼ Configure"}
+                  </button>
+                  <button
+                    type="button"
+                    class="ghost-btn danger"
+                    on:click={() => removeReward(reward.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+
+              {#if editingRewardId === reward.id}
+                <div class="reward-config">
+                  <RewardBuilder
+                    bind:reward
+                    {numWinners}
+                    chainId={selectedChain || $chainId?.toString() || ""}
+                    on:update={(e) => {
+                      rewards = rewards.map(r => r.id === reward.id ? e.detail : r);
+                    }}
+                  />
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <p class="empty-state">No rewards added yet. Add a reward type above to get started.</p>
+      {/if}
+    </div>
+    {/if}
