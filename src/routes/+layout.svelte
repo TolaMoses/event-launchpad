@@ -14,6 +14,8 @@
     hydrateWalletFromSession
   } from "$lib/wallet";
   import { CONTRACTS } from "$lib/contracts";
+  import { ASSETS } from "$lib/config/assets";
+  import LoginDropdown from "$lib/components/LoginDropdown.svelte";
 
   type ContractConfig = { name: string; raffle: string; rewardVault: string };
 
@@ -59,10 +61,11 @@
   let chainMenuOpen = false;
   let mobileMenuOpen = false;
 
-  const logo = "/icons/phaeton.png";
-  const xLogo = "/icons/x-logo.svg";
-  const discordLogo = "/icons/discord-logo.svg";
-  const telegramLogo = "/icons/telegram-logo.svg";
+  // Use centralized asset configuration
+  const logo = ASSETS.icons.ui.logo;
+  const xLogo = ASSETS.icons.social.twitter;
+  const discordLogo = ASSETS.icons.social.discord;
+  const telegramLogo = ASSETS.icons.social.telegram;
 
   function toggleChainMenu() {
     chainMenuOpen = !chainMenuOpen;
@@ -207,46 +210,12 @@
 			<a class="dashboard-link nav-link" href="/games">Games</a>
       <a class="dashboard-link nav-link" href="/projects">My Events</a>
 			<div class="wallet-area">
-				{#if $walletAddress}
-					<div class="wallet-info flex-center desktop-wallet" style="background-color: white;">
-						<div class="wallet-details">
-							<div class="chain-selector" class:open={chainMenuOpen}>
-								<button type="button" class="chain-button" on:click={toggleChainMenu}>
-									<span class="chain-name">{$walletStore.chainName}</span>
-									<span class="chain-chevron">▾</span>
-								</button>
-								{#if chainMenuOpen}
-									<div class="chain-dropdown">
-										{#each chains as chain}
-											<button
-												type="button"
-												on:click={() => handleChainSelect(chain.id)}
-												class:selected={$walletStore.chainId === chain.id}
-											>
-												<span class="chain-option-name">{chain.name}</span>
-												<span class="chain-option-symbol">{chain.nativeCurrency.symbol}</span>
-											</button>
-										{/each}
-									</div>
-								{/if}
-							</div>
-							<p class="bold-text black font-size-medium">{$walletStore.truncatedAddress}</p>
-						</div>
-						<button class="connect-wallet disconnect-wallet" on:click={handleDisconnect} disabled={$walletStore.connecting}>
-							Disconnect
-						</button>
-					</div>
-				{:else}
-					<div class="wallet-info flex-center desktop-wallet" style="background-color: unset;">
-						<button
-							class="connect-wallet"
-							on:click={handleConnect}
-							disabled={$walletStore.connecting}
-						>
-							{$walletStore.connecting ? 'Connecting...' : 'Connect wallet'}
-						</button>
-					</div>
-				{/if}
+				<LoginDropdown 
+					user={data?.me}
+					isLoggedIn={!!data?.me}
+					on:connectWallet={handleConnect}
+					on:logout={handleDisconnect}
+				/>
 			</div>
 			<label
 				class="hamburger-button"
@@ -277,50 +246,14 @@
 			</div>
 			<hr />
 			<div class="mobile-menu-links">
-				{#if $walletStore.connected}
-					<div class="wallet-info flex-center mobile-wallet" style="background-color: white;">
-						<div class="wallet-details">
-							<div class="chain-selector">
-								<button type="button" class="chain-button" on:click={toggleChainMenu}>
-									<span class="chain-name">{$walletStore.chainName}</span>
-									<span class="chain-chevron">▾</span>
-								</button>
-								{#if chainMenuOpen}
-									<div class="chain-dropdown mobile">
-										{#each chains as chain}
-											<button
-												type="button"
-												on:click={() => handleChainSelect(chain.id, true)}
-												class:selected={$walletStore.chainId === chain.id}
-											>
-												<span class="chain-option-name">{chain.name}</span>
-												<span class="chain-option-symbol">{chain.nativeCurrency.symbol}</span>
-											</button>
-										{/each}
-									</div>
-								{/if}
-							</div>
-							<p class="bold-text black font-size-medium">{$walletStore.truncatedAddress}</p>
-						</div>
-						<button
-							class="connect-wallet disconnect-wallet"
-							on:click={() => { handleDisconnect(); }}
-							disabled={$walletStore.connecting}
-						>
-							Disconnect
-						</button>
-					</div>
-				{:else}
-					<div class="wallet-info flex-center mobile-wallet" style="background-color: unset;">
-						<button
-							class="connect-wallet"
-							on:click={() => { handleConnect(); }}
-							disabled={$walletStore.connecting}
-						>
-							{$walletStore.connecting ? 'Connecting...' : 'Connect wallet'}
-						</button>
-					</div>
-				{/if}
+				<div class="mobile-login-wrapper">
+					<LoginDropdown 
+						user={data?.me}
+						isLoggedIn={!!data?.me}
+						on:connectWallet={handleConnect}
+						on:logout={handleDisconnect}
+					/>
+				</div>
 				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/">Home</a>
         <a class="mobile-menu-link" on:click={closeMobileMenu} href="/projects">My Events</a>
 				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/giveaways">Giveaways</a>

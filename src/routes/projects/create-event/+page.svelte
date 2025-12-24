@@ -12,6 +12,7 @@
   import { taskRegistry } from "$lib/tasks";
   import type { TaskInstance, TaskRegistryEntry, TaskTypeKey } from "$lib/tasks/TaskTypes";
   import { browser } from "$app/environment";
+  import RewardsModal from "$lib/components/RewardsModal.svelte";
 
   type NftInput = {
     id: string;
@@ -141,6 +142,11 @@
   let positionRewards: PositionReward[] = [];
   let maxTickets = "";
   let nfts: NftInput[] = [];
+  
+  // Advanced rewards modal
+  let showRewardsModal = false;
+  let advancedRewards: any[] = [];
+  let pointSystem: any = null;
   let nftDistributionType: "even" | "custom" = "even";
   let nftPositionDistribution: NftDistributionPosition[] = [];
   let mintableNfts: MintableNft[] = [];
@@ -897,6 +903,13 @@
     return errors.length === 0;
   }
 
+  function handleRewardsSaved(event: CustomEvent) {
+    const { rewards, pointSystem: ps } = event.detail;
+    advancedRewards = rewards;
+    pointSystem = ps;
+    showRewardsModal = false;
+  }
+
   async function createEvent() {
     submitAttempted = true;
     validationErrors = [];
@@ -1279,10 +1292,17 @@
 
     {#if eventType === "quick_event"}
     <div class="form-block">
-      <h2 class="section-title">Prize Configuration</h2>
-      <p class="section-description">
-        Detail the exact reward mechanics that will be enforced by smart contracts or backend logic.
-      </p>
+      <div class="section-header-with-action">
+        <div>
+          <h2 class="section-title">Reward Configuration</h2>
+          <p class="section-description">
+            Detail the exact reward mechanics that will be enforced by smart contracts or backend logic.
+          </p>
+        </div>
+        <button type="button" class="ghost-btn" on:click={() => showRewardsModal = true}>
+          ⚡ Advanced Rewards
+        </button>
+      </div>
 
       <div class="form-group">
         <label for="prize-type-detail">Detailed prize type</label>
@@ -1908,6 +1928,17 @@
   </form>
 </section>
 
+<!-- Advanced Rewards Modal -->
+{#if showRewardsModal}
+  <RewardsModal
+    eventId=""
+    existingRewards={advancedRewards}
+    existingPointSystem={pointSystem}
+    on:saved={handleRewardsSaved}
+    on:close={() => showRewardsModal = false}
+  />
+{/if}
+
 <style>
   .form-section {
     max-width: 980px;
@@ -1934,6 +1965,14 @@
     border-radius: 18px;
     padding: 1.75rem 1.5rem;
     border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .section-header-with-action {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
   }
 
   .section-title {
