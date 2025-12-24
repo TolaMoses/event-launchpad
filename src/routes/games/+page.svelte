@@ -30,7 +30,6 @@
 						</div>
 					</div>
 				</div>
-			</div>
 		</section>
 		<section class="game-section">
 			<div>
