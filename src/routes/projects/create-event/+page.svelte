@@ -94,6 +94,7 @@
     }
   }
 
+  let eventType: "quick_event" | "community" | "" = "";
   let eventTitle = "";
   let eventDescription = "";
   let startDate = "";
@@ -693,6 +694,7 @@
   function isFormValid() {
     const errors: string[] = [];
 
+    if (!eventType) errors.push("Select an event type (Quick Event or Community)");
     if (!eventTitle.trim()) errors.push("Provide an event title");
     if (!eventDescription.trim()) errors.push("Provide an event description");
     if (!eventStartISO) errors.push("Set a start date and time");
@@ -707,7 +709,10 @@
       }
     }
 
-    if (tasks.length === 0) errors.push("Add at least one event task");
+    // For quick events, tasks are required. For communities, they're optional
+    if (eventType === "quick_event" && tasks.length === 0) {
+      errors.push("Add at least one event task");
+    }
 
     if (bannerError) errors.push(bannerError);
     if (logoError) errors.push(logoError);
@@ -715,7 +720,10 @@
       errors.push("Upload a logo image (150 KB max).");
     }
 
-    if (prizeType === "Token") {
+    // Prize validation - required for quick events, optional for communities
+    if (eventType === "community" && !prizeType) {
+      // Prize is optional for communities, skip validation
+    } else if (prizeType === "Token") {
       if (!selectedChain) {
         errors.push("Select a chain for the token prize");
       }
@@ -936,23 +944,10 @@
         }
       }
 
-      const payload = {
-        title: eventTitle.trim(),
-        description: eventDescription.trim(),
-        video_url: videoUrl.trim() || null,
-        start_time: eventStartISO,
-        end_time: eventEndISO,
-        num_winners: numWinners ? Number(numWinners) : null,
-        assets: {
-          banner: bannerAsset,
-          logo: logoAsset
-        },
-        tasks: tasks.map((task) => ({
-          id: task.id,
-          type: task.type,
-          config: clone(task.config)
-        })),
-        prize_details: {
+      // Build prize details object
+      let prizeDetailsPayload = null;
+      if (prizeType) {
+        prizeDetailsPayload = {
           type: prizeType,
           token_address: prizeType === "Token" ? prizeAddress : null,
           prize_pool: prizePool ? Number(prizePool) : null,
@@ -1003,7 +998,27 @@
           gift_value: prizeType === "Gift" ? Number(giftValue) : null,
           voucher_description: prizeType === "Voucher" ? voucherDescription.trim() : null,
           voucher_codes: prizeType === "Voucher" ? voucherCodes : []
-        }
+        };
+      }
+
+      const payload = {
+        event_type: eventType,
+        title: eventTitle.trim(),
+        description: eventDescription.trim(),
+        video_url: videoUrl.trim() || null,
+        start_time: eventStartISO,
+        end_time: eventEndISO,
+        num_winners: numWinners ? Number(numWinners) : null,
+        assets: {
+          banner: bannerAsset,
+          logo: logoAsset
+        },
+        tasks: tasks.map((task) => ({
+          id: task.id,
+          type: task.type,
+          config: clone(task.config)
+        })),
+        prize_details: prizeDetailsPayload
       };
 
       const response = await fetch("/api/events", {
@@ -1059,6 +1074,41 @@
 
 <section class="form-section">
   <form class="event-form" on:submit|preventDefault={createEvent}>
+    <!-- Event Type Selection -->
+    <div class="form-block event-type-selector">
+      <h2 class="section-title">Choose Event Type</h2>
+      <p class="section-description">
+        Select how you want to create your event. Quick events include all details upfront, while communities allow you to add tasks and rewards over time.
+      </p>
+      
+      <div class="event-type-options">
+        <label class="event-type-card" class:selected={eventType === "quick_event"}>
+          <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
+          <div class="type-icon">⚡</div>
+          <h3>Quick Event</h3>
+          <p>Create a complete event with all tasks and rewards configured immediately. Best for time-limited campaigns.</p>
+          <ul class="type-features">
+            <li>✓ All tasks configured upfront</li>
+            <li>✓ Prize configuration required</li>
+            <li>✓ Ready to launch immediately</li>
+          </ul>
+        </label>
+
+        <label class="event-type-card" class:selected={eventType === "community"}>
+          <input type="radio" name="event-type" value="community" bind:group={eventType} />
+          <div class="type-icon">🏘️</div>
+          <h3>Community</h3>
+          <p>Start with basic details and add tasks and rewards progressively. Perfect for ongoing community engagement.</p>
+          <ul class="type-features">
+            <li>✓ Add tasks over time</li>
+            <li>✓ Configure rewards later</li>
+            <li>✓ Flexible setup process</li>
+          </ul>
+        </label>
+      </div>
+    </div>
+
+    {#if eventType}
     <div class="form-block">
       <h2 class="section-title">Basic Event Details</h2>
       <p class="section-description">
@@ -1165,6 +1215,7 @@
       </div>
     </div>
 
+    {#if eventType === "quick_event"}
     <div class="form-block">
       <h2 class="section-title">Add Event Tasks</h2>
       <p class="section-description">
@@ -1224,7 +1275,9 @@
         {/if}
       </div>
     </div>
+    {/if}
 
+    {#if eventType === "quick_event"}
     <div class="form-block">
       <h2 class="section-title">Prize Configuration</h2>
       <p class="section-description">
@@ -1724,9 +1777,10 @@
         />
       </div>
     </div>
+    {/if}
 
     <!-- Discord Bot Setup (if Discord task is added) -->
-    {#if hasDiscordTask}
+    {#if hasDiscordTask && eventType === "quick_event"}
       <div class="discord-setup-section">
         <h3>🤖 Discord Bot Setup Required</h3>
         <p class="setup-description">
@@ -1826,8 +1880,8 @@
       </div>
     {/if}
 
-    <button type="submit" class="primary-btn" disabled={isSaving || !canSubmitForm}>
-      {isSaving ? "Saving..." : "Create Event"}
+    <button type="submit" class="primary-btn" disabled={isSaving || !canSubmitForm || !eventType}>
+      {isSaving ? "Saving..." : eventType === "community" ? "Create Community" : "Create Event"}
     </button>
 
     {#if !canSubmitForm && hasDiscordTask}
@@ -1849,6 +1903,7 @@
           {/each}
         </ul>
       </div>
+    {/if}
     {/if}
   </form>
 </section>
@@ -2389,6 +2444,87 @@
   .validation-errors ul {
     margin: 0;
     padding-left: 1.25rem;
+  }
+
+  /* Event Type Selector Styles */
+  .event-type-selector {
+    background: linear-gradient(135deg, rgba(111, 160, 255, 0.08), rgba(156, 123, 255, 0.08));
+    border: 2px solid rgba(111, 160, 255, 0.2);
+  }
+
+  .event-type-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .event-type-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .event-type-card:hover {
+    border-color: rgba(111, 160, 255, 0.4);
+    background: rgba(111, 160, 255, 0.08);
+    transform: translateY(-2px);
+  }
+
+  .event-type-card.selected {
+    border-color: #6fa0ff;
+    background: rgba(111, 160, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(111, 160, 255, 0.2);
+  }
+
+  .event-type-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .type-icon {
+    font-size: 3rem;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .event-type-card h3 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #f2f3ff;
+    text-align: center;
+  }
+
+  .event-type-card p {
+    margin: 0;
+    color: rgba(242, 243, 255, 0.75);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .type-features {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .type-features li {
+    color: rgba(242, 243, 255, 0.85);
+    font-size: 0.9rem;
+    padding-left: 0.5rem;
   }
 
   @media (max-width: 720px) {

@@ -5,6 +5,7 @@
 
 	type Event = {
 		id: string;
+		event_type: 'quick_event' | 'community';
 		title: string;
 		description: string;
 		logo_url: string | null;
@@ -15,12 +16,16 @@
 		prize_details: {
 			type: string;
 			[key: string]: any;
-		};
+		} | null;
 		tasks: Array<{
 			id: string;
 			type: string;
 			config: any;
 		}>;
+		setup_progress: {
+			tasks: number;
+			rewards: number;
+		} | null;
 		status: string;
 		created_by: string;
 		created_at: string;
@@ -102,11 +107,19 @@
 	function getStatusBadge(status: string): { text: string; color: string } {
 		const badges: Record<string, { text: string; color: string }> = {
 			draft: { text: 'Draft', color: '#6c757d' },
-			active: { text: 'Active', color: '#28a745' },
+			submitted: { text: 'Submitted', color: '#17a2b8' },
+			in_review: { text: 'In Review', color: '#ffc107' },
+			active: { text: 'Running', color: '#28a745' },
 			ended: { text: 'Ended', color: '#dc3545' },
-			cancelled: { text: 'Cancelled', color: '#ffc107' }
+			cancelled: { text: 'Cancelled', color: '#6c757d' }
 		};
 		return badges[status] || { text: status, color: '#6c757d' };
+	}
+
+	function getSetupProgress(event: Event): number {
+		if (event.event_type !== 'community' || !event.setup_progress) return 100;
+		const { tasks, rewards } = event.setup_progress;
+		return Math.round((tasks + rewards) / 2);
 	}
 
 	function viewEventStats(eventId: string) {
@@ -142,17 +155,45 @@
 								</div>
 								<div class="event-header-info">
 									<h3>{event.title}</h3>
-									<span class="status-badge" style="background-color: {getStatusBadge(event.status).color};">
-										{getStatusBadge(event.status).text}
-									</span>
+									<div class="badges">
+										<span class="type-badge" class:community={event.event_type === 'community'}>
+											{event.event_type === 'community' ? '🏘️ Community' : '⚡ Quick Event'}
+										</span>
+										<span class="status-badge" style="background-color: {getStatusBadge(event.status).color};">
+											{getStatusBadge(event.status).text}
+										</span>
+									</div>
 								</div>
 							</div>
 							<div class="event-meta">
+								{#if event.event_type === 'community' && getSetupProgress(event) < 100}
+									<div class="setup-progress-section">
+										<div class="progress-header">
+											<span class="progress-label">Setup Progress</span>
+											<span class="progress-percentage">{getSetupProgress(event)}%</span>
+										</div>
+										<div class="progress-bar-container">
+											<div class="progress-bar-fill" style="width: {getSetupProgress(event)}%"></div>
+										</div>
+										<div class="setup-items">
+											<div class="setup-item" class:complete={event.setup_progress?.tasks === 100}>
+												{event.setup_progress?.tasks === 100 ? '✓' : '○'} Add Event Tasks
+											</div>
+											<div class="setup-item" class:complete={event.setup_progress?.rewards === 100}>
+												{event.setup_progress?.rewards === 100 ? '✓' : '○'} Reward Settings
+											</div>
+										</div>
+									</div>
+								{/if}
 								<div class="meta-item">
 									<span class="meta-label">Prize:</span>
 									<div class="meta-value">
-										<img src={getRewardIcon(event.prize_details.type)} alt="Reward" class="reward-icon-small" />
-										<span>{event.prize_details.type}</span>
+										{#if event.prize_details}
+											<img src={getRewardIcon(event.prize_details.type)} alt="Reward" class="reward-icon-small" />
+											<span>{event.prize_details.type}</span>
+										{:else}
+											<span class="not-set">Not set</span>
+										{/if}
 									</div>
 								</div>
 								<div class="meta-item">
@@ -165,9 +206,15 @@
 								</div>
 							</div>
 							<div class="event-actions">
-								<button class="secondary-btn small" on:click|stopPropagation={() => viewEventStats(event.id)}>
-									View Stats
-								</button>
+								{#if event.event_type === 'community' && getSetupProgress(event) < 100}
+									<button class="primary-btn small" on:click|stopPropagation={() => goto(`/projects/setup-event/${event.id}`)}>
+										Continue Setup
+									</button>
+								{:else}
+									<button class="secondary-btn small" on:click|stopPropagation={() => viewEventStats(event.id)}>
+										View Stats
+									</button>
+								{/if}
 							</div>
 						</div>
 					{/each}
@@ -204,8 +251,12 @@
 								<div class="meta-item">
 									<span class="meta-label">Prize:</span>
 									<div class="meta-value">
-										<img src={getRewardIcon(event.prize_details.type)} alt="Reward" class="reward-icon-small" />
-										<span>{event.prize_details.type}</span>
+										{#if event.prize_details}
+											<img src={getRewardIcon(event.prize_details.type)} alt="Reward" class="reward-icon-small" />
+											<span>{event.prize_details.type}</span>
+										{:else}
+											<span class="not-set">Not set</span>
+										{/if}
 									</div>
 								</div>
 								<div class="meta-item">
@@ -433,6 +484,91 @@
 		font-size: 1.1rem;
 		color: rgba(242, 243, 255, 0.6);
 		margin: 0 0 1.5rem;
+	}
+
+	.badges {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		align-items: center;
+	}
+
+	.type-badge {
+		display: inline-block;
+		padding: 0.25rem 0.75rem;
+		border-radius: 6px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		background: rgba(111, 160, 255, 0.2);
+		color: #6fa0ff;
+		text-transform: uppercase;
+	}
+
+	.type-badge.community {
+		background: rgba(156, 123, 255, 0.2);
+		color: #9c7bff;
+	}
+
+	.setup-progress-section {
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 8px;
+		padding: 1rem;
+		margin-bottom: 1rem;
+	}
+
+	.progress-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.5rem;
+	}
+
+	.progress-label {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: rgba(242, 243, 255, 0.9);
+	}
+
+	.progress-percentage {
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: #6fa0ff;
+	}
+
+	.progress-bar-container {
+		height: 6px;
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 3px;
+		overflow: hidden;
+		margin-bottom: 0.75rem;
+	}
+
+	.progress-bar-fill {
+		height: 100%;
+		background: linear-gradient(135deg, #6fa0ff 0%, #5a8dff 100%);
+		transition: width 0.3s ease;
+	}
+
+	.setup-items {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.setup-item {
+		font-size: 0.85rem;
+		color: rgba(242, 243, 255, 0.6);
+	}
+
+	.setup-item.complete {
+		color: #28a745;
+		font-weight: 600;
+	}
+
+	.not-set {
+		color: rgba(242, 243, 255, 0.5);
+		font-style: italic;
 	}
 
 	@media (max-width: 768px) {

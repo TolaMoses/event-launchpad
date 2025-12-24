@@ -21,6 +21,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     throw error(400, 'Invalid JSON payload');
   }
 
+  const eventType = ensureString(body.event_type, 'event_type');
+  if (eventType !== 'quick_event' && eventType !== 'community') {
+    throw error(400, 'event_type must be either "quick_event" or "community"');
+  }
+
   const title = ensureString(body.title, 'title');
   const description = ensureString(body.description, 'description');
   const videoUrl = typeof body.video_url === 'string' ? body.video_url.trim() : null;
@@ -45,16 +50,27 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 
   const prizeDetails = body.prize_details ?? null;
-  if (prizeDetails === null) {
-    throw error(400, 'Missing prize_details');
+  // Prize details are required for quick events, optional for communities
+  if (eventType === 'quick_event' && prizeDetails === null) {
+    throw error(400, 'Missing prize_details for quick event');
   }
 
   const tasks = Array.isArray(body.tasks) ? body.tasks : [];
-  if (tasks.length === 0) {
-    throw error(400, 'At least one task is required');
+  // Tasks are required for quick events, optional for communities
+  if (eventType === 'quick_event' && tasks.length === 0) {
+    throw error(400, 'At least one task is required for quick event');
+  }
+
+  // Calculate setup progress for community events
+  let setupProgress = null;
+  if (eventType === 'community') {
+    const tasksProgress = tasks.length > 0 ? 100 : 0;
+    const rewardsProgress = prizeDetails ? 100 : 0;
+    setupProgress = { tasks: tasksProgress, rewards: rewardsProgress };
   }
 
   const insertPayload = {
+    event_type: eventType,
     title,
     description,
     video_url: videoUrl,
@@ -67,6 +83,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     logo_url: logo.publicUrl,
     prize_details: prizeDetails,
     tasks: tasks,
+    setup_progress: setupProgress,
     created_by: locals.user.id,
     status: 'draft'
   };
