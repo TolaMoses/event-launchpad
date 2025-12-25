@@ -183,6 +183,126 @@
   let selectedRewardType = "";
   let editingRewardId: string | null = null;
 
+  type Step = "type" | "details" | "tasks" | "rewards";
+  const STEP_LABELS: Record<Step, string> = {
+    type: "Event type",
+    details: "Basic details",
+    tasks: "Tasks & integrations",
+    rewards: "Rewards"
+  };
+
+  let steps: Step[] = ["type"];
+  let currentStep = 0;
+  let currentStepKey: Step = "type";
+  let isLastStep = true;
+  let stepErrors: string[] = [];
+  let cleanupFocusListener: (() => void) | null = null;
+
+  function buildStepsForType(type: typeof eventType): Step[] {
+    if (type === "quick_event") {
+      return ["type", "details", "tasks", "rewards"];
+    }
+    if (type === "community") {
+      return ["type", "details"];
+    }
+    return ["type"];
+  }
+
+  function arraysEqual<T>(a: T[], b: T[]) {
+    if (a.length !== b.length) return false;
+    return a.every((value, index) => value === b[index]);
+  }
+
+  function syncStepsWithType(type: typeof eventType) {
+    const updatedSteps = buildStepsForType(type);
+    if (!arraysEqual(updatedSteps, steps)) {
+      steps = updatedSteps;
+      if (currentStep >= steps.length) {
+        currentStep = steps.length - 1;
+      }
+      if (currentStep < 0) {
+        currentStep = 0;
+      }
+    }
+  }
+
+  function validateStep(step: Step): string[] {
+    const errors: string[] = [];
+
+    if (step === "type") {
+      if (!eventType) {
+        errors.push("Select an event type to continue.");
+      }
+    } else if (step === "details") {
+      updateDateTimes();
+
+      if (!eventTitle.trim()) {
+        errors.push("Enter an event title.");
+      }
+      if (!eventDescription.trim()) {
+        errors.push("Provide an event description.");
+      }
+      if (!startDate || !startTime) {
+        errors.push("Set a start date and time.");
+      }
+      if (!endDate || !endTime) {
+        errors.push("Set an end date and time.");
+      }
+      if (scheduleError) {
+        errors.push(scheduleError);
+      }
+      if (!logoPreview && !uploadedLogo) {
+        errors.push("Upload an event logo.");
+      }
+    } else if (step === "rewards" && eventType === "quick_event") {
+      if (rewards.length === 0) {
+        errors.push("Add at least one reward.");
+      }
+    } else if (step === "tasks" && eventType === "quick_event") {
+      if (hasDiscordTask && !discordSetupComplete) {
+        errors.push("Complete Discord setup before continuing.");
+      }
+    }
+
+    return errors;
+  }
+
+  function handleNextStep() {
+    const errors = validateStep(currentStepKey);
+    if (errors.length > 0) {
+      stepErrors = errors;
+      return;
+    }
+
+    stepErrors = [];
+
+    if (!isLastStep) {
+      currentStep = Math.min(currentStep + 1, steps.length - 1);
+      triggerAutosave();
+    }
+  }
+
+  function handlePreviousStep() {
+    if (currentStep > 0) {
+      stepErrors = [];
+      currentStep -= 1;
+      triggerAutosave();
+    }
+  }
+
+  function goToStep(index: number) {
+    if (index < 0 || index >= steps.length) return;
+    if (index <= currentStep) {
+      stepErrors = [];
+      currentStep = index;
+      triggerAutosave();
+    }
+  }
+
+  $: syncStepsWithType(eventType);
+  $: currentStepKey = steps[currentStep] ?? "type";
+  $: isLastStep = currentStep === steps.length - 1;
+
   // Legacy variables kept for backward compatibility during migration
   let prizeType = "";
   let prizeAddress = "";
@@ -352,6 +472,8 @@
   function saveFormDraft() {
     if (!browser) return;
     const draft = {
+      currentStep,
+      eventType,
       eventTitle,
       eventDescription,
       startDate,
@@ -394,17 +516,18 @@
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(draft));
   }
 
-  function loadFormDraft() {
-    if (!browser) return;
+  function loadFormDraft(): number | null {
+    if (!browser) return null;
     try {
       const saved = localStorage.getItem(AUTOSAVE_KEY);
-      if (!saved) return;
+      if (!saved) return null;
       const draft = JSON.parse(saved);
       const age = Date.now() - (draft.timestamp || 0);
       if (age > 24 * 60 * 60 * 1000) {
         localStorage.removeItem(AUTOSAVE_KEY);
-        return;
+        return null;
       }
+      eventType = draft.eventType || "";
       eventTitle = draft.eventTitle || "";
       eventDescription = draft.eventDescription || "";
       startDate = draft.startDate || "";
@@ -439,8 +562,10 @@
       tasks = draft.tasks || [];
       hydrateRewardsFromDraft(draft.rewards);
       updateDateTimes();
+      return typeof draft.currentStep === "number" ? draft.currentStep : null;
     } catch (err) {
       console.warn("Failed to restore draft", err);
+      return null;
     }
   }
 
@@ -459,16 +584,27 @@
     try { saveFormDraft(); } catch { /* no-op */ }
   }
 
-  $: if (browser && (eventTitle || eventDescription || startDate || prizeType)) {
+  $: if (browser && (eventType || eventTitle || eventDescription || startDate || prizeType)) {
     triggerAutosave();
   }
 
   onMount(() => {
-    loadFormDraft();
+    const restoredStep = loadFormDraft();
     checkDiscordConnection();
+    syncStepsWithType(eventType);
+    if (restoredStep != null) {
+      currentStep = Math.min(restoredStep, steps.length - 1);
+    }
     // Ensure we don't lose the latest edits when navigating away (e.g., Discord OAuth)
     if (browser) {
+      const handleFocus = () => {
+        checkDiscordConnection();
+      };
       window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('focus', handleFocus);
+      cleanupFocusListener = () => {
+        window.removeEventListener('focus', handleFocus);
+      };
     }
   });
 
@@ -491,7 +627,13 @@
     const currentUrl = window.location.href;
     // Persist draft before the hard redirect to Discord OAuth
     saveFormDraft();
-    window.location.href = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
+    const authUrl = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
+    const authWindow = window.open(authUrl, '_blank', 'noopener');
+    if (!authWindow) {
+      window.location.href = authUrl;
+    } else {
+      authWindow.focus();
+    }
   }
 
   function selectDiscordGuild(guildId: string, guildName: string) {
@@ -657,6 +799,7 @@
         URL.revokeObjectURL(logoPreview);
       }
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      cleanupFocusListener?.();
     }
   });
 
@@ -1360,408 +1503,458 @@
 
 <section class="form-section">
   <form class="event-form" on:submit|preventDefault={createEvent}>
-    <!-- Event Type Selection -->
-    <div class="form-block event-type-selector">
-      <h2 class="section-title">Choose Event Type</h2>
-      <p class="section-description">
-        Select how you want to create your event. Quick events include all details upfront, while communities allow you to add tasks and rewards over time.
-      </p>
-      
-      <div class="event-type-options">
-        <label class="event-type-card" class:selected={eventType === "quick_event"}>
-          <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
-          <div class="type-icon">⚡</div>
-          <h3>Quick Event</h3>
-          <p>Create a complete event with all tasks and rewards configured immediately. Best for time-limited campaigns.</p>
-          <ul class="type-features">
-            <li>✓ All tasks configured upfront</li>
-            <li>✓ Prize configuration required</li>
-            <li>✓ Ready to launch immediately</li>
-          </ul>
-        </label>
-
-        <label class="event-type-card" class:selected={eventType === "community"}>
-          <input type="radio" name="event-type" value="community" bind:group={eventType} />
-          <div class="type-icon">🏘️</div>
-          <h3>Community</h3>
-          <p>Start with basic details and add tasks and rewards progressively. Perfect for ongoing community engagement.</p>
-          <ul class="type-features">
-            <li>✓ Add tasks over time</li>
-            <li>✓ Configure rewards later</li>
-            <li>✓ Flexible setup process</li>
-          </ul>
-        </label>
-      </div>
-    </div>
-
-    {#if eventType}
-    <div class="form-block">
-      <h2 class="section-title">Basic Event Details</h2>
-      <p class="section-description">
-        Provide an overview, timing, and hero artwork for your event. These details appear on the
-        public event page.
-      </p>
-
-      <div class="form-group">
-        <label for="event-title">Event title</label>
-        <input
-          id="event-title"
-          type="text"
-          placeholder="MoonFlux launch celebration"
-          bind:value={eventTitle}
-          required
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="event-description">Event description</label>
-        <textarea
-          id="event-description"
-          placeholder="Describe your event and what participants need to do..."
-          bind:value={eventDescription}
-          rows="5"
-          required
-        ></textarea>
-      </div>
-
-      <div class="form-group">
-        <label for="video-url">Video URL (optional)</label>
-        <input
-          id="video-url"
-          type="url"
-          placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
-          bind:value={videoUrl}
-        />
-        <p class="field-hint">Add a video description or promotional video for your event</p>
-      </div>
-
-      <div class="grid-two">
-        <div class="form-group">
-          <label for="start-date">Start date</label>
-          <input id="start-date" type="date" bind:value={startDate} on:change={updateDateTimes} required />
-        </div>
-        <div class="form-group">
-          <label for="start-time">Start time</label>
-          <input id="start-time" type="time" bind:value={startTime} on:input={updateDateTimes} required />
-        </div>
-      </div>
-
-      <div class="grid-two">
-        <div class="form-group">
-          <label for="end-date">End date</label>
-          <input id="end-date" type="date" bind:value={endDate} on:change={updateDateTimes} required />
-        </div>
-        <div class="form-group">
-          <label for="end-time">End time</label>
-          <input id="end-time" type="time" bind:value={endTime} on:input={updateDateTimes} required />
-        </div>
-      </div>
-
-      <div class="form-group single">
-        <label for="num-winners">Number of winners (optional)</label>
-        <input
-          id="num-winners"
-          type="number"
-          min="1"
-          step="1"
-          placeholder="Leave blank if every eligible participant is rewarded"
-          bind:value={numWinners}
-        />
-        <p class="field-hint">Leave empty when every qualifying participant receives the reward.</p>
-      </div>
-
-      <div class="form-group">
-        <label for="banner-upload">Banner image</label>
-        <p class="field-hint">Recommended size: 1600 × 600 px (wide hero format)</p>
-        <div class="file-input">
-          <input id="banner-upload" type="file" accept="image/*" on:change={handleBannerUpload} />
-          <span>Upload banner image</span>
-        </div>
-        {#if bannerError}
-          <p class="error-text">{bannerError}</p>
-        {/if}
-        {#if bannerPreview}
-          <img class="banner-preview" src={bannerPreview} alt="Event banner preview" />
-        {/if}
-      </div>
-
-      <div class="form-group">
-        <label for="logo-upload">Event logo</label>
-        <p class="field-hint">Recommended size: 480 × 480 px (square with transparent background)</p>
-        <div class="file-input">
-          <input id="logo-upload" type="file" accept="image/*" on:change={handleLogoUpload} />
-          <span>Upload logo image</span>
-        </div>
-        {#if logoError}
-          <p class="error-text">{logoError}</p>
-        {/if}
-        {#if logoPreview}
-          <img class="logo-preview" src={logoPreview} alt="Event logo preview" />
-        {/if}
-      </div>
-    </div>
-
-    {#if eventType === "quick_event"}
-    <div class="form-block">
-      <h2 class="section-title">Add Event Tasks</h2>
-      <p class="section-description">
-        Mix and match multiple task categories. Each task can capture its own configuration through
-        the modular task components.
-      </p>
-
-      <div class="grid-two">
-        <div class="form-group">
-          <label for="task-type">Select task type</label>
-          <select id="task-type" bind:value={selectedTaskType}>
-            <option disabled hidden value="">Choose task category</option>
-            {#each taskOptions as option}
-              <option value={option.value}>{option.label}</option>
-            {/each}
-          </select>
-        </div>
-        <div class="form-group align-end">
-          <button type="button" class="ghost-btn" on:click={startCreateTask} disabled={!selectedTaskType}>
-            + Add Task
-          </button>
-        </div>
-      </div>
-
-      {#if creatingTaskType}
-        <div class="task-builder">
-          <svelte:component
-            this={taskRegistry[creatingTaskType].component}
-            initialConfig={editingTaskIndex !== null ? clone(tasks[editingTaskIndex].config) : null}
-            onSave={handleTaskSave}
-            onCancel={handleTaskCancel}
-          />
-        </div>
-      {/if}
-
-      <div class="task-list">
-        {#if tasks.length === 0}
-          <p class="empty-state">No tasks added yet. Choose a task type and click “+ Add Task”.</p>
-        {:else}
-          {#each tasks as task, index (task.id)}
-            <div class="task-card">
-              <div class="task-card-header">
-                <div>
-                  <p class="task-label">{getTaskLabel(task.type)}</p>
-                  <p class="task-meta">Task #{index + 1}</p>
-                </div>
-                <div class="task-actions">
-                  <button type="button" class="ghost-btn" on:click={() => editTask(index)}>Edit</button>
-                  <button type="button" class="ghost-btn danger" on:click={() => removeTask(index)}>
-                    Remove
-                  </button>
-                </div>
-              </div>
-              <pre class="task-config">{summariseConfig(task.config)}</pre>
-            </div>
-          {/each}
-        {/if}
-      </div>
-    </div>
-    {/if}
-
-    {#if eventType === "quick_event"}
-    <div class="form-block">
-      <h2 class="section-title">Reward Configuration</h2>
-      <p class="section-description">
-        Add one or more rewards for your event. You can combine different reward types.
-      </p>
-
-      <!-- Reward Type Selector -->
-      <div class="form-group">
-        <label for="reward-type-selector">Add Reward Type</label>
-        <div class="task-selector-row">
-          <select id="reward-type-selector" bind:value={selectedRewardType}>
-            <option value="">Select reward type to add...</option>
-            {#each detailedPrizeOptions as option}
-              <option value={option.value}>{option.label}</option>
-            {/each}
-          </select>
-          <button
-            type="button"
-            class="ghost-btn"
-            on:click={addReward}
-            disabled={!selectedRewardType}
-          >
-            + Add Reward
-          </button>
-        </div>
-      </div>
-
-      <!-- Rewards List -->
-      {#if rewards.length > 0}
-        <div class="rewards-list">
-          {#each rewards as reward (reward.id)}
-            <div class="reward-card">
-              <div class="reward-card-header">
-                <div class="reward-info">
-                  <h3>{getRewardLabel(reward)}</h3>
-                  <p class="reward-summary">{getRewardSummary(reward)}</p>
-                </div>
-                <div class="reward-actions">
-                  <button
-                    type="button"
-                    class="ghost-btn"
-                    on:click={() => editReward(reward.id)}
-                  >
-                    {editingRewardId === reward.id ? "▲ Collapse" : "▼ Configure"}
-                  </button>
-                  <button
-                    type="button"
-                    class="ghost-btn danger"
-                    on:click={() => removeReward(reward.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-
-              {#if editingRewardId === reward.id}
-                <div class="reward-config">
-                  <RewardBuilder
-                    bind:reward
-                    {numWinners}
-                    chainId={selectedChain || $chainId?.toString() || ""}
-                    on:update={(e) => {
-                      rewards = rewards.map(r => r.id === reward.id ? e.detail : r);
-                    }}
-                  />
-                </div>
-              {/if}
-            </div>
-          {/each}
-        </div>
-      {:else}
-        <p class="empty-state">No rewards added yet. Add a reward type above to get started.</p>
-      {/if}
-    </div>
-    {/if}
-    
-    <!-- Discord Bot Setup (if Discord task is added) -->
-    {#if hasDiscordTask && eventType === "quick_event"}
-      <div class="discord-setup-section">
-        <h3>🤖 Discord Bot Setup Required</h3>
-        <p class="setup-description">
-          To verify Discord membership, our bot needs to be added to your server.
-        </p>
-
-        {#if discordBotSetup.connected}
-          <div class="disconnect-row">
-            <p class="status-text">Discord account connected as <strong>{discordBotSetup.selectedGuildName || 'your account'}</strong>.</p>
-            <button
-              type="button"
-              class="ghost-btn danger"
-              on:click={disconnectDiscord}
-              disabled={disconnectingDiscord}
-            >
-              {disconnectingDiscord ? 'Disconnecting…' : 'Disconnect Discord'}
-            </button>
-          </div>
-        {/if}
-
-        <!-- Step 1: Connect Discord -->
-        <div class="setup-step" class:completed={discordBotSetup.connected}>
-          <div class="step-header">
-            <span class="step-number">1</span>
-            <h4>Connect Your Discord Account</h4>
-            {#if discordBotSetup.connected}
-              <span class="check-icon">✓</span>
+    <div class="stepper-nav">
+      {#each steps as step, index}
+        <button
+          type="button"
+          class="stepper-item"
+          class:active={index === currentStep}
+          class:complete={index < currentStep}
+          on:click={() => goToStep(index)}
+          disabled={index > currentStep}
+        >
+          <span class="step-index">{index + 1}</span>
+          <div class="step-content">
+            <span class="step-label">{STEP_LABELS[step]}</span>
+            {#if index < currentStep}
+              <span class="step-status">Completed</span>
+            {:else if index === currentStep}
+              <span class="step-status">Current</span>
             {/if}
           </div>
-          {#if !discordBotSetup.connected}
-            <button type="button" class="secondary-btn" on:click={connectDiscord}>
-              Connect Discord
-            </button>
-          {:else}
-            <p class="success-text">✓ Discord connected</p>
+        </button>
+      {/each}
+    </div>
+
+    {#if stepErrors.length}
+      <div class="step-errors">
+        <h3>Complete these before continuing</h3>
+        <ul>
+          {#each stepErrors as error}
+            <li>{error}</li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+
+    {#if currentStepKey === "type"}
+      <div class="form-block event-type-selector">
+        <h2 class="section-title">Choose Event Type</h2>
+        <p class="section-description">
+          Select how you want to create your event. Quick events include all details upfront, while communities allow you to add tasks and rewards over time.
+        </p>
+        
+        <div class="event-type-options">
+          <label class="event-type-card" class:selected={eventType === "quick_event"}>
+            <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
+            <div class="type-icon">⚡</div>
+            <h3>Quick Event</h3>
+            <p>Create a complete event with all tasks and rewards configured immediately. Best for time-limited campaigns.</p>
+            <ul class="type-features">
+              <li>✓ All tasks configured upfront</li>
+              <li>✓ Prize configuration required</li>
+              <li>✓ Ready to launch immediately</li>
+            </ul>
+          </label>
+
+          <label class="event-type-card" class:selected={eventType === "community"}>
+            <input type="radio" name="event-type" value="community" bind:group={eventType} />
+            <div class="type-icon">🏘️</div>
+            <h3>Community</h3>
+            <p>Start with basic details and add tasks and rewards progressively. Perfect for ongoing community engagement.</p>
+            <ul class="type-features">
+              <li>✓ Add tasks over time</li>
+              <li>✓ Configure rewards later</li>
+              <li>✓ Flexible setup process</li>
+            </ul>
+          </label>
+        </div>
+      </div>
+    {/if}
+
+    {#if currentStepKey === "details"}
+      <div class="form-block">
+        <h2 class="section-title">Basic Event Details</h2>
+        <p class="section-description">
+          Provide an overview, timing, and hero artwork for your event. These details appear on the
+          public event page.
+        </p>
+
+        <div class="form-group">
+          <label for="event-title">Event title</label>
+          <input
+            id="event-title"
+            type="text"
+            placeholder="MoonFlux launch celebration"
+            bind:value={eventTitle}
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="event-description">Event description</label>
+          <textarea
+            id="event-description"
+            placeholder="Describe your event and what participants need to do..."
+            bind:value={eventDescription}
+            rows="5"
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="video-url">Video URL (optional)</label>
+          <input
+            id="video-url"
+            type="url"
+            placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+            bind:value={videoUrl}
+          />
+          <p class="field-hint">Add a video description or promotional video for your event</p>
+        </div>
+
+        <div class="grid-two">
+          <div class="form-group">
+            <label for="start-date">Start date</label>
+            <input id="start-date" type="date" bind:value={startDate} on:change={updateDateTimes} required />
+          </div>
+          <div class="form-group">
+            <label for="start-time">Start time</label>
+            <input id="start-time" type="time" bind:value={startTime} on:input={updateDateTimes} required />
+          </div>
+        </div>
+
+        <div class="grid-two">
+          <div class="form-group">
+            <label for="end-date">End date</label>
+            <input id="end-date" type="date" bind:value={endDate} on:change={updateDateTimes} required />
+          </div>
+          <div class="form-group">
+            <label for="end-time">End time</label>
+            <input id="end-time" type="time" bind:value={endTime} on:input={updateDateTimes} required />
+          </div>
+        </div>
+
+        <div class="form-group single">
+          <label for="num-winners">Number of winners (optional)</label>
+          <input
+            id="num-winners"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="Leave blank if every eligible participant is rewarded"
+            bind:value={numWinners}
+          />
+          <p class="field-hint">Leave empty when every qualifying participant receives the reward.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="banner-upload">Banner image</label>
+          <p class="field-hint">Recommended size: 1600 × 600 px (wide hero format)</p>
+          <div class="file-input">
+            <input id="banner-upload" type="file" accept="image/*" on:change={handleBannerUpload} />
+            <span>Upload banner image</span>
+          </div>
+          {#if bannerError}
+            <p class="error-text">{bannerError}</p>
+          {/if}
+          {#if bannerPreview}
+            <img class="banner-preview" src={bannerPreview} alt="Event banner preview" />
           {/if}
         </div>
 
-        <!-- Step 2: Select Server -->
-        {#if discordBotSetup.connected}
-          <div class="setup-step" class:completed={discordBotSetup.selectedGuildId}>
-            <div class="step-header">
-              <span class="step-number">2</span>
-              <h4>Select Your Server</h4>
-              {#if discordBotSetup.selectedGuildId}
-                <span class="check-icon">✓</span>
-              {/if}
-            </div>
-            {#if discordBotSetup.guilds.length > 0}
-              <select 
-                class="guild-select" 
-                on:change={(e) => {
-                  const guild = discordBotSetup.guilds.find(g => g.id === e.currentTarget.value);
-                  if (guild) selectDiscordGuild(guild.id, guild.name);
-                }}
-                value={discordBotSetup.selectedGuildId || ''}
-              >
-                <option value="">Select a server...</option>
-                {#each discordBotSetup.guilds as guild}
-                  <option value={guild.id}>{guild.name}</option>
+        <div class="form-group">
+          <label for="logo-upload">Event logo</label>
+          <p class="field-hint">Recommended size: 480 × 480 px (square with transparent background)</p>
+          <div class="file-input">
+            <input id="logo-upload" type="file" accept="image/*" on:change={handleLogoUpload} />
+            <span>Upload logo image</span>
+          </div>
+          {#if logoError}
+            <p class="error-text">{logoError}</p>
+          {/if}
+          {#if logoPreview}
+            <img class="logo-preview" src={logoPreview} alt="Event logo preview" />
+          {/if}
+        </div>
+      </div>
+    {/if}
+
+    {#if currentStepKey === "tasks"}
+      {#if eventType === "quick_event"}
+        <div class="form-block">
+          <h2 class="section-title">Add Event Tasks</h2>
+          <p class="section-description">
+            Mix and match multiple task categories. Each task can capture its own configuration through
+            the modular task components.
+          </p>
+
+          <div class="grid-two">
+            <div class="form-group">
+              <label for="task-type">Select task type</label>
+              <select id="task-type" bind:value={selectedTaskType}>
+                <option disabled hidden value="">Choose task category</option>
+                {#each taskOptions as option}
+                  <option value={option.value}>{option.label}</option>
                 {/each}
               </select>
+            </div>
+            <div class="form-group align-end">
+              <button type="button" class="ghost-btn" on:click={startCreateTask} disabled={!selectedTaskType}>
+                + Add Task
+              </button>
+            </div>
+          </div>
+
+          {#if creatingTaskType}
+            <div class="task-builder">
+              <svelte:component
+                this={taskRegistry[creatingTaskType].component}
+                initialConfig={editingTaskIndex !== null ? clone(tasks[editingTaskIndex].config) : null}
+                onSave={handleTaskSave}
+                onCancel={handleTaskCancel}
+              />
+            </div>
+          {/if}
+
+          <div class="task-list">
+            {#if tasks.length === 0}
+              <p class="empty-state">No tasks added yet. Choose a task type and click “+ Add Task”.</p>
             {:else}
-              <p class="info-text">No servers found. Make sure you own or manage a Discord server.</p>
+              {#each tasks as task, index (task.id)}
+                <div class="task-card">
+                  <div class="task-card-header">
+                    <div>
+                      <p class="task-label">{getTaskLabel(task.type)}</p>
+                      <p class="task-meta">Task #{index + 1}</p>
+                    </div>
+                    <div class="task-actions">
+                      <button type="button" class="ghost-btn" on:click={() => editTask(index)}>Edit</button>
+                      <button type="button" class="ghost-btn danger" on:click={() => removeTask(index)}>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                  <pre class="task-config">{summariseConfig(task.config)}</pre>
+                </div>
+              {/each}
             {/if}
           </div>
-        {/if}
+        </div>
 
-        <!-- Step 3: Add Bot to Server -->
-        {#if discordBotSetup.selectedGuildId}
-          <div class="setup-step" class:completed={discordBotSetup.botAdded}>
-            <div class="step-header">
-              <span class="step-number">3</span>
-              <h4>Add Bot to {discordBotSetup.selectedGuildName}</h4>
-              {#if discordBotSetup.botAdded}
-                <span class="check-icon">✓</span>
-              {/if}
-            </div>
-            {#if !discordBotSetup.botAdded}
-              <div class="bot-invite-section">
-                <p class="info-text">Click the button below to add our verification bot to your server:</p>
-                <a 
-                  href={getBotInviteUrl()} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  class="primary-btn"
+        {#if hasDiscordTask}
+          <div class="discord-setup-section">
+            <h3>🤖 Discord Bot Setup Required</h3>
+            <p class="setup-description">
+              To verify Discord membership, our bot needs to be added to your server.
+            </p>
+
+            {#if discordBotSetup.connected}
+              <div class="disconnect-row">
+                <p class="status-text">Discord account connected as <strong>{discordBotSetup.selectedGuildName || 'your account'}</strong>.</p>
+                <button
+                  type="button"
+                  class="ghost-btn danger"
+                  on:click={disconnectDiscord}
+                  disabled={disconnectingDiscord}
                 >
-                  Add Bot to Server
-                </a>
-                <p class="helper-text">After adding the bot, click "Verify Bot Added" below</p>
-                <button 
-                  type="button" 
-                  class="secondary-btn" 
-                  on:click={verifyBotAdded}
-                  disabled={checkingDiscordBot}
-                >
-                  {checkingDiscordBot ? 'Checking...' : 'Verify Bot Added'}
+                  {disconnectingDiscord ? 'Disconnecting…' : 'Disconnect Discord'}
                 </button>
               </div>
-            {:else}
-              <p class="success-text">✓ Bot successfully added to server</p>
+            {/if}
+
+            <div class="setup-step" class:completed={discordBotSetup.connected}>
+              <div class="step-header">
+                <span class="step-number">1</span>
+                <h4>Connect Your Discord Account</h4>
+                {#if discordBotSetup.connected}
+                  <span class="check-icon">✓</span>
+                {/if}
+              </div>
+              {#if !discordBotSetup.connected}
+                <button type="button" class="secondary-btn" on:click={connectDiscord}>
+                  Connect Discord
+                </button>
+              {:else}
+                <p class="success-text">✓ Discord connected</p>
+              {/if}
+            </div>
+
+            {#if discordBotSetup.connected}
+              <div class="setup-step" class:completed={discordBotSetup.selectedGuildId}>
+                <div class="step-header">
+                  <span class="step-number">2</span>
+                  <h4>Select Your Server</h4>
+                  {#if discordBotSetup.selectedGuildId}
+                    <span class="check-icon">✓</span>
+                  {/if}
+                </div>
+                {#if discordBotSetup.guilds.length > 0}
+                  <select 
+                    class="guild-select" 
+                    on:change={(e) => {
+                      const guild = discordBotSetup.guilds.find(g => g.id === e.currentTarget.value);
+                      if (guild) selectDiscordGuild(guild.id, guild.name);
+                    }}
+                    value={discordBotSetup.selectedGuildId || ''}
+                  >
+                    <option value="">Select a server...</option>
+                    {#each discordBotSetup.guilds as guild}
+                      <option value={guild.id}>{guild.name}</option>
+                    {/each}
+                  </select>
+                {:else}
+                  <p class="info-text">No servers found. Make sure you own or manage a Discord server.</p>
+                {/if}
+              </div>
+            {/if}
+
+            {#if discordBotSetup.selectedGuildId}
+              <div class="setup-step" class:completed={discordBotSetup.botAdded}>
+                <div class="step-header">
+                  <span class="step-number">3</span>
+                  <h4>Add Bot to {discordBotSetup.selectedGuildName}</h4>
+                  {#if discordBotSetup.botAdded}
+                    <span class="check-icon">✓</span>
+                  {/if}
+                </div>
+                {#if !discordBotSetup.botAdded}
+                  <div class="bot-invite-section">
+                    <p class="info-text">Click the button below to add our verification bot to your server:</p>
+                    <a 
+                      href={getBotInviteUrl()} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      class="primary-btn"
+                    >
+                      Add Bot to Server
+                    </a>
+                    <p class="helper-text">After adding the bot, click "Verify Bot Added" below</p>
+                    <button 
+                      type="button" 
+                      class="secondary-btn" 
+                      on:click={verifyBotAdded}
+                      disabled={checkingDiscordBot}
+                    >
+                      {checkingDiscordBot ? 'Checking...' : 'Verify Bot Added'}
+                    </button>
+                  </div>
+                {:else}
+                  <p class="success-text">✓ Bot successfully added to server</p>
+                {/if}
+              </div>
+            {/if}
+
+            {#if !discordSetupComplete}
+              <div class="setup-warning">
+                ⚠️ Complete all Discord setup steps before continuing
+              </div>
             {/if}
           </div>
         {/if}
+      {/if}
+    {/if}
 
-        {#if !discordSetupComplete}
-          <div class="setup-warning">
-            ⚠️ Complete all Discord setup steps before creating the event
+    {#if currentStepKey === "rewards"}
+      <div class="form-block">
+        <h2 class="section-title">Reward Configuration</h2>
+        <p class="section-description">
+          Add one or more rewards for your event. You can combine different reward types.
+        </p>
+
+        <div class="form-group">
+          <label for="reward-type-selector">Add Reward Type</label>
+          <div class="task-selector-row">
+            <select id="reward-type-selector" bind:value={selectedRewardType}>
+              <option value="">Select reward type to add...</option>
+              {#each detailedPrizeOptions as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+            <button
+              type="button"
+              class="ghost-btn"
+              on:click={addReward}
+              disabled={!selectedRewardType}
+            >
+              + Add Reward
+            </button>
           </div>
+        </div>
+
+        {#if rewards.length > 0}
+          <div class="rewards-list">
+            {#each rewards as reward (reward.id)}
+              <div class="reward-card">
+                <div class="reward-card-header">
+                  <div class="reward-info">
+                    <h3>{getRewardLabel(reward)}</h3>
+                    <p class="reward-summary">{getRewardSummary(reward)}</p>
+                  </div>
+                  <div class="reward-actions">
+                    <button
+                      type="button"
+                      class="ghost-btn"
+                      on:click={() => editReward(reward.id)}
+                    >
+                      {editingRewardId === reward.id ? "▲ Collapse" : "▼ Configure"}
+                    </button>
+                    <button
+                      type="button"
+                      class="ghost-btn danger"
+                      on:click={() => removeReward(reward.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+
+                {#if editingRewardId === reward.id}
+                  <div class="reward-config">
+                    <RewardBuilder
+                      bind:reward
+                      {numWinners}
+                      chainId={selectedChain || $chainId?.toString() || ""}
+                      on:update={(e) => {
+                        rewards = rewards.map(r => r.id === reward.id ? e.detail : r);
+                      }}
+                    />
+                  </div>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <p class="empty-state">No rewards added yet. Add a reward type above to get started.</p>
         {/if}
       </div>
     {/if}
 
-    <button type="submit" class="primary-btn" disabled={isSaving || !canSubmitForm || !eventType}>
-      {isSaving ? "Saving..." : eventType === "community" ? "Create Community" : "Create Event"}
-    </button>
+    <div class="step-actions">
+      {#if currentStep > 0}
+        <button type="button" class="ghost-btn" on:click={handlePreviousStep}>
+          Back
+        </button>
+      {/if}
 
-    {#if !canSubmitForm && hasDiscordTask}
+      {#if isLastStep}
+        <button type="submit" class="primary-btn" disabled={isSaving || !canSubmitForm || !eventType}>
+          {isSaving ? "Saving..." : eventType === "community" ? "Create Community" : "Create Event"}
+        </button>
+      {:else}
+        <button
+          type="button"
+          class="primary-btn"
+          on:click={handleNextStep}
+        >
+          Next: {STEP_LABELS[steps[currentStep + 1]]}
+        </button>
+      {/if}
+    </div>
+
+    {#if !canSubmitForm && hasDiscordTask && currentStepKey === "tasks"}
       <p class="submit-blocked-message">
-        Complete Discord bot setup to create event
+        Complete Discord bot setup to continue
       </p>
     {/if}
 
@@ -1778,7 +1971,6 @@
           {/each}
         </ul>
       </div>
-    {/if}
     {/if}
   </form>
 </section>
