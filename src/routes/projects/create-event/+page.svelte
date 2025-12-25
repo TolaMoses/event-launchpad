@@ -959,10 +959,61 @@
       id: generateId(),
       type: selectedRewardType
     };
+    const defaultChainId = selectedChain || defaultChain || "";
 
-{{ ... }}
-      newReward.customPointName = "";
-      newReward.leaderboardEnabled = false;
+    switch (selectedRewardType) {
+      case "Token":
+        newReward.chain = defaultChainId;
+        newReward.tokenAddress = "";
+        newReward.prizePool = "";
+        newReward.distributionType = "even";
+        newReward.positionRewards = [];
+        newReward.customTokenSymbol = "";
+        newReward.customTokenAddress = "";
+        newReward.customTokenDecimals = "";
+        break;
+      case "ETH":
+        newReward.chain = defaultChainId;
+        newReward.prizePool = "";
+        newReward.distributionType = "even";
+        newReward.positionRewards = [];
+        break;
+      case "NFT":
+        newReward.nfts = [{ id: generateId(), contract: "", tokenId: "" }];
+        newReward.nftDistributionType = "even";
+        newReward.nftPositionDistribution = [];
+        break;
+      case "MintableNFT":
+        newReward.mintableNfts = [
+          {
+            id: generateId(),
+            name: "",
+            description: "",
+            imageFile: null,
+            imagePreview: "",
+            supply: "",
+            rarity: "Common",
+            rarityPercentage: "100",
+            uploadedImage: null
+          }
+        ];
+        newReward.mintableNftDistributionType = "random";
+        newReward.mintableNftPositionDistribution = [];
+        break;
+      case "Gift":
+        newReward.giftDescription = "";
+        newReward.giftValue = "";
+        break;
+      case "Voucher":
+        newReward.voucherDescription = "";
+        newReward.voucherCodes = [];
+        break;
+      case "CustomPoints":
+        newReward.customPointName = "";
+        newReward.leaderboardEnabled = false;
+        break;
+      default:
+        break;
     }
 
     rewards = [...rewards, newReward];
