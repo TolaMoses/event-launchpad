@@ -625,14 +625,24 @@
   function connectDiscord() {
     if (!browser) return;
     const currentUrl = window.location.href;
-    // Persist draft before the hard redirect to Discord OAuth
-    saveFormDraft();
     const authUrl = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
-    const authWindow = window.open(authUrl, '_blank', 'noopener');
+    const authWindow = window.open('', '_blank', 'noopener');
+
+    // Persist draft before navigating the new window
+    saveFormDraft();
+
     if (!authWindow) {
       window.location.href = authUrl;
-    } else {
+      return;
+    }
+
+    try {
+      authWindow.location.href = authUrl;
       authWindow.focus();
+    } catch (err) {
+      console.warn('Failed to redirect OAuth window, falling back to same-tab flow', err);
+      authWindow.close();
+      window.location.href = authUrl;
     }
   }
 
