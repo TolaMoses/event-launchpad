@@ -196,6 +196,7 @@
   let currentStepKey: Step = "type";
   let isLastStep = true;
   let stepErrors: string[] = [];
+  let showDiscordReturnNotice = false;
   let cleanupFocusListener: (() => void) | null = null;
 
   function buildStepsForType(type: typeof eventType): Step[] {
@@ -510,6 +511,11 @@
       voucherCodes,
       videoUrl,
       tasks,
+      discordSelectedGuildId: discordBotSetup.selectedGuildId,
+      discordSelectedGuildName: discordBotSetup.selectedGuildName,
+      discordBotAdded: discordBotSetup.botAdded,
+      discordConnected: discordBotSetup.connected,
+      discordGuilds: discordBotSetup.guilds,
       rewards: serializeRewardsForDraft(),
       timestamp: Date.now()
     };
@@ -561,6 +567,11 @@
       videoUrl = draft.videoUrl || "";
       tasks = draft.tasks || [];
       hydrateRewardsFromDraft(draft.rewards);
+      discordBotSetup.selectedGuildId = draft.discordSelectedGuildId || null;
+      discordBotSetup.selectedGuildName = draft.discordSelectedGuildName || null;
+      discordBotSetup.botAdded = Boolean(draft.discordBotAdded);
+      discordBotSetup.connected = Boolean(draft.discordConnected);
+      discordBotSetup.guilds = Array.isArray(draft.discordGuilds) ? draft.discordGuilds : [];
       updateDateTimes();
       return typeof draft.currentStep === "number" ? draft.currentStep : null;
     } catch (err) {
@@ -584,17 +595,42 @@
     try { saveFormDraft(); } catch { /* no-op */ }
   }
 
-  $: if (browser && (eventType || eventTitle || eventDescription || startDate || prizeType)) {
-    triggerAutosave();
+  function markDiscordPending() {
+    if (!browser) return;
+    try {
+      sessionStorage.setItem('discord_oauth_pending', '1');
+    } catch (err) {
+      console.warn('Failed to mark Discord OAuth pending', err);
+    }
+  }
+
+  function clearDiscordPendingFlag() {
+    if (!browser) return;
+    try {
+      sessionStorage.removeItem('discord_oauth_pending');
+    } catch (err) {
+      console.warn('Failed to clear Discord OAuth pending flag', err);
+    }
+  }
+
+  function dismissDiscordReturnNotice() {
+    showDiscordReturnNotice = false;
+    clearDiscordPendingFlag();
   }
 
   onMount(() => {
     const restoredStep = loadFormDraft();
-    checkDiscordConnection();
     syncStepsWithType(eventType);
     if (restoredStep != null) {
       currentStep = Math.min(restoredStep, steps.length - 1);
     }
+
+    if (browser) {
+      showDiscordReturnNotice = sessionStorage.getItem('discord_oauth_pending') === '1';
+    }
+
+    checkDiscordConnection();
+
     // Ensure we don't lose the latest edits when navigating away (e.g., Discord OAuth)
     if (browser) {
       const handleFocus = () => {
@@ -614,8 +650,23 @@
       const response = await fetch('/api/auth/discord/status');
       if (response.ok) {
         const data = await response.json();
+        const previousConnected = discordBotSetup.connected;
+        const previousGuilds = JSON.stringify(discordBotSetup.guilds);
+
         discordBotSetup.connected = data.connected;
         discordBotSetup.guilds = data.guilds || [];
+
+        if (data.connected) {
+          showDiscordReturnNotice = false;
+          clearDiscordPendingFlag();
+        } else if (browser && sessionStorage.getItem('discord_oauth_pending') === '1') {
+          showDiscordReturnNotice = true;
+        }
+
+        const newGuildsSerialized = JSON.stringify(discordBotSetup.guilds);
+        if (previousConnected !== discordBotSetup.connected || previousGuilds !== newGuildsSerialized) {
+          triggerAutosave();
+        }
       }
     } catch (err) {
       console.error('Failed to check Discord connection:', err);
@@ -630,6 +681,8 @@
 
     // Persist draft before navigating the new window
     saveFormDraft();
+    markDiscordPending();
+    showDiscordReturnNotice = true;
 
     if (!authWindow) {
       window.location.href = authUrl;
@@ -642,6 +695,7 @@
     } catch (err) {
       console.warn('Failed to redirect OAuth window, falling back to same-tab flow', err);
       authWindow.close();
+      // Flag remains so we still show banner on return
       window.location.href = authUrl;
     }
   }
@@ -650,6 +704,7 @@
     discordBotSetup.selectedGuildId = guildId;
     discordBotSetup.selectedGuildName = guildName;
     discordBotSetup.botAdded = false; // Reset bot added status when changing guild
+    triggerAutosave();
   }
 
   async function getBotInviteUrl(): Promise<string> {
@@ -698,6 +753,7 @@
         if (!data.botInGuild) {
           alert('Bot not found in server. Please make sure you added the bot and try again.');
         }
+        triggerAutosave();
       }
     } catch (err) {
       console.error('Failed to verify bot:', err);
@@ -731,6 +787,9 @@
       };
 
       checkingDiscordBot = false;
+      showDiscordReturnNotice = false;
+      clearDiscordPendingFlag();
+      triggerAutosave();
     } catch (err) {
       console.error('Disconnect Discord failed:', err);
       alert(err instanceof Error ? err.message : 'Failed to disconnect Discord');
@@ -871,6 +930,7 @@
     creatingTaskType = null;
     editingTaskIndex = null;
     selectedTaskType = "";
+    triggerAutosave();
   }
 
   function handleTaskCancel() {
@@ -888,80 +948,39 @@
 
   function removeTask(index: number) {
     tasks = tasks.filter((_, i) => i !== index);
+    triggerAutosave();
   }
 
   // Reward management functions
   function addReward() {
     if (!selectedRewardType) return;
-    
+
     const newReward: RewardConfig = {
       id: generateId(),
       type: selectedRewardType
     };
 
-    // Initialize type-specific defaults
-    if (selectedRewardType === "Token" || selectedRewardType === "ETH") {
-      newReward.distributionType = "even";
-      newReward.positionRewards = [];
-      newReward.prizePool = "";
-      if (selectedRewardType === "Token") {
-        newReward.chain = selectedChain || "";
-        newReward.tokenAddress = "";
-      }
-    } else if (selectedRewardType === "NFT") {
-      newReward.nfts = [{ id: generateId(), contract: "", tokenId: "" }];
-      newReward.nftDistributionType = "even";
-      newReward.nftPositionDistribution = [];
-    } else if (selectedRewardType === "MintableNFT") {
-      newReward.mintableNfts = [{
-        id: generateId(),
-        name: "",
-        description: "",
-        imageFile: null,
-        imagePreview: "",
-        supply: "",
-        rarity: "Common",
-        rarityPercentage: "100",
-        uploadedImage: null
-      }];
-      newReward.mintableNftDistributionType = "random";
-      newReward.mintableNftPositionDistribution = [];
-    } else if (selectedRewardType === "Gift") {
-      newReward.giftDescription = "";
-      newReward.giftValue = "";
-    } else if (selectedRewardType === "Voucher") {
-      newReward.voucherDescription = "";
-      newReward.voucherCodes = [];
-    } else if (selectedRewardType === "CustomPoints") {
+{{ ... }}
       newReward.customPointName = "";
       newReward.leaderboardEnabled = false;
     }
 
     rewards = [...rewards, newReward];
-    editingRewardId = newReward.id;
     selectedRewardType = "";
+    triggerAutosave();
   }
-
-  function removeReward(id: string) {
-    // Clean up any image previews for mintable NFTs
-    const reward = rewards.find(r => r.id === id);
-    if (reward?.mintableNfts) {
-      reward.mintableNfts.forEach(nft => {
-        if (nft.imagePreview) {
-          URL.revokeObjectURL(nft.imagePreview);
-        }
-      });
-    }
-    rewards = rewards.filter(r => r.id !== id);
-    if (editingRewardId === id) {
+  function editReward(rewardId: string) {
+    if (editingRewardId === rewardId) {
       editingRewardId = null;
+    } else {
+      editingRewardId = rewardId;
     }
   }
 
-  function editReward(id: string) {
-    editingRewardId = editingRewardId === id ? null : id;
+  function removeReward(rewardId: string) {
+    rewards = rewards.filter((reward) => reward.id !== rewardId);
+    triggerAutosave();
   }
-
   function getRewardLabel(reward: RewardConfig): string {
     const option = detailedPrizeOptions.find(opt => opt.value === reward.type);
     return option?.label || reward.type;
@@ -1513,6 +1532,18 @@
 
 <section class="form-section">
   <form class="event-form" on:submit|preventDefault={createEvent}>
+    {#if showDiscordReturnNotice}
+      <div class="discord-return-banner" role="status">
+        <div class="banner-text">
+          <strong>Discord setup in progress.</strong>
+          <span>Return to this tab after finishing the Discord authorization and add the bot to complete setup.</span>
+        </div>
+        <button type="button" class="ghost-btn" on:click={dismissDiscordReturnNotice}>
+          Dismiss
+        </button>
+      </div>
+    {/if}
+
     <div class="stepper-nav">
       {#each steps as step, index}
         <button
