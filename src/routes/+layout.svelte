@@ -2,6 +2,7 @@
 
 <script lang="ts">
   import "../app.css";
+  import { invalidateAll } from "$app/navigation";
   import { onMount } from "svelte";
   import { derived, get, writable } from "svelte/store";
   import {
@@ -170,11 +171,23 @@
   }
 
   async function handleDisconnect() {
-    await signOutWallet();
+    try {
+      await signOutWallet();
+    } finally {
+      if (typeof fetch !== "undefined") {
+        try {
+          await fetch("/api/auth/logout", { method: "POST" });
+        } catch (error) {
+          console.warn("Failed to invalidate session server-side", error);
+        }
+      }
+    }
     selectedChainId = "";
     walletError.set(null);
     closeChainMenu();
     closeMobileMenu();
+    sessionUser = null;
+    await invalidateAll();
   }
 
   function applyChainConfig(id: number) {
@@ -277,11 +290,11 @@
 				<button class="green-button">Create Event</button>
 			</a>
 			<a class="home-link nav-link" href="/">Home</a>
-			<a class="dashboard-link nav-link" href="/giveaway">Giveaway</a>
-			<a class="dashboard-link nav-link" href="/games">Games</a>
-			<a class="dashboard-link nav-link" href="/projects">My Events</a>
+			{#if isLoggedIn}
+				<a class="dashboard-link nav-link" href="/dashboard">Dashboard</a>
+			{/if}
 			<div class="wallet-area">
-				<LoginDropdown
+				<LoginDropdown 
 					user={derivedUser}
 					isLoggedIn={isLoggedIn}
 					on:connectWallet={handleConnect}
@@ -323,17 +336,18 @@
 			</div>
 			<div class="mobile-menu-links" role="menu">
 				<div class="mobile-login-wrapper">
-					<LoginDropdown
+					<LoginDropdown 
 						user={derivedUser}
 						isLoggedIn={isLoggedIn}
 						on:connectWallet={handleConnect}
 						on:logout={handleDisconnect}
 					/>
 				</div>
-				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/" role="menuitem">Home</a>
-				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/projects" role="menuitem">My Events</a>
-				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/giveaway" role="menuitem">Giveaway</a>
-				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/games" role="menuitem">Games</a>
+				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/">Home</a>
+				{#if isLoggedIn}
+					<a class="mobile-menu-link" on:click={closeMobileMenu} href="/dashboard">Dashboard</a>
+				{/if}
+				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/projects/create-event">Create Event</a>
 				<div class="mobile-socials top-nav-socials">
 					<img src={xLogo} alt="Twitter X logo" />
 					<img src={discordLogo} alt="Discord logo" />

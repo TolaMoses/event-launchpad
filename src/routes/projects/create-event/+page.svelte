@@ -176,6 +176,7 @@
     guilds: []
   };
   let checkingDiscordBot = false;
+  let disconnectingDiscord = false;
 
   // Rewards array - replaces single prizeType
   let rewards: RewardConfig[] = [];
@@ -551,6 +552,38 @@
       alert('Failed to verify bot. Please try again.');
     } finally {
       checkingDiscordBot = false;
+    }
+  }
+
+  async function disconnectDiscord() {
+    if (!browser || disconnectingDiscord) return;
+
+    disconnectingDiscord = true;
+    try {
+      const response = await fetch('/api/auth/discord/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'Failed to disconnect Discord');
+        throw new Error(message || 'Failed to disconnect Discord');
+      }
+
+      discordBotSetup = {
+        connected: false,
+        selectedGuildId: null,
+        selectedGuildName: null,
+        botAdded: false,
+        guilds: []
+      };
+
+      checkingDiscordBot = false;
+    } catch (err) {
+      console.error('Disconnect Discord failed:', err);
+      alert(err instanceof Error ? err.message : 'Failed to disconnect Discord');
+    } finally {
+      disconnectingDiscord = false;
     }
   }
 
@@ -1614,6 +1647,20 @@
         <p class="setup-description">
           To verify Discord membership, our bot needs to be added to your server.
         </p>
+
+        {#if discordBotSetup.connected}
+          <div class="disconnect-row">
+            <p class="status-text">Discord account connected as <strong>{discordBotSetup.selectedGuildName || 'your account'}</strong>.</p>
+            <button
+              type="button"
+              class="ghost-btn danger"
+              on:click={disconnectDiscord}
+              disabled={disconnectingDiscord}
+            >
+              {disconnectingDiscord ? 'Disconnecting…' : 'Disconnect Discord'}
+            </button>
+          </div>
+        {/if}
 
         <!-- Step 1: Connect Discord -->
         <div class="setup-step" class:completed={discordBotSetup.connected}>
