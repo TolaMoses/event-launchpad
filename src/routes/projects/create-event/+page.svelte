@@ -295,6 +295,59 @@
     }
   }
 
+  function serializeRewardsForDraft(): RewardConfig[] {
+    return rewards.map((reward) => ({
+      ...reward,
+      positionRewards: reward.positionRewards
+        ? reward.positionRewards.map((entry) => ({ ...entry }))
+        : undefined,
+      nfts: reward.nfts ? reward.nfts.map((nft) => ({ ...nft })) : undefined,
+      nftPositionDistribution: reward.nftPositionDistribution
+        ? reward.nftPositionDistribution.map((distribution) => ({ ...distribution }))
+        : undefined,
+      mintableNfts: reward.mintableNfts
+        ? reward.mintableNfts.map((nft) => ({
+            ...nft,
+            imageFile: null,
+            uploadedImage: nft.uploadedImage ? { ...nft.uploadedImage } : null
+          }))
+        : undefined,
+      mintableNftPositionDistribution: reward.mintableNftPositionDistribution
+        ? reward.mintableNftPositionDistribution.map((distribution) => ({ ...distribution }))
+        : undefined,
+      voucherCodes: reward.voucherCodes ? [...reward.voucherCodes] : undefined
+    }));
+  }
+
+  function hydrateRewardsFromDraft(draftRewards: RewardConfig[] | undefined) {
+    if (!draftRewards) {
+      rewards = [];
+      return;
+    }
+
+    rewards = draftRewards.map((reward) => ({
+      ...reward,
+      positionRewards: reward.positionRewards
+        ? reward.positionRewards.map((entry) => ({ ...entry }))
+        : undefined,
+      nfts: reward.nfts ? reward.nfts.map((nft) => ({ ...nft })) : undefined,
+      nftPositionDistribution: reward.nftPositionDistribution
+        ? reward.nftPositionDistribution.map((distribution) => ({ ...distribution }))
+        : undefined,
+      mintableNfts: reward.mintableNfts
+        ? reward.mintableNfts.map((nft) => ({
+            ...nft,
+            imageFile: null,
+            uploadedImage: nft.uploadedImage ? { ...nft.uploadedImage } : null
+          }))
+        : undefined,
+      mintableNftPositionDistribution: reward.mintableNftPositionDistribution
+        ? reward.mintableNftPositionDistribution.map((distribution) => ({ ...distribution }))
+        : undefined,
+      voucherCodes: reward.voucherCodes ? [...reward.voucherCodes] : undefined
+    }));
+  }
+
   function saveFormDraft() {
     if (!browser) return;
     const draft = {
@@ -334,6 +387,7 @@
       voucherCodes,
       videoUrl,
       tasks,
+      rewards: serializeRewardsForDraft(),
       timestamp: Date.now()
     };
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(draft));
@@ -382,6 +436,7 @@
       voucherCodes = draft.voucherCodes || [];
       videoUrl = draft.videoUrl || "";
       tasks = draft.tasks || [];
+      hydrateRewardsFromDraft(draft.rewards);
       updateDateTimes();
     } catch (err) {
       console.warn("Failed to restore draft", err);
