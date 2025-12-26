@@ -7,6 +7,7 @@ import ParticipationTask from "./participation/ParticipationTask.svelte";
 import GameTask from "./game/GameTask.svelte";
 import ReferralTask from "./referral/ReferralTask.svelte";
 import IrlTask from "./irl/IrlTask.svelte";
+import ScorelinePrediction from "./scoreline/ScorelinePrediction.svelte";
 
 export const taskRegistry: TaskRegistry = {
   social: {
@@ -36,6 +37,10 @@ export const taskRegistry: TaskRegistry = {
   referral: {
     label: "Referral Tasks",
     component: ReferralTask
+  },
+  scoreline: {
+    label: "Scoreline Prediction",
+    component: ScorelinePrediction
   },
   irl: {
     label: "IRL Tasks",
