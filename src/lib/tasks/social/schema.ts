@@ -54,12 +54,24 @@ const defaultSocialTaskConfig: SocialTaskConfig = {
     bookmarkPost: false,
     tagFriends: false,
     profileLink: "",
-    postLinks: ["" ]
+    postLinks: [""]
   }
 };
 
 export function createDefaultSocialTaskConfig(): SocialTaskConfig {
   return JSON.parse(JSON.stringify(defaultSocialTaskConfig));
+}
+
+function twitterActionsSelected(twitter: TwitterTaskConfig): boolean {
+  return (
+    twitter.followAccount ||
+    twitter.likePost ||
+    twitter.commentPost ||
+    twitter.quotePost ||
+    twitter.retweetPost ||
+    twitter.bookmarkPost ||
+    twitter.tagFriends
+  );
 }
 
 export function validateSocialTaskConfig(config: SocialTaskConfig): string[] {
@@ -94,28 +106,21 @@ export function validateSocialTaskConfig(config: SocialTaskConfig): string[] {
     errors.push("Provide a Discord invite link");
   }
 
-  if (
-    (config.twitter.followAccount ||
+  if (twitterActionsSelected(config.twitter)) {
+    if (!config.twitter.profileLink.trim()) {
+      errors.push("Provide an X / Twitter profile link");
+    }
+
+    const requiresPostLink =
       config.twitter.likePost ||
       config.twitter.commentPost ||
       config.twitter.quotePost ||
       config.twitter.retweetPost ||
-      config.twitter.bookmarkPost ||
-      config.twitter.tagFriends) &&
-    !config.twitter.profileLink.trim()
-  ) {
-    errors.push("Provide an X / Twitter profile link");
-  }
+      config.twitter.bookmarkPost;
 
-  if (
-    (config.twitter.likePost ||
-      config.twitter.commentPost ||
-      config.twitter.quotePost ||
-      config.twitter.retweetPost ||
-      config.twitter.bookmarkPost) &&
-    config.twitter.postLinks.length === 0
-  ) {
-    errors.push("Add at least one post link for Twitter actions");
+    if (requiresPostLink && config.twitter.postLinks.every((link) => !link.trim())) {
+      errors.push("Add at least one post link for Twitter actions");
+    }
   }
 
   if (config.telegram.shareUsername && !config.telegram.usernamePrompt.trim()) {

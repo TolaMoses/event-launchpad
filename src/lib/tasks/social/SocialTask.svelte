@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import type { TaskComponentProps } from "../TaskTypes";
   import {
     createDefaultSocialTaskConfig,
@@ -10,6 +11,8 @@
   export let initialConfig: SocialTaskConfig | null = null;
   export let onSave: TaskComponentProps<SocialTaskConfig>["onSave"];
   export let onCancel: TaskComponentProps["onCancel"];
+
+  const SOCIAL_TASK_DRAFT_KEY = 'event-social-task-draft';
 
   let config: SocialTaskConfig = initialConfig
     ? structuredClone(initialConfig)
@@ -35,10 +38,90 @@
     channelId: ''
   };
 
+  function persistDraft() {
+    if (!browser) return;
+    try {
+      const draft = {
+        taskType: 'social',
+        config,
+        discordSetup: {
+          connected: discordSetup.connected,
+          guilds: discordSetup.guilds,
+          selectedGuildId: discordSetup.selectedGuildId,
+          selectedGuildName: discordSetup.selectedGuildName,
+          botAdded: discordSetup.botAdded
+        },
+        telegramSetup: {
+          botUsername: telegramSetup.botUsername,
+          botAdded: telegramSetup.botAdded,
+          channelId: telegramSetup.channelId
+        },
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem(SOCIAL_TASK_DRAFT_KEY, JSON.stringify(draft));
+    } catch (err) {
+      console.warn('Failed to persist social task draft', err);
+    }
+  }
+
+  function clearDraft() {
+    if (!browser) return;
+    sessionStorage.removeItem(SOCIAL_TASK_DRAFT_KEY);
+  }
+
+  function restoreDraft() {
+    if (!browser) return;
+    try {
+      const raw = sessionStorage.getItem(SOCIAL_TASK_DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      const age = Date.now() - (draft.timestamp ?? 0);
+      if (age > 12 * 60 * 60 * 1000) {
+        sessionStorage.removeItem(SOCIAL_TASK_DRAFT_KEY);
+        return;
+      }
+      if (!initialConfig) {
+        config = structuredClone(draft.config ?? config);
+      }
+      if (draft.discordSetup) {
+        discordSetup = {
+          connected: !!draft.discordSetup.connected,
+          guilds: draft.discordSetup.guilds ?? [],
+          selectedGuildId: draft.discordSetup.selectedGuildId ?? '',
+          selectedGuildName: draft.discordSetup.selectedGuildName ?? '',
+          botAdded: !!draft.discordSetup.botAdded,
+          checking: false
+        };
+      }
+      if (draft.telegramSetup) {
+        telegramSetup = {
+          botUsername: draft.telegramSetup.botUsername ?? telegramSetup.botUsername,
+          botAdded: !!draft.telegramSetup.botAdded,
+          checking: false,
+          channelId: draft.telegramSetup.channelId ?? ''
+        };
+      }
+    } catch (err) {
+      console.warn('Failed to restore social task draft', err);
+    }
+  }
+
   onMount(() => {
+    restoreDraft();
     checkDiscordConnection();
     loadBotUsername();
+    if (browser) {
+      window.addEventListener('focus', checkDiscordConnection);
+    }
   });
+
+  if (browser) {
+    onMount(() => {
+      return () => {
+        window.removeEventListener('focus', checkDiscordConnection);
+      };
+    });
+  }
 
   async function loadBotUsername() {
     try {
@@ -66,8 +149,31 @@
   }
 
   function connectDiscord() {
+    if (!browser) return;
     const currentUrl = window.location.href;
-    window.location.href = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
+    const authUrl = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
+    const authWindow = window.open('', '_blank', 'noopener');
+
+    persistDraft();
+    try {
+      sessionStorage.setItem('discord_oauth_pending', '1');
+    } catch (err) {
+      console.warn('Failed to flag Discord OAuth pending', err);
+    }
+
+    if (!authWindow) {
+      window.location.href = authUrl;
+      return;
+    }
+
+    try {
+      authWindow.location.href = authUrl;
+      authWindow.focus();
+    } catch (err) {
+      console.warn('Failed to redirect OAuth window, falling back to same-tab flow', err);
+      authWindow.close();
+      window.location.href = authUrl;
+    }
   }
 
   function selectDiscordGuild(guildId: string, guildName: string) {
@@ -82,6 +188,7 @@
         serverName: guildName
       }
     };
+    persistDraft();
   }
 
   async function getDiscordBotInviteUrl(): Promise<string> {
@@ -121,7 +228,7 @@
 
       const data = await response.json();
       discordSetup.botAdded = data.botInGuild;
-      
+
       if (!data.botInGuild) {
         alert('Bot not found in server. Please make sure you added the bot and try again.');
       } else {
@@ -135,6 +242,7 @@
           }
         };
       }
+      persistDraft();
     } catch (err) {
       console.error('Failed to verify bot:', err);
       const errorMsg = err instanceof Error ? err.message : 'Please try again';
@@ -143,33 +251,15 @@
       } else {
         alert(`Failed to verify bot: ${errorMsg}`);
       }
-    } finally {
-      discordSetup.checking = false;
+      persistDraft();
     }
-  }
-
-  async function verifyTelegramBot() {
-    if (!telegramSetup.channelId) {
-      alert('Please enter your channel/group ID or username');
-      return;
-    }
-
-    telegramSetup.checking = true;
-    try {
-      const response = await fetch('/api/auth/telegram/verify-bot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId: telegramSetup.channelId })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+{{ ... }}
         throw new Error(errorData.message || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
       telegramSetup.botAdded = data.botInChat;
-      
+
       if (!data.botInChat) {
         alert('Bot not found in channel/group. Please make sure you added the bot as admin and try again.');
       } else {
@@ -182,6 +272,7 @@
           }
         };
       }
+      persistDraft();
     } catch (err) {
       console.error('Failed to verify bot:', err);
       const errorMsg = err instanceof Error ? err.message : 'Please try again';
@@ -202,6 +293,7 @@
   function handleSave() {
     errors = validateSocialTaskConfig(config);
     if (errors.length === 0) {
+      clearDraft();
       onSave(structuredClone(config));
     }
   }
@@ -214,6 +306,7 @@
         postLinks: [...config.twitter.postLinks, ""]
       }
     };
+    persistDraft();
   }
 
   function updateTwitterPostLink(value: string, index: number) {
@@ -226,6 +319,7 @@
         postLinks: posts
       }
     };
+    persistDraft();
   }
 
   function removeTwitterPostLink(index: number) {
@@ -237,6 +331,7 @@
         postLinks: posts.length ? posts : [""]
       }
     };
+    persistDraft();
   }
 </script>
 
@@ -278,12 +373,19 @@
         <label>Username prompt</label>
         <input type="text" bind:value={config.telegram.usernamePrompt} placeholder="Enter your Telegram @" />
       </div>
+      {#if config.telegram.usernamePrompt}
+        <button type="button" class="ghost-btn" on:click={() => {
+          config.telegram.usernamePrompt = '';
+          persistDraft();
+        }}>Reset</button>
+      {/if}
     {/if}
 
     {#if config.telegram.joinChannel || config.telegram.joinGroup}
       <div class="bot-setup-box">
         <h4>🤖 Bot Setup Required</h4>
         <p class="setup-instruction">
+{{ ... }}
           To verify participants, add our bot <strong>{telegramSetup.botUsername}</strong> to your channel/group as an admin.
         </p>
         <ol class="setup-steps">
@@ -464,7 +566,14 @@
 
   <div class="actions">
     {#if onCancel}
-      <button type="button" class="ghost-btn" on:click={onCancel}>Cancel</button>
+      <button
+        type="button"
+        class="ghost-btn"
+        on:click={() => {
+          clearDraft();
+          onCancel?.();
+        }}
+      >Cancel</button>
     {/if}
     <button 
       type="button" 
