@@ -79,15 +79,20 @@
     .filter(([key]) => key !== "irl")
     .map(([value, entry]) => ({ value, label: entry.label }));
 
-  const detailedPrizeOptions: { value: string; label: string }[] = [
+  const quickEventPrizeOptions: { value: string; label: string }[] = [
     { value: "Token", label: "Token" },
     { value: "ETH", label: "Native coin" },
     { value: "NFT", label: "Existing NFT" },
     { value: "MintableNFT", label: "Mintable NFT (participants mint after tasks)" },
     { value: "Gift", label: "Gift/Merch (physical items shipped to winners)" },
-    { value: "Voucher", label: "Voucher/Code (digital codes sent to winners)" },
+    { value: "Voucher", label: "Voucher/Code (digital codes sent to winners)" }
+  ];
+
+  const communityEventPrizeOptions: { value: string; label: string }[] = [
     { value: "CustomPoints", label: "Custom Points (point-based reward system)" }
   ];
+
+  $: detailedPrizeOptions = eventType === "community" ? communityEventPrizeOptions : quickEventPrizeOptions;
 
   const MAX_BANNER_SIZE = 500 * 1024;
   const MAX_LOGO_SIZE = 150 * 1024;
@@ -161,7 +166,6 @@
   let editingTaskIndex: number | null = null;
   let tasks: TaskInstance[] = [];
   let taskBuilderState: Record<string, unknown> | null = null;
-  let taskPointValues: Record<string, number> = {}; // Maps task ID to point value
   
   // Discord bot setup
   let discordBotSetup: {
@@ -206,7 +210,7 @@
       return ["type", "details", "tasks", "rewards"];
     }
     if (type === "community") {
-      return ["type", "details"];
+      return ["type", "details", "tasks", "rewards"];
     }
     return ["type"];
   }
@@ -517,7 +521,6 @@
       editingTaskIndex,
       selectedTaskType,
       taskBuilderState,
-      taskPointValues,
       discordSelectedGuildId: discordBotSetup.selectedGuildId,
       discordSelectedGuildName: discordBotSetup.selectedGuildName,
       discordBotAdded: discordBotSetup.botAdded,
@@ -577,7 +580,6 @@
       editingTaskIndex = typeof draft.editingTaskIndex === 'number' ? draft.editingTaskIndex : null;
       selectedTaskType = draft.selectedTaskType || "";
       taskBuilderState = draft.taskBuilderState || null;
-      taskPointValues = draft.taskPointValues || {};
       hydrateRewardsFromDraft(draft.rewards);
       discordBotSetup.selectedGuildId = draft.discordSelectedGuildId || null;
       discordBotSetup.selectedGuildName = draft.discordSelectedGuildName || null;
@@ -959,21 +961,11 @@
   }
 
   function removeTask(index: number) {
-    const taskId = tasks[index]?.id;
-    if (taskId && taskPointValues[taskId]) {
-      const { [taskId]: _, ...rest } = taskPointValues;
-      taskPointValues = rest;
-    }
     tasks = tasks.filter((_, i) => i !== index);
     triggerAutosave();
   }
 
-  function updateTaskPointValue(taskId: string, value: number) {
-    taskPointValues = { ...taskPointValues, [taskId]: value };
-    triggerAutosave();
-  }
-
-  $: hasCustomPointsReward = rewards.some(r => r.type === "CustomPoints");
+  $: hasCustomPointsReward = eventType === "community" && rewards.some(r => r.type === "CustomPoints");
 
   // Reward management functions
   function addReward() {
@@ -1852,25 +1844,6 @@
                     </div>
                   </div>
                   <pre class="task-config">{summariseConfig(task.config)}</pre>
-                  
-                  {#if hasCustomPointsReward}
-                    <div class="task-points-section">
-                      <label for="task-points-{task.id}" class="points-label">
-                        <span>🎯 Point Value</span>
-                        <span class="points-hint">Points awarded for completing this task</span>
-                      </label>
-                      <input
-                        id="task-points-{task.id}"
-                        type="number"
-                        min="0"
-                        step="1"
-                        placeholder="e.g., 10"
-                        value={taskPointValues[task.id] || ''}
-                        on:input={(e) => updateTaskPointValue(task.id, Number(e.currentTarget.value) || 0)}
-                        class="points-input"
-                      />
-                    </div>
-                  {/if}
                 </div>
               {/each}
             {/if}
@@ -2374,45 +2347,6 @@
     max-height: 220px;
     overflow: auto;
     white-space: pre-wrap;
-  }
-
-  .task-points-section {
-    padding-top: 0.75rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .points-label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: rgba(243, 243, 255, 0.9);
-  }
-
-  .points-hint {
-    font-size: 0.8rem;
-    font-weight: 400;
-    color: rgba(243, 243, 255, 0.5);
-  }
-
-  .points-input {
-    padding: 0.75rem;
-    background: rgba(8, 9, 22, 0.85);
-    border: 1px solid rgba(111, 160, 255, 0.22);
-    border-radius: 10px;
-    color: #f3f3ff;
-    font-size: 0.95rem;
-    max-width: 200px;
-  }
-
-  .points-input:focus {
-    outline: none;
-    border-color: rgba(111, 160, 255, 0.5);
-    box-shadow: 0 0 0 3px rgba(111, 160, 255, 0.1);
   }
 
   .info-banner {

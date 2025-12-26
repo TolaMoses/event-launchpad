@@ -6,11 +6,20 @@ export interface TelegramTaskConfig {
   channelLink: string;
   groupLink: string;
   usernamePrompt: string;
+  // Point values for each sub-task
+  joinChannelPoints?: number;
+  joinGroupPoints?: number;
+  reactPinnedPoints?: number;
+  shareUsernamePoints?: number;
 }
 
 export interface DiscordTaskConfig {
   joinServer: boolean;
   inviteLink: string;
+  serverId?: string;
+  serverName?: string;
+  // Point values for each sub-task
+  joinServerPoints?: number;
 }
 
 export interface TwitterTaskConfig {
@@ -23,6 +32,14 @@ export interface TwitterTaskConfig {
   tagFriends: boolean;
   profileLink: string;
   postLinks: string[];
+  // Point values for each sub-task
+  followAccountPoints?: number;
+  likePostPoints?: number;
+  commentPostPoints?: number;
+  quotePostPoints?: number;
+  retweetPostPoints?: number;
+  bookmarkPostPoints?: number;
+  tagFriendsPoints?: number;
 }
 
 export interface SocialTaskConfig {
@@ -39,11 +56,16 @@ const defaultSocialTaskConfig: SocialTaskConfig = {
     shareUsername: false,
     channelLink: "",
     groupLink: "",
-    usernamePrompt: ""
+    usernamePrompt: "",
+    joinChannelPoints: 0,
+    joinGroupPoints: 0,
+    reactPinnedPoints: 0,
+    shareUsernamePoints: 0
   },
   discord: {
     joinServer: false,
-    inviteLink: ""
+    inviteLink: "",
+    joinServerPoints: 0
   },
   twitter: {
     followAccount: false,
@@ -54,7 +76,14 @@ const defaultSocialTaskConfig: SocialTaskConfig = {
     bookmarkPost: false,
     tagFriends: false,
     profileLink: "",
-    postLinks: ["" ]
+    postLinks: ["" ],
+    followAccountPoints: 0,
+    likePostPoints: 0,
+    commentPostPoints: 0,
+    quotePostPoints: 0,
+    retweetPostPoints: 0,
+    bookmarkPostPoints: 0,
+    tagFriendsPoints: 0
   }
 };
 

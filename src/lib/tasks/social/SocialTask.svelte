@@ -326,6 +326,62 @@
       </label>
     </div>
 
+    <!-- Point values for Telegram tasks -->
+    <div class="points-grid">
+      {#if config.telegram.joinChannel}
+        <div class="point-input-group">
+          <label for="telegram-join-channel-points">Join channel points</label>
+          <input
+            id="telegram-join-channel-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.telegram.joinChannelPoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+      {#if config.telegram.joinGroup}
+        <div class="point-input-group">
+          <label for="telegram-join-group-points">Join group points</label>
+          <input
+            id="telegram-join-group-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.telegram.joinGroupPoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+      {#if config.telegram.reactPinned}
+        <div class="point-input-group">
+          <label for="telegram-react-pinned-points">React to pinned points</label>
+          <input
+            id="telegram-react-pinned-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.telegram.reactPinnedPoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+      {#if config.telegram.shareUsername}
+        <div class="point-input-group">
+          <label for="telegram-share-username-points">Share username points</label>
+          <input
+            id="telegram-share-username-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.telegram.shareUsernamePoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+    </div>
+
     <div class="grid-two">
       <div class="form-group">
         <label>Channel link</label>
@@ -387,6 +443,23 @@
       <input type="checkbox" bind:checked={config.discord.joinServer} />
       Join Discord server
     </label>
+
+    <!-- Point values for Discord tasks -->
+    {#if config.discord.joinServer}
+      <div class="points-grid">
+        <div class="point-input-group">
+          <label for="discord-join-server-points">Join server points</label>
+          <input
+            id="discord-join-server-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.discord.joinServerPoints}
+            placeholder="0"
+          />
+        </div>
+      </div>
+    {/if}
 
     {#if config.discord.joinServer}
       <div class="bot-setup-box">
@@ -515,6 +588,101 @@
       <label><input type="checkbox" bind:checked={config.twitter.tagFriends} /> Tag 2 friends</label>
     </div>
 
+    <!-- Point values for Twitter tasks -->
+    <div class="points-grid">
+      {#if config.twitter.followAccount}
+        <div class="point-input-group">
+          <label for="twitter-follow-points">Follow account points</label>
+          <input
+            id="twitter-follow-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.twitter.followAccountPoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+      {#if config.twitter.likePost}
+        <div class="point-input-group">
+          <label for="twitter-like-points">Like post points</label>
+          <input
+            id="twitter-like-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.twitter.likePostPoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+      {#if config.twitter.commentPost}
+        <div class="point-input-group">
+          <label for="twitter-comment-points">Comment points</label>
+          <input
+            id="twitter-comment-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.twitter.commentPostPoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+      {#if config.twitter.quotePost}
+        <div class="point-input-group">
+          <label for="twitter-quote-points">Quote tweet points</label>
+          <input
+            id="twitter-quote-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.twitter.quotePostPoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+      {#if config.twitter.retweetPost}
+        <div class="point-input-group">
+          <label for="twitter-retweet-points">Retweet points</label>
+          <input
+            id="twitter-retweet-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.twitter.retweetPostPoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+      {#if config.twitter.bookmarkPost}
+        <div class="point-input-group">
+          <label for="twitter-bookmark-points">Bookmark points</label>
+          <input
+            id="twitter-bookmark-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.twitter.bookmarkPostPoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+      {#if config.twitter.tagFriends}
+        <div class="point-input-group">
+          <label for="twitter-tag-points">Tag friends points</label>
+          <input
+            id="twitter-tag-points"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={config.twitter.tagFriendsPoints}
+            placeholder="0"
+          />
+        </div>
+      {/if}
+    </div>
+
     <div class="form-group">
       <label>Profile link</label>
       <input type="url" bind:value={config.twitter.profileLink} placeholder="https://x.com/yourprofile" />
@@ -604,6 +772,32 @@
     display: flex;
     align-items: center;
     gap: 0.6rem;
+  }
+
+  .points-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(91, 141, 255, 0.05);
+    border: 1px solid rgba(91, 141, 255, 0.15);
+    border-radius: 10px;
+  }
+
+  .point-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .point-input-group label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: rgba(244, 244, 251, 0.8);
+  }
+
+  .point-input-group input {
+    max-width: 150px;
   }
 
   .grid-two {
