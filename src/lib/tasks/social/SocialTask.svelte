@@ -253,7 +253,16 @@
       }
       persistDraft();
     }
-{{ ... }}
+
+    try {
+      const response = await fetch('/api/auth/telegram/verify-bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId: telegramSetup.channelId })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
         throw new Error(errorData.message || `HTTP ${response.status}`);
       }
 
