@@ -497,7 +497,7 @@
               {#if discordSetup.selectedGuildId}<span class="check">✓</span>{/if}
             </div>
             {#if discordSetup.guilds.length > 0}
-              <select 
+              <select
                 class="guild-select"
                 on:change={(e) => {
                   const guild = discordSetup.guilds.find(g => g.id === e.currentTarget.value);
@@ -533,8 +533,8 @@
                 Add Bot to Server
               </button>
               <p class="helper-text">After adding the bot, click verify below:</p>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 class="secondary-btn"
                 on:click={verifyDiscordBot}
                 disabled={discordSetup.checking}
@@ -559,14 +559,29 @@
           on:input={(e) => updateDiscordConfig({ inviteLink: e.currentTarget.value })}
         />
       </div>
-    </div>
+    {/if}
   </div>
 
-<div class="task-section">
-  <h3>X / Twitter Tasks</h3>
-  <div class="checkbox-grid">
+  <div class="task-section">
+    <h3>X / Twitter Tasks</h3>
+    <div class="checkbox-grid">
       <label><input type="checkbox" checked={config.twitter.followAccount} on:change={(e) => updateTwitterConfig({ followAccount: e.currentTarget.checked })} /> Follow account</label>
       <label><input type="checkbox" checked={config.twitter.likePost} on:change={(e) => updateTwitterConfig({ likePost: e.currentTarget.checked })} /> Like post</label>
+      <label><input type="checkbox" checked={config.twitter.commentPost} on:change={(e) => updateTwitterConfig({ commentPost: e.currentTarget.checked })} /> Comment</label>
+      <label><input type="checkbox" checked={config.twitter.quotePost} on:change={(e) => updateTwitterConfig({ quotePost: e.currentTarget.checked })} /> Quote tweet</label>
+      <label><input type="checkbox" checked={config.twitter.retweetPost} on:change={(e) => updateTwitterConfig({ retweetPost: e.currentTarget.checked })} /> Retweet</label>
+      <label><input type="checkbox" checked={config.twitter.bookmarkPost} on:change={(e) => updateTwitterConfig({ bookmarkPost: e.currentTarget.checked })} /> Bookmark</label>
+      <label><input type="checkbox" checked={config.twitter.tagFriends} on:change={(e) => updateTwitterConfig({ tagFriends: e.currentTarget.checked })} /> Tag 2 friends</label>
+    </div>
+
+    <div class="form-group">
+      <label>Profile link</label>
+      <input
+        type="url"
+        value={config.twitter.profileLink}
+        placeholder="https://x.com/yourprofile"
+        on:input={(e) => updateTwitterConfig({ profileLink: e.currentTarget.value })}
+      />
     </div>
 
     <div class="form-group">
