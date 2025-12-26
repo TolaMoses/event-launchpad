@@ -24,7 +24,8 @@
     selectedGuildId: '',
     selectedGuildName: '',
     botAdded: false,
-    checking: false
+    checking: false,
+    disconnecting: false
   };
 
   // Telegram bot setup state
@@ -78,6 +79,47 @@
   function getDiscordAuthUrl(): string {
     const currentUrl = window.location.href;
     return `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
+  }
+
+  async function disconnectDiscord() {
+    if (discordSetup.disconnecting) return;
+
+    discordSetup.disconnecting = true;
+    try {
+      const response = await fetch('/api/auth/discord/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to disconnect Discord');
+      }
+
+      // Reset Discord setup state
+      discordSetup = {
+        connected: false,
+        guilds: [],
+        selectedGuildId: '',
+        selectedGuildName: '',
+        botAdded: false,
+        checking: false,
+        disconnecting: false
+      };
+
+      // Clear Discord config
+      config = {
+        ...config,
+        discord: {
+          joinServer: false,
+          inviteLink: ''
+        }
+      };
+    } catch (err) {
+      console.error('Disconnect Discord failed:', err);
+      alert(err instanceof Error ? err.message : 'Failed to disconnect Discord');
+    } finally {
+      discordSetup.disconnecting = false;
+    }
   }
 
   function selectDiscordGuild(guildId: string, guildName: string) {
@@ -352,6 +394,18 @@
             <a href={getDiscordAuthUrl()} target="_blank" rel="noopener noreferrer" class="secondary-btn" style="display: inline-block; text-decoration: none; text-align: center;">
               Connect Discord
             </a>
+          {:else}
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <p class="success-text" style="margin: 0;">✓ Discord connected</p>
+              <button 
+                type="button" 
+                class="ghost-btn" 
+                on:click={disconnectDiscord}
+                disabled={discordSetup.disconnecting}
+              >
+                {discordSetup.disconnecting ? 'Disconnecting...' : 'Disconnect'}
+              </button>
+            </div>
           {/if}
         </div>
 
