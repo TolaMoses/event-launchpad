@@ -25,7 +25,8 @@
     selectedGuildName: '',
     botAdded: false,
     checking: false,
-    disconnecting: false
+    disconnecting: false,
+    connecting: false
   };
 
   // Telegram bot setup state
@@ -42,7 +43,13 @@
 
     // Listen for focus to check Discord connection when user returns from OAuth
     const handleFocus = () => {
-      checkDiscordConnection();
+      if (discordSetup.connecting) {
+        checkDiscordConnection().then(() => {
+          if (discordSetup.connected) {
+            discordSetup.connecting = false;
+          }
+        });
+      }
     };
     window.addEventListener('focus', handleFocus);
 
@@ -81,6 +88,10 @@
     return `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
   }
 
+  function handleDiscordConnect() {
+    discordSetup.connecting = true;
+  }
+
   async function disconnectDiscord() {
     if (discordSetup.disconnecting) return;
 
@@ -103,7 +114,8 @@
         selectedGuildName: '',
         botAdded: false,
         checking: false,
-        disconnecting: false
+        disconnecting: false,
+        connecting: false
       };
 
       // Clear Discord config
@@ -391,9 +403,22 @@
             {#if discordSetup.connected}<span class="check">✓</span>{/if}
           </div>
           {#if !discordSetup.connected}
-            <a href={getDiscordAuthUrl()} target="_blank" rel="noopener noreferrer" class="secondary-btn" style="display: inline-block; text-decoration: none; text-align: center;">
-              Connect Discord
-            </a>
+            {#if discordSetup.connecting}
+              <button type="button" class="secondary-btn" disabled>
+                Connecting...
+              </button>
+            {:else}
+              <a 
+                href={getDiscordAuthUrl()} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                class="secondary-btn" 
+                style="display: inline-block; text-decoration: none; text-align: center;"
+                on:click={handleDiscordConnect}
+              >
+                Connect Discord
+              </a>
+            {/if}
           {:else}
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               <p class="success-text" style="margin: 0;">✓ Discord connected</p>

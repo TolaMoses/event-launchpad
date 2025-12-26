@@ -114,11 +114,12 @@ export async function GET({ url, locals, cookies }: any) {
 		// Clear cookies
 		cookies.delete('discord_oauth_state', { path: '/' });
 
-		// Redirect back to the page that initiated OAuth
+		// Check if this was opened in a new tab (check for opener)
 		const returnTo = cookies.get('oauth_return_to') || '/dashboard';
 		cookies.delete('oauth_return_to', { path: '/' });
 
-		throw redirect(302, returnTo);
+		// Redirect to success page instead of returning to the form
+		throw redirect(302, '/auth/discord/success');
 	} catch (err: any) {
 		// Allow SvelteKit redirects/errors to bubble up
 		if (err && typeof err === 'object' && 'status' in err) {

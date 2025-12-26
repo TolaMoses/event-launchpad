@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { TOKEN_LIST } from "$lib/tokens";
+  import { CONTRACTS } from "$lib/contracts";
 
   export let reward: any; // RewardConfig type
   export let numWinners: string;
@@ -10,6 +11,14 @@
 
   let availableTokens: { symbol: string; address: string; decimals: number }[] = [];
   let voucherCodeInput = "";
+
+  // Get available chains from TOKEN_LIST
+  const availableChains = Object.keys(TOKEN_LIST)
+    .map((id) => ({
+      id,
+      name: CONTRACTS[Number(id)]?.name ?? `Chain ${id}`
+    }))
+    .sort((a, b) => Number(a.id) - Number(b.id));
 
   $: {
     const effectiveChainId = reward.chain || chainId;
@@ -145,11 +154,9 @@
         on:change={(e) => updateReward({ chain: e.currentTarget.value })}
       >
         <option value="">Select chain</option>
-        <option value="1">Ethereum</option>
-        <option value="137">Polygon</option>
-        <option value="56">BSC</option>
-        <option value="42161">Arbitrum</option>
-        <option value="10">Optimism</option>
+        {#each availableChains as chain}
+          <option value={chain.id}>{chain.name}</option>
+        {/each}
       </select>
     </div>
 
