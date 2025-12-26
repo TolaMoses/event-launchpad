@@ -5,6 +5,9 @@
   import {
     createDefaultSocialTaskConfig,
     type SocialTaskConfig,
+    type TelegramTaskConfig,
+    type DiscordTaskConfig,
+    type TwitterTaskConfig,
     validateSocialTaskConfig
   } from "./schema";
 
@@ -67,6 +70,39 @@
   function clearDraft() {
     if (!browser) return;
     sessionStorage.removeItem(SOCIAL_TASK_DRAFT_KEY);
+  }
+
+  function updateTelegramConfig(updates: Partial<TelegramTaskConfig>) {
+    config = {
+      ...config,
+      telegram: {
+        ...config.telegram,
+        ...updates
+      }
+    };
+    persistDraft();
+  }
+
+  function updateDiscordConfig(updates: Partial<DiscordTaskConfig>) {
+    config = {
+      ...config,
+      discord: {
+        ...config.discord,
+        ...updates
+      }
+    };
+    persistDraft();
+  }
+
+  function updateTwitterConfig(updates: Partial<TwitterTaskConfig>) {
+    config = {
+      ...config,
+      twitter: {
+        ...config.twitter,
+        ...updates
+      }
+    };
+    persistDraft();
   }
 
   function restoreDraft() {
@@ -180,15 +216,10 @@
     discordSetup.selectedGuildId = guildId;
     discordSetup.selectedGuildName = guildName;
     discordSetup.botAdded = false;
-    config = {
-      ...config,
-      discord: {
-        ...config.discord,
-        serverId: guildId,
-        serverName: guildName
-      }
-    };
-    persistDraft();
+    updateDiscordConfig({
+      serverId: guildId,
+      serverName: guildName
+    });
   }
 
   async function getDiscordBotInviteUrl(): Promise<string> {
@@ -233,16 +264,11 @@
         alert('Bot not found in server. Please make sure you added the bot and try again.');
       } else {
         alert('✓ Bot verified successfully!');
-        config = {
-          ...config,
-          discord: {
-            ...config.discord,
-            serverId: discordSetup.selectedGuildId,
-            serverName: discordSetup.selectedGuildName
-          }
-        };
+        updateDiscordConfig({
+          serverId: discordSetup.selectedGuildId,
+          serverName: discordSetup.selectedGuildName
+        });
       }
-      persistDraft();
     } catch (err) {
       console.error('Failed to verify bot:', err);
       const errorMsg = err instanceof Error ? err.message : 'Please try again';
@@ -251,7 +277,6 @@
       } else {
         alert(`Failed to verify bot: ${errorMsg}`);
       }
-      persistDraft();
     }
 
     try {
@@ -273,15 +298,8 @@
         alert('Bot not found in channel/group. Please make sure you added the bot as admin and try again.');
       } else {
         alert('✓ Bot verified successfully!');
-        config = {
-          ...config,
-          telegram: {
-            ...config.telegram,
-            channelId: telegramSetup.channelId
-          }
-        };
+        updateTelegramConfig({ channelId: telegramSetup.channelId });
       }
-      persistDraft();
     } catch (err) {
       console.error('Failed to verify bot:', err);
       const errorMsg = err instanceof Error ? err.message : 'Please try again';
@@ -308,39 +326,18 @@
   }
 
   function addTwitterPostLink() {
-    config = {
-      ...config,
-      twitter: {
-        ...config.twitter,
-        postLinks: [...config.twitter.postLinks, ""]
-      }
-    };
-    persistDraft();
+    updateTwitterConfig({ postLinks: [...config.twitter.postLinks, ""] });
   }
 
   function updateTwitterPostLink(value: string, index: number) {
     const posts = [...config.twitter.postLinks];
     posts[index] = value;
-    config = {
-      ...config,
-      twitter: {
-        ...config.twitter,
-        postLinks: posts
-      }
-    };
-    persistDraft();
+    updateTwitterConfig({ postLinks: posts });
   }
 
   function removeTwitterPostLink(index: number) {
     const posts = config.twitter.postLinks.filter((_, i) => i !== index);
-    config = {
-      ...config,
-      twitter: {
-        ...config.twitter,
-        postLinks: posts.length ? posts : [""]
-      }
-    };
-    persistDraft();
+    updateTwitterConfig({ postLinks: posts.length ? posts : [""] });
   }
 </script>
 
@@ -349,19 +346,35 @@
     <h3>Telegram Tasks</h3>
     <div class="checkbox-grid">
       <label>
-        <input type="checkbox" bind:checked={config.telegram.joinChannel} />
+        <input
+          type="checkbox"
+          checked={config.telegram.joinChannel}
+          on:change={(e) => updateTelegramConfig({ joinChannel: e.currentTarget.checked })}
+        />
         Join channel
       </label>
       <label>
-        <input type="checkbox" bind:checked={config.telegram.joinGroup} />
+        <input
+          type="checkbox"
+          checked={config.telegram.joinGroup}
+          on:change={(e) => updateTelegramConfig({ joinGroup: e.currentTarget.checked })}
+        />
         Join group
       </label>
       <label>
-        <input type="checkbox" bind:checked={config.telegram.reactPinned} />
+        <input
+          type="checkbox"
+          checked={config.telegram.reactPinned}
+          on:change={(e) => updateTelegramConfig({ reactPinned: e.currentTarget.checked })}
+        />
         React to pinned message
       </label>
       <label>
-        <input type="checkbox" bind:checked={config.telegram.shareUsername} />
+        <input
+          type="checkbox"
+          checked={config.telegram.shareUsername}
+          on:change={(e) => updateTelegramConfig({ shareUsername: e.currentTarget.checked })}
+        />
         Share username
       </label>
     </div>
@@ -369,24 +382,40 @@
     <div class="grid-two">
       <div class="form-group">
         <label>Channel link</label>
-        <input type="url" bind:value={config.telegram.channelLink} placeholder="https://t.me/yourchannel" />
+        <input
+          type="url"
+          value={config.telegram.channelLink}
+          placeholder="https://t.me/yourchannel"
+          on:input={(e) => updateTelegramConfig({ channelLink: e.currentTarget.value })}
+        />
       </div>
       <div class="form-group">
         <label>Group link</label>
-        <input type="url" bind:value={config.telegram.groupLink} placeholder="https://t.me/yourgroup" />
+        <input
+          type="url"
+          value={config.telegram.groupLink}
+          placeholder="https://t.me/yourgroup"
+          on:input={(e) => updateTelegramConfig({ groupLink: e.currentTarget.value })}
+        />
       </div>
     </div>
 
     {#if config.telegram.shareUsername}
       <div class="form-group">
         <label>Username prompt</label>
-        <input type="text" bind:value={config.telegram.usernamePrompt} placeholder="Enter your Telegram @" />
+        <input
+          type="text"
+          value={config.telegram.usernamePrompt}
+          placeholder="Enter your Telegram @"
+          on:input={(e) => updateTelegramConfig({ usernamePrompt: e.currentTarget.value })}
+        />
       </div>
       {#if config.telegram.usernamePrompt}
-        <button type="button" class="ghost-btn" on:click={() => {
-          config.telegram.usernamePrompt = '';
-          persistDraft();
-        }}>Reset</button>
+        <button
+          type="button"
+          class="ghost-btn"
+          on:click={() => updateTelegramConfig({ usernamePrompt: "" })}
+        >Reset</button>
       {/if}
     {/if}
 
@@ -430,7 +459,11 @@
   <div class="task-section">
     <h3>Discord Tasks</h3>
     <label class="checkbox-row">
-      <input type="checkbox" bind:checked={config.discord.joinServer} />
+      <input
+        type="checkbox"
+        checked={config.discord.joinServer}
+        on:change={(e) => updateDiscordConfig({ joinServer: e.currentTarget.checked })}
+      />
       Join Discord server
     </label>
 
@@ -519,26 +552,21 @@
 
       <div class="form-group">
         <label>Invite link (for participants)</label>
-        <input type="url" bind:value={config.discord.inviteLink} placeholder="https://discord.gg/your-server" />
+        <input
+          type="url"
+          value={config.discord.inviteLink}
+          placeholder="https://discord.gg/your-server"
+          on:input={(e) => updateDiscordConfig({ inviteLink: e.currentTarget.value })}
+        />
       </div>
-    {/if}
+    </div>
   </div>
 
-  <div class="task-section">
-    <h3>X / Twitter Tasks</h3>
-    <div class="checkbox-grid">
-      <label><input type="checkbox" bind:checked={config.twitter.followAccount} /> Follow account</label>
-      <label><input type="checkbox" bind:checked={config.twitter.likePost} /> Like post</label>
-      <label><input type="checkbox" bind:checked={config.twitter.commentPost} /> Comment</label>
-      <label><input type="checkbox" bind:checked={config.twitter.quotePost} /> Quote tweet</label>
-      <label><input type="checkbox" bind:checked={config.twitter.retweetPost} /> Retweet</label>
-      <label><input type="checkbox" bind:checked={config.twitter.bookmarkPost} /> Bookmark</label>
-      <label><input type="checkbox" bind:checked={config.twitter.tagFriends} /> Tag 2 friends</label>
-    </div>
-
-    <div class="form-group">
-      <label>Profile link</label>
-      <input type="url" bind:value={config.twitter.profileLink} placeholder="https://x.com/yourprofile" />
+<div class="task-section">
+  <h3>X / Twitter Tasks</h3>
+  <div class="checkbox-grid">
+      <label><input type="checkbox" checked={config.twitter.followAccount} on:change={(e) => updateTwitterConfig({ followAccount: e.currentTarget.checked })} /> Follow account</label>
+      <label><input type="checkbox" checked={config.twitter.likePost} on:change={(e) => updateTwitterConfig({ likePost: e.currentTarget.checked })} /> Like post</label>
     </div>
 
     <div class="form-group">
@@ -548,7 +576,7 @@
           <div class="dynamic-row">
             <input
               type="url"
-              bind:value={config.twitter.postLinks[index]}
+              value={config.twitter.postLinks[index]}
               on:input={(e) => updateTwitterPostLink((e.currentTarget as HTMLInputElement).value, index)}
               placeholder="https://x.com/yourprofile/status/123"
             />
