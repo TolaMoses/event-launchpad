@@ -75,36 +75,9 @@
     }
   }
 
-  function connectDiscord() {
+  function getDiscordAuthUrl(): string {
     const currentUrl = window.location.href;
-    const authUrl = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
-    
-    // Mark that we're handling Discord OAuth to prevent parent form navigation
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem('social_task_discord_oauth', '1');
-    }
-
-    // Try to open in new tab
-    const authWindow = window.open(authUrl, '_blank', 'noopener,noreferrer');
-
-    if (!authWindow || authWindow.closed || typeof authWindow.closed === 'undefined') {
-      // Popup was blocked, fall back to same-tab navigation
-      console.warn('Popup blocked, falling back to same-tab navigation');
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem('social_task_discord_oauth');
-      }
-      window.location.href = authUrl;
-    } else {
-      // Successfully opened in new tab
-      authWindow.focus();
-      
-      // Clear the flag after a short delay (user should be in the new tab by then)
-      setTimeout(() => {
-        if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.removeItem('social_task_discord_oauth');
-        }
-      }, 1000);
-    }
+    return `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
   }
 
   function selectDiscordGuild(guildId: string, guildName: string) {
@@ -376,9 +349,9 @@
             {#if discordSetup.connected}<span class="check">✓</span>{/if}
           </div>
           {#if !discordSetup.connected}
-            <button type="button" class="secondary-btn" on:click|stopPropagation={connectDiscord}>
+            <a href={getDiscordAuthUrl()} target="_blank" rel="noopener noreferrer" class="secondary-btn" style="display: inline-block; text-decoration: none; text-align: center;">
               Connect Discord
-            </button>
+            </a>
           {/if}
         </div>
 
