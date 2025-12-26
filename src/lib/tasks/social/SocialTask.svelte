@@ -394,7 +394,6 @@
       <div class="bot-setup-box">
         <h4>🤖 Bot Setup Required</h4>
         <p class="setup-instruction">
-{{ ... }}
           To verify participants, add our bot <strong>{telegramSetup.botUsername}</strong> to your channel/group as an admin.
         </p>
         <ol class="setup-steps">
