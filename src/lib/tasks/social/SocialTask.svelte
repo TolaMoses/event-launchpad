@@ -68,20 +68,17 @@
   function connectDiscord() {
     const currentUrl = window.location.href;
     const authUrl = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
-    const authWindow = window.open('', '_blank', 'noopener');
+    
+    // Try to open in new tab
+    const authWindow = window.open(authUrl, '_blank', 'noopener,noreferrer');
 
-    if (!authWindow) {
+    if (!authWindow || authWindow.closed || typeof authWindow.closed === 'undefined') {
+      // Popup was blocked, fall back to same-tab navigation
+      console.warn('Popup blocked, falling back to same-tab navigation');
       window.location.href = authUrl;
-      return;
-    }
-
-    try {
-      authWindow.location.href = authUrl;
+    } else {
+      // Successfully opened in new tab
       authWindow.focus();
-    } catch (err) {
-      console.warn('Failed to redirect OAuth window, falling back to same-tab flow', err);
-      authWindow.close();
-      window.location.href = authUrl;
     }
   }
 
