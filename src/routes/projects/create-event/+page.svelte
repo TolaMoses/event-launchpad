@@ -161,6 +161,7 @@
   let editingTaskIndex: number | null = null;
   let tasks: TaskInstance[] = [];
   let taskBuilderState: Record<string, unknown> | null = null;
+  let taskPointValues: Record<string, number> = {}; // Maps task ID to point value
   
   // Discord bot setup
   let discordBotSetup: {
@@ -516,6 +517,7 @@
       editingTaskIndex,
       selectedTaskType,
       taskBuilderState,
+      taskPointValues,
       discordSelectedGuildId: discordBotSetup.selectedGuildId,
       discordSelectedGuildName: discordBotSetup.selectedGuildName,
       discordBotAdded: discordBotSetup.botAdded,
@@ -575,6 +577,7 @@
       editingTaskIndex = typeof draft.editingTaskIndex === 'number' ? draft.editingTaskIndex : null;
       selectedTaskType = draft.selectedTaskType || "";
       taskBuilderState = draft.taskBuilderState || null;
+      taskPointValues = draft.taskPointValues || {};
       hydrateRewardsFromDraft(draft.rewards);
       discordBotSetup.selectedGuildId = draft.discordSelectedGuildId || null;
       discordBotSetup.selectedGuildName = draft.discordSelectedGuildName || null;
@@ -956,9 +959,21 @@
   }
 
   function removeTask(index: number) {
+    const taskId = tasks[index]?.id;
+    if (taskId && taskPointValues[taskId]) {
+      const { [taskId]: _, ...rest } = taskPointValues;
+      taskPointValues = rest;
+    }
     tasks = tasks.filter((_, i) => i !== index);
     triggerAutosave();
   }
+
+  function updateTaskPointValue(taskId: string, value: number) {
+    taskPointValues = { ...taskPointValues, [taskId]: value };
+    triggerAutosave();
+  }
+
+  $: hasCustomPointsReward = rewards.some(r => r.type === "CustomPoints");
 
   // Reward management functions
   function addReward() {
@@ -1837,6 +1852,25 @@
                     </div>
                   </div>
                   <pre class="task-config">{summariseConfig(task.config)}</pre>
+                  
+                  {#if hasCustomPointsReward}
+                    <div class="task-points-section">
+                      <label for="task-points-{task.id}" class="points-label">
+                        <span>🎯 Point Value</span>
+                        <span class="points-hint">Points awarded for completing this task</span>
+                      </label>
+                      <input
+                        id="task-points-{task.id}"
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="e.g., 10"
+                        value={taskPointValues[task.id] || ''}
+                        on:input={(e) => updateTaskPointValue(task.id, Number(e.currentTarget.value) || 0)}
+                        class="points-input"
+                      />
+                    </div>
+                  {/if}
                 </div>
               {/each}
             {/if}
@@ -1962,6 +1996,16 @@
         <p class="section-description">
           Add one or more rewards for your event. You can combine different reward types.
         </p>
+
+        {#if hasCustomPointsReward}
+          <div class="info-banner points-banner">
+            <span class="banner-icon">💡</span>
+            <div class="banner-content">
+              <strong>Custom Points System Active</strong>
+              <p>You can assign point values to each task in the Tasks step. Participants will earn points by completing tasks.</p>
+            </div>
+          </div>
+        {/if}
 
         <div class="form-group">
           <label for="reward-type-selector">Add Reward Type</label>
@@ -2330,6 +2374,82 @@
     max-height: 220px;
     overflow: auto;
     white-space: pre-wrap;
+  }
+
+  .task-points-section {
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .points-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: rgba(243, 243, 255, 0.9);
+  }
+
+  .points-hint {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: rgba(243, 243, 255, 0.5);
+  }
+
+  .points-input {
+    padding: 0.75rem;
+    background: rgba(8, 9, 22, 0.85);
+    border: 1px solid rgba(111, 160, 255, 0.22);
+    border-radius: 10px;
+    color: #f3f3ff;
+    font-size: 0.95rem;
+    max-width: 200px;
+  }
+
+  .points-input:focus {
+    outline: none;
+    border-color: rgba(111, 160, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(111, 160, 255, 0.1);
+  }
+
+  .info-banner {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: rgba(111, 160, 255, 0.08);
+    border: 1px solid rgba(111, 160, 255, 0.2);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .points-banner {
+    background: rgba(255, 193, 7, 0.08);
+    border-color: rgba(255, 193, 7, 0.25);
+  }
+
+  .banner-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .banner-content {
+    flex: 1;
+  }
+
+  .banner-content strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: rgba(243, 243, 255, 0.95);
+  }
+
+  .banner-content p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(243, 243, 255, 0.7);
+    line-height: 1.5;
   }
 
   .ghost-btn {
