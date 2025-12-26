@@ -54,24 +54,12 @@ const defaultSocialTaskConfig: SocialTaskConfig = {
     bookmarkPost: false,
     tagFriends: false,
     profileLink: "",
-    postLinks: [""]
+    postLinks: ["" ]
   }
 };
 
 export function createDefaultSocialTaskConfig(): SocialTaskConfig {
   return JSON.parse(JSON.stringify(defaultSocialTaskConfig));
-}
-
-function twitterActionsSelected(twitter: TwitterTaskConfig): boolean {
-  return (
-    twitter.followAccount ||
-    twitter.likePost ||
-    twitter.commentPost ||
-    twitter.quotePost ||
-    twitter.retweetPost ||
-    twitter.bookmarkPost ||
-    twitter.tagFriends
-  );
 }
 
 export function validateSocialTaskConfig(config: SocialTaskConfig): string[] {
@@ -106,21 +94,26 @@ export function validateSocialTaskConfig(config: SocialTaskConfig): string[] {
     errors.push("Provide a Discord invite link");
   }
 
-  if (twitterActionsSelected(config.twitter)) {
-    if (!config.twitter.profileLink.trim()) {
-      errors.push("Provide an X / Twitter profile link");
-    }
+  const hasTwitterActions = config.twitter.followAccount ||
+    config.twitter.likePost ||
+    config.twitter.commentPost ||
+    config.twitter.quotePost ||
+    config.twitter.retweetPost ||
+    config.twitter.bookmarkPost ||
+    config.twitter.tagFriends;
 
-    const requiresPostLink =
-      config.twitter.likePost ||
-      config.twitter.commentPost ||
-      config.twitter.quotePost ||
-      config.twitter.retweetPost ||
-      config.twitter.bookmarkPost;
+  if (hasTwitterActions && !config.twitter.profileLink.trim()) {
+    errors.push("Provide an X / Twitter profile link");
+  }
 
-    if (requiresPostLink && config.twitter.postLinks.every((link) => !link.trim())) {
-      errors.push("Add at least one post link for Twitter actions");
-    }
+  const hasTwitterPostActions = config.twitter.likePost ||
+    config.twitter.commentPost ||
+    config.twitter.quotePost ||
+    config.twitter.retweetPost ||
+    config.twitter.bookmarkPost;
+
+  if (hasTwitterPostActions && (!config.twitter.postLinks || config.twitter.postLinks.length === 0 || !config.twitter.postLinks.some(link => link.trim()))) {
+    errors.push("Add at least one post link for Twitter actions");
   }
 
   if (config.telegram.shareUsername && !config.telegram.usernamePrompt.trim()) {

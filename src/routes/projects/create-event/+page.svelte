@@ -160,6 +160,7 @@
   let creatingTaskType: TaskTypeKey | null = null;
   let editingTaskIndex: number | null = null;
   let tasks: TaskInstance[] = [];
+  let taskBuilderState: Record<string, unknown> | null = null;
   
   // Discord bot setup
   let discordBotSetup: {
@@ -511,6 +512,10 @@
       voucherCodes,
       videoUrl,
       tasks,
+      creatingTaskType,
+      editingTaskIndex,
+      selectedTaskType,
+      taskBuilderState,
       discordSelectedGuildId: discordBotSetup.selectedGuildId,
       discordSelectedGuildName: discordBotSetup.selectedGuildName,
       discordBotAdded: discordBotSetup.botAdded,
@@ -566,6 +571,10 @@
       voucherCodes = draft.voucherCodes || [];
       videoUrl = draft.videoUrl || "";
       tasks = draft.tasks || [];
+      creatingTaskType = draft.creatingTaskType || null;
+      editingTaskIndex = typeof draft.editingTaskIndex === 'number' ? draft.editingTaskIndex : null;
+      selectedTaskType = draft.selectedTaskType || "";
+      taskBuilderState = draft.taskBuilderState || null;
       hydrateRewardsFromDraft(draft.rewards);
       discordBotSetup.selectedGuildId = draft.discordSelectedGuildId || null;
       discordBotSetup.selectedGuildName = draft.discordSelectedGuildName || null;
