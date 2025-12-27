@@ -10,6 +10,7 @@
   export let initialConfig: SocialTaskConfig | null = null;
   export let onSave: TaskComponentProps<SocialTaskConfig>["onSave"];
   export let onCancel: TaskComponentProps["onCancel"];
+  export let eventType: 'quick_event' | 'community' | '' = '';
 
   let config: SocialTaskConfig = initialConfig
     ? structuredClone(initialConfig)
@@ -326,7 +327,8 @@
       </label>
     </div>
 
-    <!-- Point values for Telegram tasks -->
+    <!-- Point values for Telegram tasks (Community Events Only) -->
+    {#if eventType === 'community'}
     <div class="points-grid">
       {#if config.telegram.joinChannel}
         <div class="point-input-group">
@@ -381,6 +383,7 @@
         </div>
       {/if}
     </div>
+    {/if}
 
     <div class="grid-two">
       <div class="form-group">
@@ -444,8 +447,8 @@
       Join Discord server
     </label>
 
-    <!-- Point values for Discord tasks -->
-    {#if config.discord.joinServer}
+    <!-- Point values for Discord tasks (Community Events Only) -->
+    {#if config.discord.joinServer && eventType === 'community'}
       <div class="points-grid">
         <div class="point-input-group">
           <label for="discord-join-server-points">Join server points</label>
@@ -588,7 +591,8 @@
       <label><input type="checkbox" bind:checked={config.twitter.tagFriends} /> Tag 2 friends</label>
     </div>
 
-    <!-- Point values for Twitter tasks -->
+    <!-- Point values for Twitter tasks (Community Events Only) -->
+    {#if eventType === 'community'}
     <div class="points-grid">
       {#if config.twitter.followAccount}
         <div class="point-input-group">
@@ -682,6 +686,7 @@
         </div>
       {/if}
     </div>
+    {/if}
 
     <div class="form-group">
       <label>Profile link</label>

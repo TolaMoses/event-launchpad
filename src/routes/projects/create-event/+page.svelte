@@ -1821,6 +1821,7 @@
                 initialConfig={editingTaskIndex !== null ? clone(tasks[editingTaskIndex].config) : null}
                 onSave={handleTaskSave}
                 onCancel={handleTaskCancel}
+                eventType={eventType}
               />
             </div>
           {/if}
