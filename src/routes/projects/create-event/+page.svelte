@@ -2037,7 +2037,7 @@
                 {#if editingRewardId === reward.id}
                   <div class="reward-config">
                     <RewardBuilder
-                      bind:reward
+                      reward={reward}
                       {numWinners}
                       chainId={selectedChain || $chainId?.toString() || ""}
                       on:update={(e) => {
