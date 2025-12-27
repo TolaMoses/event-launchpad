@@ -366,54 +366,6 @@
     }
   }
 
-  $: if (prizeType === "NFT" && nfts.length === 0) {
-    nfts = [{ id: generateId(), contract: "", tokenId: "" }];
-  }
-
-  $: if (prizeType === "MintableNFT" && mintableNfts.length === 0) {
-    mintableNfts = [{
-      id: generateId(),
-      name: "",
-      description: "",
-      imageFile: null,
-      imagePreview: "",
-      supply: "",
-      rarity: "Common",
-      rarityPercentage: "100",
-      uploadedImage: null
-    }];
-  }
-
-  $: if (prizeType === "NFT" && nftDistributionType === "custom" && numWinners) {
-    const count = Math.min(Number(numWinners) || 0, 10);
-    if (nftPositionDistribution.length !== count) {
-      nftPositionDistribution = Array.from({ length: count }, (_, i) => ({
-        position: i + 1,
-        nftId: nftPositionDistribution[i]?.nftId || ""
-      }));
-    }
-  }
-
-  $: if (prizeType === "MintableNFT" && mintableNftDistributionType === "custom" && numWinners) {
-    const count = Math.min(Number(numWinners) || 0, 10);
-    if (mintableNftPositionDistribution.length !== count) {
-      mintableNftPositionDistribution = Array.from({ length: count }, (_, i) => ({
-        position: i + 1,
-        nftId: mintableNftPositionDistribution[i]?.nftId || ""
-      }));
-    }
-  }
-
-  $: if (distributionType === "custom" && numWinners) {
-    const count = Math.min(Number(numWinners) || 0, 10);
-    if (positionRewards.length !== count) {
-      positionRewards = Array.from({ length: count }, (_, i) => ({
-        position: i + 1,
-        amount: positionRewards[i]?.amount || ""
-      }));
-    }
-  }
-
   function isValidEthereumAddress(address: string): boolean {
     if (!address) return false;
     try {
@@ -1099,77 +1051,6 @@
     });
   }
 
-  function addMintableNftToReward(rewardId: string) {
-    rewards = rewards.map(r => {
-      if (r.id === rewardId && r.mintableNfts) {
-        const defaultPercentage = r.mintableNfts.length === 0 ? "100" : "0";
-        return {
-          ...r,
-          mintableNfts: [
-            ...r.mintableNfts,
-            {
-              id: generateId(),
-              name: "",
-              description: "",
-              imageFile: null,
-              imagePreview: "",
-              supply: "",
-              rarity: "Common",
-              rarityPercentage: defaultPercentage,
-              uploadedImage: null
-            }
-          ]
-        };
-      }
-      return r;
-    });
-  }
-
-  function removeMintableNftFromReward(rewardId: string, nftIndex: number) {
-    rewards = rewards.map(r => {
-      if (r.id === rewardId && r.mintableNfts) {
-        const nft = r.mintableNfts[nftIndex];
-        if (nft?.imagePreview) {
-          URL.revokeObjectURL(nft.imagePreview);
-        }
-        return { ...r, mintableNfts: r.mintableNfts.filter((_, i) => i !== nftIndex) };
-      }
-      return r;
-    });
-  }
-
-  function handleMintableNftImageUploadForReward(rewardId: string, nftIndex: number, event: Event) {
-    const input = event.currentTarget as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-
-    rewards = rewards.map(r => {
-      if (r.id === rewardId && r.mintableNfts) {
-        const nft = r.mintableNfts[nftIndex];
-        if (nft.imagePreview) {
-          URL.revokeObjectURL(nft.imagePreview);
-        }
-
-        if (!file) {
-          r.mintableNfts[nftIndex].imageFile = null;
-          r.mintableNfts[nftIndex].imagePreview = "";
-          return { ...r, mintableNfts: [...r.mintableNfts] };
-        }
-
-        const MAX_NFT_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
-        if (file.size > MAX_NFT_IMAGE_SIZE) {
-          alert("NFT image must be 2 MB or less.");
-          input.value = "";
-          return r;
-        }
-
-        r.mintableNfts[nftIndex].imageFile = file;
-        r.mintableNfts[nftIndex].imagePreview = URL.createObjectURL(file);
-        return { ...r, mintableNfts: [...r.mintableNfts] };
-      }
-      return r;
-    });
-  }
-
   function addVoucherCodeToReward(rewardId: string, code: string) {
     if (!code.trim()) return;
     rewards = rewards.map(r => {
@@ -1455,81 +1336,26 @@
         return;
       }
 
-      // Upload mintable NFT images
-      const mintableNftAssets = [];
-      if (prizeType === "MintableNFT") {
-        for (const nft of mintableNfts) {
-          let nftImageAsset = nft.uploadedImage;
-          if (nft.imageFile) {
-            nftImageAsset = await uploadAsset(nft.imageFile, "nft");
-          }
-          mintableNftAssets.push({
-            id: nft.id,
-            name: nft.name.trim(),
-            description: nft.description.trim(),
-            supply: Number(nft.supply),
-            rarity: nft.rarity,
-            rarityPercentage: Number(nft.rarityPercentage),
-            image: nftImageAsset
-          });
-        }
-      }
+      const preparedRewards = [];
+      let pointSystemConfig: {
+        enabled: boolean;
+        point_name?: string;
+        leaderboard_enabled?: boolean;
+      } | null = null;
 
-      // Build prize details object
-      let prizeDetailsPayload = null;
-      if (prizeType) {
-        prizeDetailsPayload = {
-          type: prizeType,
-          token_address: prizeType === "Token" ? prizeAddress : null,
-          prize_pool: prizePool ? Number(prizePool) : null,
-          distribution_type: prizeType === "Token" || prizeType === "ETH" ? distributionType : null,
-          position_rewards:
-            (prizeType === "Token" || prizeType === "ETH") && distributionType === "custom"
-              ? positionRewards.map((r) => ({ position: r.position, amount: Number(r.amount) }))
-              : null,
-          chain:
-            prizeType === "Token"
-              ? {
-                  id: selectedChain,
-                  name: chainOptions.find((option) => option.id === selectedChain)?.label ?? selectedChain,
-                  isCustom: false
-                }
-              : null,
-          token_metadata:
-            prizeType === "Token" && prizeAddress === "custom"
-              ? {
-                  symbol: customTokenSymbol.trim(),
-                  address: customTokenAddress.trim(),
-                  decimals: Number(customTokenDecimals)
-                }
-              : null,
-          nfts:
-            prizeType === "NFT"
-              ? nfts.map(({ id, contract, tokenId }) => ({
-                  id,
-                  contract: contract.trim(),
-                  tokenId: tokenId.trim()
-                }))
-              : [],
-          nft_distribution_type: prizeType === "NFT" ? nftDistributionType : null,
-          nft_position_distribution:
-            prizeType === "NFT" && nftDistributionType === "custom"
-              ? nftPositionDistribution
-              : null,
-          mintable_nfts:
-            prizeType === "MintableNFT"
-              ? mintableNftAssets
-              : [],
-          mintable_nft_distribution_type: prizeType === "MintableNFT" ? mintableNftDistributionType : null,
-          mintable_nft_position_distribution:
-            prizeType === "MintableNFT" && mintableNftDistributionType === "custom"
-              ? mintableNftPositionDistribution
-              : null,
-          gift_description: prizeType === "Gift" ? giftDescription.trim() : null,
-          gift_value: prizeType === "Gift" ? Number(giftValue) : null,
-          voucher_description: prizeType === "Voucher" ? voucherDescription.trim() : null,
-          voucher_codes: prizeType === "Voucher" ? voucherCodes : []
-        };
+      for (const reward of rewards) {
+        const uploadedReward = await uploadRewardAssets(reward);
+
+        if (uploadedReward.type === "CustomPoints") {
+          pointSystemConfig = {
+            enabled: true,
+            point_name: uploadedReward.customPointName?.trim() || "Points",
+            leaderboard_enabled: uploadedReward.leaderboardEnabled ?? false
+          };
+          continue;
+        }
+
+        preparedRewards.push(serializeRewardForPayload(uploadedReward));
       }
 
       const payload = {
@@ -1549,7 +1375,8 @@
           type: task.type,
           config: clone(task.config)
         })),
-        prize_details: prizeDetailsPayload
+        rewards: preparedRewards,
+        point_system: pointSystemConfig
       };
 
       const response = await fetch("/api/events", {
