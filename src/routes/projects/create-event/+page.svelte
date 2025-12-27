@@ -366,6 +366,54 @@
     }
   }
 
+  $: if (prizeType === "NFT" && nfts.length === 0) {
+    nfts = [{ id: generateId(), contract: "", tokenId: "" }];
+  }
+
+  $: if (prizeType === "MintableNFT" && mintableNfts.length === 0) {
+    mintableNfts = [{
+      id: generateId(),
+      name: "",
+      description: "",
+      imageFile: null,
+      imagePreview: "",
+      supply: "",
+      rarity: "Common",
+      rarityPercentage: "100",
+      uploadedImage: null
+    }];
+  }
+
+  $: if (prizeType === "NFT" && nftDistributionType === "custom" && numWinners) {
+    const count = Math.min(Number(numWinners) || 0, 10);
+    if (nftPositionDistribution.length !== count) {
+      nftPositionDistribution = Array.from({ length: count }, (_, i) => ({
+        position: i + 1,
+        nftId: nftPositionDistribution[i]?.nftId || ""
+      }));
+    }
+  }
+
+  $: if (prizeType === "MintableNFT" && mintableNftDistributionType === "custom" && numWinners) {
+    const count = Math.min(Number(numWinners) || 0, 10);
+    if (mintableNftPositionDistribution.length !== count) {
+      mintableNftPositionDistribution = Array.from({ length: count }, (_, i) => ({
+        position: i + 1,
+        nftId: mintableNftPositionDistribution[i]?.nftId || ""
+      }));
+    }
+  }
+
+  $: if (distributionType === "custom" && numWinners) {
+    const count = Math.min(Number(numWinners) || 0, 10);
+    if (positionRewards.length !== count) {
+      positionRewards = Array.from({ length: count }, (_, i) => ({
+        position: i + 1,
+        amount: positionRewards[i]?.amount || ""
+      }));
+    }
+  }
+
   function isValidEthereumAddress(address: string): boolean {
     if (!address) return false;
     try {
@@ -1051,6 +1099,77 @@
     });
   }
 
+  function addMintableNftToReward(rewardId: string) {
+    rewards = rewards.map(r => {
+      if (r.id === rewardId && r.mintableNfts) {
+        const defaultPercentage = r.mintableNfts.length === 0 ? "100" : "0";
+        return {
+          ...r,
+          mintableNfts: [
+            ...r.mintableNfts,
+            {
+              id: generateId(),
+              name: "",
+              description: "",
+              imageFile: null,
+              imagePreview: "",
+              supply: "",
+              rarity: "Common",
+              rarityPercentage: defaultPercentage,
+              uploadedImage: null
+            }
+          ]
+        };
+      }
+      return r;
+    });
+  }
+
+  function removeMintableNftFromReward(rewardId: string, nftIndex: number) {
+    rewards = rewards.map(r => {
+      if (r.id === rewardId && r.mintableNfts) {
+        const nft = r.mintableNfts[nftIndex];
+        if (nft?.imagePreview) {
+          URL.revokeObjectURL(nft.imagePreview);
+        }
+        return { ...r, mintableNfts: r.mintableNfts.filter((_, i) => i !== nftIndex) };
+      }
+      return r;
+    });
+  }
+
+  function handleMintableNftImageUploadForReward(rewardId: string, nftIndex: number, event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+
+    rewards = rewards.map(r => {
+      if (r.id === rewardId && r.mintableNfts) {
+        const nft = r.mintableNfts[nftIndex];
+        if (nft.imagePreview) {
+          URL.revokeObjectURL(nft.imagePreview);
+        }
+
+        if (!file) {
+          r.mintableNfts[nftIndex].imageFile = null;
+          r.mintableNfts[nftIndex].imagePreview = "";
+          return { ...r, mintableNfts: [...r.mintableNfts] };
+        }
+
+        const MAX_NFT_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
+        if (file.size > MAX_NFT_IMAGE_SIZE) {
+          alert("NFT image must be 2 MB or less.");
+          input.value = "";
+          return r;
+        }
+
+        r.mintableNfts[nftIndex].imageFile = file;
+        r.mintableNfts[nftIndex].imagePreview = URL.createObjectURL(file);
+        return { ...r, mintableNfts: [...r.mintableNfts] };
+      }
+      return r;
+    });
+  }
+
   function addVoucherCodeToReward(rewardId: string, code: string) {
     if (!code.trim()) return;
     rewards = rewards.map(r => {
@@ -1336,28 +1455,6 @@
         return;
       }
 
-      const preparedRewards = [];
-      let pointSystemConfig: {
-        enabled: boolean;
-        point_name?: string;
-        leaderboard_enabled?: boolean;
-      } | null = null;
-
-      for (const reward of rewards) {
-        const uploadedReward = await uploadRewardAssets(reward);
-
-        if (uploadedReward.type === "CustomPoints") {
-          pointSystemConfig = {
-            enabled: true,
-            point_name: uploadedReward.customPointName?.trim() || "Points",
-            leaderboard_enabled: uploadedReward.leaderboardEnabled ?? false
-          };
-          continue;
-        }
-
-        preparedRewards.push(serializeRewardForPayload(uploadedReward));
-      }
-
       const payload = {
         event_type: eventType,
         title: eventTitle.trim(),
@@ -1375,8 +1472,7 @@
           type: task.type,
           config: clone(task.config)
         })),
-        rewards: preparedRewards,
-        point_system: pointSystemConfig
+        rewards: rewards.map((reward) => clone(reward))
       };
 
       const response = await fetch("/api/events", {
