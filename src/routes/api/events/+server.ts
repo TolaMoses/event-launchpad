@@ -49,10 +49,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     throw error(400, 'Logo asset is required');
   }
 
-  const prizeDetails = body.prize_details ?? null;
-  // Prize details are required for quick events, optional for communities
-  if (eventType === 'quick_event' && prizeDetails === null) {
-    throw error(400, 'Missing prize_details for quick event');
+  const rewards = Array.isArray(body.rewards) ? body.rewards : [];
+  // Rewards are required for quick events, optional for communities
+  if (eventType === 'quick_event' && rewards.length === 0) {
+    throw error(400, 'At least one reward is required for quick event');
   }
 
   const tasks = Array.isArray(body.tasks) ? body.tasks : [];
@@ -65,7 +65,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   let setupProgress = null;
   if (eventType === 'community') {
     const tasksProgress = tasks.length > 0 ? 100 : 0;
-    const rewardsProgress = prizeDetails ? 100 : 0;
+    const rewardsProgress = rewards.length > 0 ? 100 : 0;
     setupProgress = { tasks: tasksProgress, rewards: rewardsProgress };
   }
 
@@ -81,7 +81,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     banner_url: banner?.publicUrl ?? null,
     logo_path: logo.path,
     logo_url: logo.publicUrl,
-    prize_details: prizeDetails,
+    prize_details: rewards.length > 0 ? rewards[0] : null, // Legacy single reward for backwards compatibility
+    reward_types: rewards, // New multi-reward system
     tasks: tasks,
     setup_progress: setupProgress,
     created_by: locals.user.id,
