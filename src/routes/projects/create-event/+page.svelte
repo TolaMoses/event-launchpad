@@ -969,13 +969,18 @@
 
   // Reward management functions
   function addReward() {
-    if (!selectedRewardType) return;
+    console.log('addReward called, selectedRewardType:', selectedRewardType);
+    if (!selectedRewardType) {
+      console.log('No reward type selected, returning');
+      return;
+    }
 
     const newReward: RewardConfig = {
       id: generateId(),
       type: selectedRewardType
     };
     const defaultChainId = selectedChain || defaultChain || "";
+    console.log('Creating new reward:', newReward);
 
     switch (selectedRewardType) {
       case "Token":
@@ -1033,6 +1038,7 @@
     }
 
     rewards = [...rewards, newReward];
+    console.log('Reward added, total rewards:', rewards.length);
     selectedRewardType = "";
     triggerAutosave();
   }
