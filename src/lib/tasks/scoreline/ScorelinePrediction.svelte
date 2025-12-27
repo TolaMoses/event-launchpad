@@ -93,20 +93,6 @@
       ></textarea>
     </div>
 
-    <div class="form-group">
-      <label for="prediction-points">Points for Correct Prediction</label>
-      <input
-        id="prediction-points"
-        type="number"
-        min="0"
-        step="1"
-        bind:value={config.correctPredictionPoints}
-        placeholder="0"
-        style="max-width: 200px;"
-      />
-      <small>Points awarded when participant's prediction matches the actual result</small>
-    </div>
-
     <div class="info-box">
       <strong>📊 How it works:</strong>
       <ul>

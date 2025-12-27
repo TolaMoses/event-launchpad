@@ -5,8 +5,6 @@ export interface ScorelinePredictionConfig {
   matchDate?: string;
   matchTime?: string;
   description?: string;
-  // Point value for correct prediction (for community events)
-  correctPredictionPoints?: number;
 }
 
 const defaultScorelinePredictionConfig: ScorelinePredictionConfig = {
@@ -15,8 +13,7 @@ const defaultScorelinePredictionConfig: ScorelinePredictionConfig = {
   awayTeam: '',
   matchDate: '',
   matchTime: '',
-  description: '',
-  correctPredictionPoints: 0
+  description: ''
 };
 
 export function createDefaultScorelinePredictionConfig(): ScorelinePredictionConfig {
