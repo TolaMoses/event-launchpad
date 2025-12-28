@@ -21,19 +21,61 @@ export type WalletConnection = {
   };
 };
 
+const SUPPORTED_CHAIN_IDS = Object.keys(CONTRACTS).map((id) => Number(id));
+
+const DEFAULT_CHAIN_ID = (() => {
+  const envValue = Number((import.meta as any)?.env?.VITE_DEFAULT_CHAIN_ID);
+  if (!Number.isNaN(envValue) && SUPPORTED_CHAIN_IDS.includes(envValue)) {
+    return envValue;
+  }
+  return SUPPORTED_CHAIN_IDS[0];
+})();
+
 export async function connectWallet(): Promise<WalletConnection> {
   const anyWin = window as any;
   if (!anyWin.ethereum) {
     throw new Error("No wallet detected");
   }
 
-  const provider = new ethers.BrowserProvider(anyWin.ethereum);
+  let provider = new ethers.BrowserProvider(anyWin.ethereum);
   await provider.send("eth_requestAccounts", []);
-  const signer = await provider.getSigner();
+  let signer = await provider.getSigner();
   const address = (await signer.getAddress()).toLowerCase();
-  const network = await provider.getNetwork();
+  let network = await provider.getNetwork();
+  let chainIdNum = Number(network.chainId);
 
-  const chainIdNum = Number(network.chainId); 
+  const ensureSupportedChain = async () => {
+    const targetChainId = DEFAULT_CHAIN_ID;
+    try {
+      await anyWin.ethereum.request?.({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: `0x${targetChainId.toString(16)}` }]
+      });
+      provider = new ethers.BrowserProvider(anyWin.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      signer = await provider.getSigner();
+      network = await provider.getNetwork();
+      chainIdNum = Number(network.chainId);
+    } catch (switchError: any) {
+      if (switchError?.code === 4902) {
+        throw new Error(
+          `Your wallet does not have ${CONTRACTS[targetChainId]?.name ?? "the required"} network configured. Please add it and try again.`
+        );
+      }
+      throw new Error(
+        `Unsupported chain connected. Please switch to ${CONTRACTS[targetChainId]?.name ?? "the supported"} network in your wallet.`
+      );
+    }
+  };
+
+  if (!SUPPORTED_CHAIN_IDS.includes(chainIdNum)) {
+    await ensureSupportedChain();
+  }
+
+  if (!SUPPORTED_CHAIN_IDS.includes(chainIdNum)) {
+    throw new Error("Unsupported chain connected. Please try again after switching networks.");
+  }
+
   const contracts = CONTRACTS[chainIdNum];
 
   if (!contracts) {
