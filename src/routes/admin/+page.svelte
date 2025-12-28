@@ -1,89 +1,31 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { supabase } from '$lib/supabaseClient';
-  import { user } from '$lib/stores/authStore';
-
-  let isAdmin = false;
-  let loading = true;
-  let pendingEvents: any[] = [];
+  import type { PageData } from './$types';
+  
+  export let data: PageData;
+  
   let reviewingEventId: string | null = null;
   let reviewReason = '';
-  let moderators: any[] = [];
   let newModeratorEmail = '';
-
-  onMount(async () => {
-    await checkAdminStatus();
-    if (isAdmin) {
-      await loadPendingEvents();
-      await loadModerators();
-    }
-  });
-
-  async function checkAdminStatus() {
-    if (!$user) {
-      loading = false;
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', $user.id)
-      .eq('role', 'admin')
-      .single();
-
-    isAdmin = !!data;
-    loading = false;
-  }
-
-  async function loadPendingEvents() {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*, users!events_created_by_fkey(wallet_address, username)')
-      .eq('status', 'review')
-      .order('created_at', { ascending: false });
-
-    if (data) {
-      pendingEvents = data;
-    }
-  }
-
-  async function loadModerators() {
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('*, users!user_roles_user_id_fkey(wallet_address, username)')
-      .in('role', ['admin', 'moderator'])
-      .order('granted_at', { ascending: false });
-
-    if (data) {
-      moderators = data;
-    }
-  }
+  let pendingEvents = data.pendingEvents;
+  let moderators = data.moderators;
+  const isAdmin = data.userRole === 'admin';
 
   async function approveEvent(eventId: string) {
-    const { error: updateError } = await supabase
-      .from('events')
-      .update({ status: 'approved' })
-      .eq('id', eventId);
+    const response = await fetch('/api/admin/approve-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: eventId, action: 'approve' }),
+      credentials: 'include'
+    });
 
-    if (updateError) {
+    if (!response.ok) {
       alert('Failed to approve event');
       return;
     }
 
-    const { error: reviewError } = await supabase
-      .from('event_reviews')
-      .insert({
-        event_id: eventId,
-        reviewer_id: $user!.id,
-        status: 'approved',
-        reason: null
-      });
-
-    if (!reviewError) {
-      await loadPendingEvents();
-      alert('Event approved!');
-    }
+    // Remove from pending list
+    pendingEvents = pendingEvents.filter(e => e.id !== eventId);
+    alert('Event approved!');
   }
 
   async function rejectEvent(eventId: string) {
@@ -92,76 +34,64 @@
       return;
     }
 
-    const { error: updateError } = await supabase
-      .from('events')
-      .update({ status: 'rejected' })
-      .eq('id', eventId);
+    const response = await fetch('/api/admin/approve-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: eventId, action: 'reject', reason: reviewReason }),
+      credentials: 'include'
+    });
 
-    if (updateError) {
+    if (!response.ok) {
       alert('Failed to reject event');
       return;
     }
 
-    const { error: reviewError } = await supabase
-      .from('event_reviews')
-      .insert({
-        event_id: eventId,
-        reviewer_id: $user!.id,
-        status: 'rejected',
-        reason: reviewReason
-      });
-
-    if (!reviewError) {
-      await loadPendingEvents();
-      reviewingEventId = null;
-      reviewReason = '';
-      alert('Event rejected');
-    }
+    // Remove from pending list
+    pendingEvents = pendingEvents.filter(e => e.id !== eventId);
+    reviewingEventId = null;
+    reviewReason = '';
+    alert('Event rejected');
   }
 
   async function addModerator() {
     if (!newModeratorEmail.trim()) return;
 
-    // Find user by email or wallet address
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .or(`email.eq.${newModeratorEmail},wallet_address.ilike.%${newModeratorEmail}%`)
-      .single();
+    const response = await fetch('/api/admin/add-moderator', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: newModeratorEmail }),
+      credentials: 'include'
+    });
 
-    if (userError || !userData) {
-      alert('User not found');
+    if (!response.ok) {
+      const error = await response.json();
+      alert('Failed to add moderator: ' + (error.message || 'Unknown error'));
       return;
     }
 
-    const { error } = await supabase
-      .from('user_roles')
-      .insert({
-        user_id: userData.id,
-        role: 'moderator',
-        granted_by: $user!.id
-      });
-
-    if (error) {
-      alert('Failed to add moderator: ' + error.message);
-    } else {
-      newModeratorEmail = '';
-      await loadModerators();
-      alert('Moderator added!');
-    }
+    const result = await response.json();
+    moderators = [...moderators, result.moderator];
+    newModeratorEmail = '';
+    alert('Moderator added!');
   }
 
   async function removeModerator(roleId: string) {
     if (!confirm('Remove this moderator?')) return;
 
-    const { error } = await supabase
-      .from('user_roles')
-      .delete()
-      .eq('id', roleId);
+    const response = await fetch('/api/admin/remove-moderator', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role_id: roleId }),
+      credentials: 'include'
+    });
 
-    if (!error) {
-      await loadModerators();
+    if (!response.ok) {
+      alert('Failed to remove moderator');
+      return;
     }
+
+    moderators = moderators.filter(m => m.id !== roleId);
+    alert('Moderator removed');
   }
 </script>
 
@@ -170,14 +100,6 @@
 </svelte:head>
 
 <div class="admin-container">
-  {#if loading}
-    <div class="loading">Loading...</div>
-  {:else if !isAdmin}
-    <div class="access-denied">
-      <h1>Access Denied</h1>
-      <p>You don't have admin privileges.</p>
-    </div>
-  {:else}
     <div class="admin-content">
       <h1>Admin Dashboard</h1>
 
@@ -274,7 +196,6 @@
         </div>
       </section>
     </div>
-  {/if}
 </div>
 
 <style>
