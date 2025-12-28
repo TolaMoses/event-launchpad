@@ -69,6 +69,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     setupProgress = { tasks: tasksProgress, rewards: rewardsProgress };
   }
 
+  // Quick events go to 'review' status, community events stay as 'draft'
+  const initialStatus = eventType === 'quick_event' ? 'review' : 'draft';
+
   const insertPayload = {
     event_type: eventType,
     title,
@@ -86,7 +89,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     tasks: tasks,
     setup_progress: setupProgress,
     created_by: locals.user.id,
-    status: 'draft'
+    status: initialStatus
   };
 
   const { data, error: insertError } = await supabaseAdmin
