@@ -116,7 +116,6 @@
 		};
 		return badges[status] || { text: status, color: '#6c757d' };
 	}
-{{ ... }}
 
 	function getSetupProgress(event: Event): number {
 		if (event.event_type !== 'community' || !event.setup_progress) return 100;
