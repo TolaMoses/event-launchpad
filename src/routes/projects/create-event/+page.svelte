@@ -191,9 +191,9 @@
 
   type Step = "type" | "details" | "tasks" | "rewards";
   const STEP_LABELS: Record<Step, string> = {
-    type: "Event type",
-    details: "Basic details",
-    tasks: "Tasks & integrations",
+    type: "Type",
+    details: "Details",
+    tasks: "Tasks",
     rewards: "Rewards"
   };
 
