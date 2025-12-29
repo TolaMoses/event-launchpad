@@ -45,11 +45,15 @@
 		const { data, error } = await supabase
 			.from('events')
 			.select('*')
-			.in('status', ['approved', 'active'])
 			.order('created_at', { ascending: false });
 
+		if (error) {
+			console.error('Error fetching events:', error);
+		}
+
 		if (data) {
-			events = data;
+			// Filter to only show approved/active events on client side
+			events = data.filter(e => e.status === 'approved' || e.status === 'active');
 		}
 		loading = false;
 	});
