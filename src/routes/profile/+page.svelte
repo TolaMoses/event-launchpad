@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { supabase } from '$lib/supabaseClient';
 	import { ASSETS, getAllAvatars, AVATAR_CATEGORIES, getAvatarsByCategory } from '$lib/config/assets';
 
@@ -14,6 +15,7 @@
 	let username = '';
 	let selectedAvatar = '';
 	let originalUsername = '';
+	let usernameInput: HTMLInputElement;
 
 	// UI state
 	let showAvatarPicker = false;
@@ -30,6 +32,15 @@
 
 	onMount(async () => {
 		await loadUserProfile();
+		
+		// Auto-focus username input if redirected here
+		const urlParams = new URLSearchParams(window.location.search);
+		if (urlParams.get('required') === 'username' && usernameInput) {
+			setTimeout(() => {
+				usernameInput?.focus();
+				usernameInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}, 300);
+		}
 	});
 
 	async function loadUserProfile() {
@@ -227,19 +238,38 @@
 			</div>
 
 			<!-- Username Section -->
-			<div class="profile-section">
-				<h2>Username</h2>
+			<div class="profile-section" class:highlight-section={!originalUsername}>
+				<h2>Username {#if !originalUsername}<span class="required-badge">Required</span>{/if}</h2>
+				
+				{#if !originalUsername}
+					<div class="username-notice">
+						<div class="notice-icon">⚠️</div>
+						<div class="notice-content">
+							<h3>Username Required</h3>
+							<p>You need to set a username to:</p>
+							<ul>
+								<li>Create and manage events</li>
+								<li>Participate in events and complete tasks</li>
+								<li>Receive rewards and track your progress</li>
+								<li>Be identified in leaderboards and event listings</li>
+							</ul>
+						</div>
+					</div>
+				{/if}
+
 				<div class="username-section">
 					<div class="form-group">
 						<label for="username">Username</label>
 						<div class="username-input-wrapper">
 							<input
+								bind:this={usernameInput}
 								id="username"
 								type="text"
 								bind:value={username}
 								on:input={checkUsernameAvailability}
 								placeholder="Enter username (3-20 chars)"
 								maxlength="20"
+								class:error-input={!usernameAvailable && username && username !== originalUsername}
 							/>
 							{#if checkingUsername}
 								<span class="input-icon checking">⏳</span>
@@ -251,9 +281,13 @@
 								{/if}
 							{/if}
 						</div>
-						<p class="field-hint">
-							Lowercase letters, numbers, and underscores only. This will be used for role assignments.
-						</p>
+						{#if !usernameAvailable && username && username !== originalUsername}
+							<p class="error-hint">{error || 'Username already taken'}</p>
+						{:else}
+							<p class="field-hint">
+								Lowercase letters, numbers, and underscores only. This will be used for role assignments.
+							</p>
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -584,6 +618,70 @@
 		margin: 0;
 		font-size: 0.85rem;
 		color: rgba(242, 243, 255, 0.6);
+	}
+
+	.error-hint {
+		margin: 0.5rem 0 0;
+		font-size: 0.9rem;
+		color: #ff6b6b;
+		font-weight: 500;
+	}
+
+	.error-input {
+		border-color: #ff6b6b !important;
+	}
+
+	.highlight-section {
+		border-color: rgba(255, 160, 0, 0.5);
+		background: rgba(255, 160, 0, 0.05);
+	}
+
+	.required-badge {
+		display: inline-block;
+		background: rgba(255, 160, 0, 0.2);
+		color: #ffa500;
+		padding: 0.25rem 0.75rem;
+		border-radius: 12px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		margin-left: 0.75rem;
+		text-transform: uppercase;
+	}
+
+	.username-notice {
+		display: flex;
+		gap: 1rem;
+		background: rgba(255, 160, 0, 0.1);
+		border: 1px solid rgba(255, 160, 0, 0.3);
+		border-radius: 12px;
+		padding: 1.25rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.notice-icon {
+		font-size: 2rem;
+		flex-shrink: 0;
+	}
+
+	.notice-content h3 {
+		margin: 0 0 0.5rem;
+		color: #ffa500;
+		font-size: 1.1rem;
+	}
+
+	.notice-content p {
+		margin: 0 0 0.75rem;
+		color: rgba(242, 243, 255, 0.9);
+	}
+
+	.notice-content ul {
+		margin: 0;
+		padding-left: 1.5rem;
+		color: rgba(242, 243, 255, 0.8);
+	}
+
+	.notice-content li {
+		margin-bottom: 0.5rem;
 	}
 
 	.connected-accounts {

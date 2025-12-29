@@ -101,20 +101,22 @@
 
 		if (days > 0) return `${days}d left`;
 		if (hours > 0) return `${hours}h left`;
-		return 'Ending soon';
 	}
 
 	function getStatusBadge(status: string): { text: string; color: string } {
 		const badges: Record<string, { text: string; color: string }> = {
 			draft: { text: 'Draft', color: '#6c757d' },
-			submitted: { text: 'Submitted', color: '#17a2b8' },
-			in_review: { text: 'In Review', color: '#ffc107' },
-			active: { text: 'Running', color: '#28a745' },
+			submitted: { text: 'Submitted', color: '#ffc107' },
+			review: { text: 'In Review', color: '#ffa500' },
+			approved: { text: 'Approved', color: '#28a745' },
+			rejected: { text: 'Rejected', color: '#dc3545' },
+			active: { text: 'Active', color: '#28a745' },
 			ended: { text: 'Ended', color: '#dc3545' },
 			cancelled: { text: 'Cancelled', color: '#6c757d' }
 		};
 		return badges[status] || { text: status, color: '#6c757d' };
 	}
+{{ ... }}
 
 	function getSetupProgress(event: Event): number {
 		if (event.event_type !== 'community' || !event.setup_progress) return 100;

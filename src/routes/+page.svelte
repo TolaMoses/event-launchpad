@@ -41,10 +41,11 @@
 			wallet = user.user_metadata.wallet_address;
 		}
 
-		// Fetch events
+		// Fetch only approved events for homepage
 		const { data, error } = await supabase
 			.from('events')
 			.select('*')
+			.in('status', ['approved', 'active'])
 			.order('created_at', { ascending: false });
 
 		if (data) {
