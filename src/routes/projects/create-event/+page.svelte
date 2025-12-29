@@ -1550,14 +1550,8 @@
           on:click={() => goToStep(index)}
           disabled={index > currentStep}
         >
-          <span class="step-index">{index + 1}</span>
           <div class="step-content">
-            <span class="step-label">{STEP_LABELS[step]}</span>
-            {#if index < currentStep}
-              <span class="step-status">- Completed</span>
-            {:else if index === currentStep}
-              <span class="step-status">- Current</span>
-            {/if}
+            <span class="step-label" style="background-color: {index < currentStep ? 'lightgreen' : index === currentStep ? 'lightyellow' : 'lightcoral'};">{STEP_LABELS[step]}</span>
           </div>
         </button>
       {/each}
