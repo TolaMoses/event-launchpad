@@ -3,6 +3,11 @@ import raffleAbi from "$lib/abi/Raffle.json";
 import rewardVaultAbi from "$lib/abi/RewardVault.json";
 
 export const CONTRACTS: Record<number, { name: string; raffle: string; rewardVault: string }> = {
+  1: { // Eth Mainnet
+    name: "Ethereum Mainnet",
+    raffle: "0xRaffleOnMainnet",
+    rewardVault: "0x2a2875eDEe2f130207b819500f4f6de191bb0D64"
+  },
   84532: { // Base Testnet
     name: "Base Testnet",
     raffle: "0xRaffleOnMainnet",
