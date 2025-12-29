@@ -1549,8 +1549,9 @@
           class:complete={index < currentStep}
           on:click={() => goToStep(index)}
           disabled={index > currentStep}
+          style="background-color: {index < currentStep ? 'lightgreen' : index === currentStep ? 'lightyellow' : 'lightcoral'};"
         >
-          <div class="step-content" style="background-color: {index < currentStep ? 'lightgreen' : index === currentStep ? 'lightyellow' : 'lightcoral'};">
+          <div class="step-content">
             <span class="step-label">{STEP_LABELS[step]}</span>
           </div>
         </button>
