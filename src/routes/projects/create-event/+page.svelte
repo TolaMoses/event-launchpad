@@ -1577,33 +1577,20 @@
     {#if currentStepKey === "type"}
       <div class="form-block event-type-selector">
         <h2 class="section-title">Choose Event Type</h2>
-        <p class="section-description">
-          Select how you want to create your event. Quick events include all details upfront, while communities allow you to add tasks and rewards over time.
-        </p>
         
         <div class="event-type-options">
           <label class="event-type-card" class:selected={eventType === "quick_event"}>
             <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
             <div class="type-icon">⚡</div>
             <h3>Quick Event</h3>
-            <p>Create a complete event with all tasks and rewards configured immediately. Best for time-limited campaigns.</p>
-            <ul class="type-features">
-              <li>✓ All tasks configured upfront</li>
-              <li>✓ Prize configuration required</li>
-              <li>✓ Ready to launch immediately</li>
-            </ul>
+            <p>Create an event ready to launch immediately. Best for one-off events.</p>
           </label>
 
           <label class="event-type-card" class:selected={eventType === "community"}>
             <input type="radio" name="event-type" value="community" bind:group={eventType} />
             <div class="type-icon">🏘️</div>
             <h3>Community</h3>
-            <p>Start with basic details and add tasks and rewards progressively. Perfect for ongoing community engagement.</p>
-            <ul class="type-features">
-              <li>✓ Add tasks over time</li>
-              <li>✓ Configure rewards later</li>
-              <li>✓ Flexible setup process</li>
-            </ul>
+            <p>Manage your event over time. Perfect for ongoing community engagement.</p>
           </label>
         </div>
       </div>
@@ -1613,12 +1600,12 @@
       <div class="form-block">
         <h2 class="section-title">Basic Event Details</h2>
         <p class="section-description">
-          Provide an overview, timing, and hero artwork for your event. These details appear on the
+          Provide an overview, timing, and hero artwork for your event. <br>These details appear on the
           public event page.
         </p>
 
         <div class="form-group">
-          <label for="event-title">Event title</label>
+          <label for="event-title">Event Title</label>
           <input
             id="event-title"
             type="text"
@@ -1629,7 +1616,7 @@
         </div>
 
         <div class="form-group">
-          <label for="event-description">Event description</label>
+          <label for="event-description">Event Description</label>
           <textarea
             id="event-description"
             placeholder="Describe your event and what participants need to do..."
@@ -1682,11 +1669,11 @@
             placeholder="Leave blank if every eligible participant is rewarded"
             bind:value={numWinners}
           />
-          <p class="field-hint">Leave empty when every qualifying participant receives the reward.</p>
+          <p class="field-hint">Leave empty if every qualifying participant receives the reward.</p>
         </div>
 
         <div class="form-group">
-          <label for="banner-upload">Banner image</label>
+          <label for="banner-upload">Banner Image</label>
           <p class="field-hint">Recommended size: 1600 × 600 px (wide hero format)</p>
           <div class="file-input">
             <input id="banner-upload" type="file" accept="image/*" on:change={handleBannerUpload} />
@@ -1701,7 +1688,7 @@
         </div>
 
         <div class="form-group">
-          <label for="logo-upload">Event logo</label>
+          <label for="logo-upload">Event Logo</label>
           <p class="field-hint">Recommended size: 480 × 480 px (square with transparent background)</p>
           <div class="file-input">
             <input id="logo-upload" type="file" accept="image/*" on:change={handleLogoUpload} />
@@ -1721,14 +1708,10 @@
       {#if eventType === "quick_event"}
         <div class="form-block">
           <h2 class="section-title">Add Event Tasks</h2>
-          <p class="section-description">
-            Mix and match multiple task categories. Each task can capture its own configuration through
-            the modular task components.
-          </p>
 
           <div class="grid-two">
             <div class="form-group">
-              <label for="task-type">Select task type</label>
+              <label for="task-type">Select Task Type</label>
               <select id="task-type" bind:value={selectedTaskType}>
                 <option disabled hidden value="">Choose task category</option>
                 {#each taskOptions as option}
@@ -1738,7 +1721,7 @@
             </div>
             <div class="form-group align-end">
               <button type="button" class="ghost-btn" on:click={startCreateTask} disabled={!selectedTaskType}>
-                + Add Task
+                Add Task
               </button>
             </div>
           </div>
@@ -1757,7 +1740,7 @@
 
           <div class="task-list">
             {#if tasks.length === 0}
-              <p class="empty-state">No tasks added yet. Choose a task type and click “+ Add Task”.</p>
+              <p class="empty-state">No tasks added yet. Choose a task type and click "Add Task".</p>
             {:else}
               {#each tasks as task, index (task.id)}
                 <div class="task-card">
@@ -1878,14 +1861,14 @@
                     </button>
                   </div>
                 {:else}
-                  <p class="success-text">✓ Bot successfully added to server</p>
+                  <p class="success-text">Bot successfully added to server</p>
                 {/if}
               </div>
             {/if}
 
             {#if !discordSetupComplete}
               <div class="setup-warning">
-                ⚠️ Complete all Discord setup steps before continuing
+                 Complete all Discord setup steps before continuing!
               </div>
             {/if}
           </div>
@@ -1897,7 +1880,7 @@
       <div class="form-block">
         <h2 class="section-title">Reward Configuration</h2>
         <p class="section-description">
-          Add one or more rewards for your event. You can combine different reward types.
+          Add one or more rewards for your event.
         </p>
 
         {#if hasCustomPointsReward}
@@ -1925,7 +1908,7 @@
               on:click={addReward}
               disabled={!selectedRewardType}
             >
-              + Add Reward
+              Add Reward
             </button>
           </div>
         </div>
@@ -1973,7 +1956,7 @@
             {/each}
           </div>
         {:else}
-          <p class="empty-state">No rewards added yet. Add a reward type above to get started.</p>
+          <p class="empty-state">No rewards added yet. Add a reward for your event.</p>
         {/if}
       </div>
     {/if}
@@ -2028,7 +2011,7 @@
     max-width: 980px;
     margin: 0 auto;
     padding: 2.5rem 1.75rem 3rem;
-    background: rgba(8, 9, 20, 0.96);
+    background: hsl(var(--card));
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 28px 60px rgba(0, 0, 0, 0.45);
@@ -2045,7 +2028,7 @@
     display: flex;
     flex-direction: column;
     gap: 1.35rem;
-    background: rgba(18, 20, 38, 0.82);
+    background: hsl(var(--card));
     border-radius: 18px;
     padding: 1.75rem 1.5rem;
     border: 1px solid rgba(255, 255, 255, 0.07);
@@ -2059,7 +2042,7 @@
 
   .section-description {
     margin: -0.25rem 0 0;
-    color: rgba(242, 243, 255, 0.78);
+    color: hsl(var(--accent-foreground));
     font-size: 0.95rem;
     line-height: 1.6;
   }
@@ -2075,13 +2058,13 @@
   }
 
   .form-group.readonly input {
-    background: rgba(26, 28, 45, 0.45);
+    background: hsl(var(--card));
     cursor: not-allowed;
   }
 
   .helper-text {
     font-size: 0.8rem;
-    color: rgba(243, 243, 255, 0.55);
+    color: hsl(var(--accent-foreground));
   }
 
   label {
@@ -2092,7 +2075,7 @@
   input,
   textarea,
   select {
-    background: rgba(26, 28, 45, 0.88);
+    background: hsl(var(--card));
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 0.75rem 1rem;
@@ -2119,7 +2102,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.7rem;
-    background: rgba(26, 28, 45, 0.72);
+    background: hsl(var(--card));
     border: 1px dashed rgba(255, 255, 255, 0.18);
     border-radius: 12px;
     padding: 0.85rem 1.2rem;
@@ -2136,12 +2119,12 @@
   .file-input span {
     pointer-events: none;
     font-weight: 600;
-    color: rgba(242, 243, 255, 0.85);
+    color: hsl(var(--accent-foreground));
   }
 
   .field-hint {
     margin: 0.3rem 0 0;
-    color: rgba(242, 243, 255, 0.7);
+    color: hsl(var(--accent-foreground));
     font-size: 0.85rem;
   }
 
@@ -2149,7 +2132,7 @@
     margin-top: 0.75rem;
     max-height: 200px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.06);
+    background: hsl(var(--card));
     padding: 0.6rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     object-fit: cover;
@@ -2159,14 +2142,14 @@
     margin-top: 0.75rem;
     max-height: 140px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.06);
+    background: hsl(var(--card));
     padding: 0.6rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     object-fit: cover;
   }
 
   .task-builder {
-    background: rgba(12, 14, 30, 0.9);
+    background: hsl(var(--card));
     border-radius: 14px;
     padding: 1.25rem 1.1rem;
   }
@@ -2179,7 +2162,7 @@
 
   .empty-state {
     margin: 0;
-    color: rgba(243, 243, 255, 0.6);
+    color: hsl(var(--accent-foreground));
   }
 
   .task-selector-row {
@@ -2197,7 +2180,7 @@
   }
 
   .reward-card {
-    background: rgba(12, 14, 30, 0.9);
+    background: hsl(var(--card));
     border-radius: 14px;
     padding: 1.25rem 1.1rem;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2219,7 +2202,7 @@
   .reward-summary {
     margin: 0;
     font-size: 0.9rem;
-    color: rgba(242, 243, 255, 0.7);
+    color: hsl(var(--accent-foreground));
   }
 
   .reward-actions {
@@ -2235,7 +2218,7 @@
   }
 
   .task-card {
-    background: rgba(12, 14, 30, 0.85);
+    background: hsl(var(--card));
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 14px;
     padding: 1.1rem;
@@ -2259,7 +2242,7 @@
   .task-meta {
     margin: 0.2rem 0 0;
     font-size: 0.85rem;
-    color: rgba(243, 243, 255, 0.6);
+    color: hsl(var(--accent-foreground));
   }
 
   .task-actions {
@@ -2270,7 +2253,7 @@
   .task-config {
     margin: 0;
     padding: 0.85rem;
-    background: rgba(8, 9, 22, 0.85);
+    background: hsl(var(--card));
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     font-size: 0.85rem;
@@ -2283,14 +2266,14 @@
     display: flex;
     gap: 1rem;
     padding: 1rem 1.25rem;
-    background: rgba(111, 160, 255, 0.08);
+    background:  hsl(var(--card));
     border: 1px solid rgba(111, 160, 255, 0.2);
     border-radius: 12px;
     margin-bottom: 1.5rem;
   }
 
   .points-banner {
-    background: rgba(255, 193, 7, 0.08);
+    background: hsl(var(--card));
     border-color: rgba(255, 193, 7, 0.25);
   }
 
@@ -2306,19 +2289,19 @@
   .banner-content strong {
     display: block;
     margin-bottom: 0.25rem;
-    color: rgba(243, 243, 255, 0.95);
+    color: hsl(var(--accent-foreground));
   }
 
   .banner-content p {
     margin: 0;
     font-size: 0.9rem;
-    color: rgba(243, 243, 255, 0.7);
+    color: hsl(var(--accent-foreground));
     line-height: 1.5;
   }
 
   .ghost-btn {
     padding: 0.55rem 1rem;
-    background: rgba(111, 160, 255, 0.12);
+    background: hsl(var(--card));
     color: #8da9ff;
     border: 1px solid rgba(111, 160, 255, 0.22);
     border-radius: 10px;
@@ -2331,7 +2314,7 @@
   }
 
   .ghost-btn.danger {
-    background: rgba(218, 30, 40, 0.12);
+    background: hsl(var(--card));
     border-color: rgba(218, 30, 40, 0.3);
     color: #ff9b9b;
   }
@@ -2360,7 +2343,7 @@
 
   /* Discord Setup Section */
   .discord-setup-section {
-    background: rgba(88, 101, 242, 0.05);
+    background: hsl(var(--card));
     border: 2px solid rgba(88, 101, 242, 0.2);
     border-radius: 12px;
     padding: 2rem;
@@ -2374,12 +2357,12 @@
   }
 
   .setup-description {
-    color: rgba(242, 243, 255, 0.7);
+    color: hsl(var(--accent-foreground));
     margin: 0 0 2rem;
   }
 
   .setup-step {
-    background: rgba(255, 255, 255, 0.03);
+    background: hsl(var(--card));
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     padding: 1.5rem;
@@ -2388,8 +2371,8 @@
   }
 
   .setup-step.completed {
-    border-color: rgba(40, 167, 69, 0.4);
-    background: rgba(40, 167, 69, 0.05);
+    border-color: hsl(var(--card));
+    background: hsl(var(--card));
   }
 
   .step-header {
@@ -2400,7 +2383,7 @@
   }
 
   .step-number {
-    background: rgba(88, 101, 242, 0.2);
+    background: hsl(var(--card));
     color: #5865f2;
     width: 32px;
     height: 32px;
@@ -2413,7 +2396,7 @@
   }
 
   .setup-step.completed .step-number {
-    background: rgba(40, 167, 69, 0.2);
+    background: hsl(var(--card));
     color: #28a745;
   }
 
@@ -2433,7 +2416,7 @@
   .guild-select {
     width: 100%;
     padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: hsl(var(--card));
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     color: #f2f3ff;
@@ -2458,22 +2441,22 @@
   }
 
   .info-text {
-    color: rgba(242, 243, 255, 0.7);
+    color: hsl(var(--accent-foreground));
     margin: 0;
   }
 
   .helper-text {
-    color: rgba(242, 243, 255, 0.5);
+    color: hsl(var(--accent-foreground));
     font-size: 0.9rem;
     margin: 0;
   }
 
   .setup-warning {
-    background: rgba(255, 193, 7, 0.1);
+    background: hsl(var(--card));
     border: 1px solid rgba(255, 193, 7, 0.3);
     border-radius: 8px;
     padding: 1rem;
-    color: #ffc107;
+    color: hsl(var(--accent-foreground));
     font-weight: 600;
     text-align: center;
   }
@@ -2529,7 +2512,7 @@
     color: rgba(255, 255, 255, 0.9);
     text-align: center;
     padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.08);
+    background: hsl(var(--card));
     border-radius: 6px;
     font-size: 0.95rem;
   }
@@ -2542,7 +2525,7 @@
   }
 
   .mintable-nft-card {
-    background: rgba(255, 255, 255, 0.04);
+    background: hsl(var(--card));
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 1.25rem;
@@ -2590,7 +2573,7 @@
   .voucher-codes-list {
     margin-top: 1rem;
     padding: 1rem;
-    background: rgba(0, 0, 0, 0.2);
+    background: hsl(var(--card));
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     max-height: 300px;
@@ -2609,7 +2592,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.6rem 0.8rem;
-    background: rgba(255, 255, 255, 0.04);
+    background: hsl(var(--card));
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
     margin-bottom: 0.5rem;
@@ -2627,11 +2610,11 @@
   }
 
   .validation-errors {
-    background: rgba(218, 30, 40, 0.12);
+    background: hsl(var(--card));
     border: 1px solid rgba(218, 30, 40, 0.32);
     border-radius: 12px;
     padding: 1rem 1.25rem;
-    color: #ffb4b4;
+    color: hsl(var(--accent-foreground));
   }
 
   .validation-errors h3 {
@@ -2659,7 +2642,7 @@
 
   .event-type-card {
     position: relative;
-    background: rgba(255, 255, 255, 0.04);
+    background: hsl(var(--card));
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 2rem 1.5rem;
@@ -2672,13 +2655,13 @@
 
   .event-type-card:hover {
     border-color: rgba(111, 160, 255, 0.4);
-    background: rgba(111, 160, 255, 0.08);
+    background: hsl(var(--card));
     transform: translateY(-2px);
   }
 
   .event-type-card.selected {
-    border-color: #6fa0ff;
-    background: rgba(111, 160, 255, 0.15);
+    border-color: hsl(var(--card));
+    background: hsl(var(--card));
     box-shadow: 0 0 0 3px rgba(111, 160, 255, 0.2);
   }
 
@@ -2698,13 +2681,13 @@
     margin: 0;
     font-size: 1.4rem;
     font-weight: 700;
-    color: #f2f3ff;
+    color: hsl(var(--accent-foreground));
     text-align: center;
   }
 
   .event-type-card p {
     margin: 0;
-    color: rgba(242, 243, 255, 0.75);
+    color: hsl(var(--accent-foreground));
     font-size: 0.95rem;
     line-height: 1.6;
     text-align: center;
@@ -2720,7 +2703,7 @@
   }
 
   .type-features li {
-    color: rgba(242, 243, 255, 0.85);
+    color: hsl(var(--accent-foreground));
     font-size: 0.9rem;
     padding-left: 0.5rem;
   }

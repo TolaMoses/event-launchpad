@@ -1,5 +1,22 @@
+:root {
+	--background-color:  0 0% 90.5882352941%;
+	--foreground-color: 240 10% 3.9%;
+	--accent: 240 4.8% 95.9%;
+	--accent-foreground: 240 5.9% 10%;
+	--card: 0 0% 100%;
+	--card-foreground: 240 10% 3.9%;
+	--popover: 0 0% 100%;
+	--popover-foreground: 240 10% 3.9%;
+	--primary: 142.1 76.2% 36.3%;
+	--primary-foreground: 355.7 100% 97.3%;
+	--secondary: 240 4.8% 95.9%;
+	--secondary-foreground: 240 5.9% 10%;
+	--muted: 240 4.8% 95.9%;
+	--muted-foreground: 240 3.8% 46.1%;
+}
+
 html, body {
-		background-color: #202030 /*#fdf1cb*/;
+		background-color: hsl(var(--background-color));
 		max-width: 100vw;
 		padding: 0;
 		margin: 0;
@@ -12,7 +29,7 @@ html, body {
 	}
 	
 	* {
-		color: wheat;
+		color: hsl(var(--foreground-color));
 	}
 	@font-face {
         font-family: "dylan";
@@ -31,7 +48,7 @@ html, body {
 		padding: 20px;
 	}
 	.featured {
-		background-color: #202030;
+		background-color: hsl(var(--card));
 		padding: 20px;
 		border-radius: 20px;
 	}
@@ -45,10 +62,10 @@ html, body {
 		font-weight: 600;
 	}
 	.event-summary div:nth-child(2) {
-		color: lightblue;
+		color: hsl(var(--accent));
 	}
 	.event-summary div:nth-child(3) {
-		color: yellowgreen;
+		color: hsl(var(--accent));
 	}
 	.main-directory-1 {
 		
@@ -94,7 +111,7 @@ html, body {
 		gap: 1rem;
 	}
 	.games-section div > h2 {
-		color: wheat;
+		color: hsl(var(--accent));
 	}
 	.game-item {
 		flex-basis: 40%;
@@ -102,7 +119,7 @@ html, body {
 		gap: 1rem;
 		padding: 10px;
 		margin-bottom: 5px;
-		border: 1px solid wheat;
+		border: 1px solid hsl(var(--card));
 	}
 	.game-item h6,p,h5 {
 		white-space: nowrap;
@@ -160,7 +177,7 @@ html, body {
 		background-color: yellow;
 	}
 	.thin-border {
-		border: 1px solid wheat;
+		border: 1px solid hsl(var(--card));
 	}
 	.padding-2 {
 		padding: 2rem;
