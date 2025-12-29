@@ -1554,9 +1554,9 @@
           <div class="step-content">
             <span class="step-label">{STEP_LABELS[step]}</span>
             {#if index < currentStep}
-              <span class="step-status">Completed</span>
+              <span class="step-status">- Completed</span>
             {:else if index === currentStep}
-              <span class="step-status">Current</span>
+              <span class="step-status">- Current</span>
             {/if}
           </div>
         </button>
