@@ -1577,31 +1577,31 @@
         <h2 class="section-title">Choose Event Type</h2>
         
         <div class="event-type-options">
-          <label class="event-type-card quick-event-card" class:selected={eventType === "quick_event"}>
+          <div class="event-type-card quick-event-card" class:selected={eventType === "quick_event"}>
             <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
-            <div class="flex space-between"><h3>Quick Event</h3><img src="{ASSETS.icons.ui.nextDotted}" alt="next >"></div>
-            <div class="type-icon"><img src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
+            <div class="flex space-between"><h3>Quick Event</h3><img class="next-icon" src="{ASSETS.icons.ui.nextDotted}" alt="next >"></div>
+            <div class="type-icon"><img class="quick-event-icon" src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
             <div class="clickable-info">
               <input type="checkbox" id="info-toggle-checkbox" class="toggle-checkbox" />
-              <label for="info-toggle-checkbox" class="toggle-label"><img src="{ASSETS.icons.ui.info}" alt="more info"></label>
+              <label for="info-toggle-checkbox" class="toggle-label"><img class="info-icon" src="{ASSETS.icons.ui.info}" alt="more info"></label>
               <div class="toggle-content">
                 <p class="info-text-quick-event">Create an event ready to launch immediately. Best for one-off events.</p>
               </div>
             </div>
-          </label>
+          </div>
 
-          <label class="event-type-card community-event-card" class:selected={eventType === "community"}>
+          <div class="event-type-card community-event-card" class:selected={eventType === "community"}>
             <input type="radio" name="event-type" value="community" bind:group={eventType} />
-            <div class="flex space-between"><h3>Community</h3><img src="{ASSETS.icons.ui.nextDotted}" alt="next "></div>
-            <div class="type-icon"><img src="{ASSETS.icons.ui.community}" alt="community"></div>
+            <div class="flex space-between"><h3>Community</h3><img class="next-icon" src="{ASSETS.icons.ui.nextDotted}" alt="next "></div>
+            <div class="type-icon"><img class="community-icon" src="{ASSETS.icons.ui.community}" alt="community"></div>
             <div class="clickable-info">
               <input type="checkbox" id="info-toggle-checkbox" class="toggle-checkbox" />
-              <label for="info-toggle-checkbox" class="toggle-label"><img src="{ASSETS.icons.ui.info}" alt="more info"></label>
+              <label for="info-toggle-checkbox" class="toggle-label"><img class="info-icon" src="{ASSETS.icons.ui.info}" alt="more info"></label>
               <div class="toggle-content">
                 <p class="info-text-community">Manage your event over time. Perfect for ongoing community engagement.</p>
               </div>
             </div>
-          </label>
+          </div>
         </div>
       </div>
     {/if}
@@ -2070,14 +2070,6 @@
     background: (var(--orange));
   }
 
-  .info-text-quick {
-    display: none;
-  }
-
-  .info-text-community {
-    display: none;
-  }
-
   .clickable-info {
     cursor: pointer;
   }
@@ -2090,9 +2082,16 @@
     opacity: 0.6;
   }
 
-  .clickable-info img {
-    width: 3px;
-    height: 3px;
+  .info-icon {
+    width: 5px;
+  }
+
+  .quick-event-icon, .community-icon {
+    width: 50px;
+  }
+
+  .next-icon {
+    width: 5px;
   }
 
   .type-icon {
