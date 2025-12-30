@@ -1526,8 +1526,15 @@
     }
   }
 
-  function infoToggle() {
-   
+  let showQuickEventInfo = false;
+  let showCommunityInfo = false;
+
+  function toggleQuickEventInfo() {
+    showQuickEventInfo = !showQuickEventInfo;
+  }
+
+  function toggleCommunityInfo() {
+    showCommunityInfo = !showCommunityInfo;
   }
 </script>
 
@@ -1583,16 +1590,42 @@
         <div class="event-type-options">
           <div class="event-type-card quick-event-card" class:selected={eventType === "quick_event"}>
             <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
-            <div class="flex space-between"><h3>Quick Event</h3><img class="info-icon-quick-event" src="{ASSETS.icons.ui.info}" alt="info"></div>
+            <div class="flex space-between">
+              <h3>Quick Event</h3>
+              <img 
+                class="info-icon-quick-event" 
+                src="{ASSETS.icons.ui.info}" 
+                alt="info"
+                on:click={toggleQuickEventInfo}
+                on:keydown={(e) => e.key === 'Enter' && toggleQuickEventInfo()}
+                role="button"
+                tabindex="0"
+              >
+            </div>
             <div class="type-icon"><img class="quick-event-icon" src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
-            <p class="info-text-quick-event">Create an event ready to launch immediately. Best for one-off events.</p>
+            {#if showQuickEventInfo}
+              <p class="info-text-quick-event">Create an event ready to launch immediately. Best for one-off events.</p>
+            {/if}
           </div>
 
           <div class="event-type-card community-event-card" class:selected={eventType === "community"}>
             <input type="radio" name="event-type" value="community" bind:group={eventType} />
-            <div class="flex space-between"><h3>Community</h3><img class="info-icon-community" src="{ASSETS.icons.ui.info}" alt="info"></div>
+            <div class="flex space-between">
+              <h3>Community</h3>
+              <img 
+                class="info-icon-community" 
+                src="{ASSETS.icons.ui.info}" 
+                alt="info"
+                on:click={toggleCommunityInfo}
+                on:keydown={(e) => e.key === 'Enter' && toggleCommunityInfo()}
+                role="button"
+                tabindex="0"
+              >
+            </div>
             <div class="type-icon"><img class="community-icon" src="{ASSETS.icons.ui.community}" alt="community"></div>
-            <p class="info-text-community">Manage your event over time. Perfect for ongoing community engagement.</p>
+            {#if showCommunityInfo}
+              <p class="info-text-community">Manage your event over time. Perfect for ongoing community engagement.</p>
+            {/if}
           </div>
         </div>
       </div>
@@ -2055,24 +2088,58 @@
   }
 
   .quick-event-card {
-    background: (var(--green));
+    background: var(--green);
   }
 
   .community-event-card {
-    background: (var(--orange));
+    background: var(--orange);
   }
 
-  .info-icon {
-    width: 5px;
+  .info-icon-quick-event,
+  .info-icon-community {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
   }
 
-  .quick-event-icon, .community-icon {
-    width: 100px;
+  .info-icon-quick-event:hover,
+  .info-icon-community:hover {
+    transform: scale(1.1);
+  }
+
+  .info-text-quick-event,
+  .info-text-community {
+    color: var(--foreground-color);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .type-icon {
-    width: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem 0;
   }
+
+  .quick-event-icon, 
+  .community-icon {
+    width: 100px;
+    height: auto;
+  }
+
 
   .section-title {
     margin: 0;
@@ -2685,9 +2752,12 @@
     position: relative;
     border: 1px solid var(--foreground-color);
     border-radius: 16px;
+    padding: 1.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .event-type-card:hover {
@@ -2707,18 +2777,16 @@
 
   .event-type-card h3 {
     margin: 0;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--foreground-color);
-    text-align: center;
   }
 
   .event-type-card p {
     margin: 0;
     color: var(--foreground-color);
-    font-size: 0.95rem;
-    line-height: 1.6;
-    text-align: center;
+    font-size: 0.9rem;
+    line-height: 1.5;
   }
 
   .type-features {
