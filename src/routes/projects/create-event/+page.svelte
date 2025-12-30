@@ -1528,6 +1528,8 @@
 
 <section class="form-section">
   <form class="event-form" on:submit|preventDefault={createEvent}>
+    <h1 class="form-title">Create Event</h1>
+    
     {#if showDiscordReturnNotice}
       <div class="discord-return-banner" role="status">
         <div class="banner-text">
@@ -1540,28 +1542,21 @@
       </div>
     {/if}
 
-    <div class="stepper-nav">
+    <!-- Progress bar -->
+    <div class="progressbar">
+      <div class="progress" style="width: {(currentStep / (steps.length - 1)) * 100}%"></div>
+      
       {#each steps as step, index}
-        <button
-          type="button"
-          class="stepper-item"
-          class:active={index === currentStep}
-          class:complete={index < currentStep}
+        <div
+          class="progress-step"
+          class:progress-step-active={index <= currentStep}
+          data-title={STEP_LABELS[step]}
           on:click={() => goToStep(index)}
-          disabled={index > currentStep}
-        >
-          <span class="step-index">{index + 1}</span>
-          <div class="step-content">
-            <span class="step-label">{STEP_LABELS[step]}</span>
-            {#if index < currentStep}
-              <span class="step-status">✔</span>
-            {:else if index === currentStep}
-              <span class="step-status">-</span>
-            {:else}
-              <span class="step-status">⨉</span>
-            {/if}
-          </div>
-        </button>
+          on:keydown={(e) => e.key === 'Enter' && goToStep(index)}
+          role="button"
+          tabindex="0"
+          style="cursor: {index <= currentStep ? 'pointer' : 'not-allowed'}"
+        ></div>
       {/each}
     </div>
 
@@ -1963,24 +1958,24 @@
       </div>
     {/if}
 
-    <div class="step-actions">
+    <div class="btns-group">
       {#if currentStep > 0}
-        <button type="button" class="ghost-btn" on:click={handlePreviousStep}>
-          Back
+        <button type="button" class="btn btn-prev" on:click={handlePreviousStep}>
+          Previous
         </button>
       {/if}
 
       {#if isLastStep}
-        <button type="submit" class="primary-btn" disabled={isSaving || !canSubmitForm || !eventType}>
+        <button type="submit" class="btn btn-submit" disabled={isSaving || !canSubmitForm || !eventType}>
           {isSaving ? "Saving..." : eventType === "community" ? "Create Community" : "Create Event"}
         </button>
       {:else}
         <button
           type="button"
-          class="primary-btn"
+          class="btn btn-next"
           on:click={handleNextStep}
         >
-          Next: {STEP_LABELS[steps[currentStep + 1]]}
+          Next
         </button>
       {/if}
     </div>
@@ -2026,6 +2021,14 @@
     color: #f2f3ff;
   }
 
+  .form-title {
+    text-align: center;
+    margin: 0 0 1rem;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #f2f3ff;
+  }
+
   .form-block {
     display: flex;
     flex-direction: column;
@@ -2034,6 +2037,18 @@
     border-radius: 18px;
     padding: 1.75rem 1.5rem;
     border: 1px solid rgba(255, 255, 255, 0.07);
+    animation: fadeInScale 0.5s ease;
+  }
+
+  @keyframes fadeInScale {
+    from {
+      transform: scale(1, 0);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1, 1);
+      opacity: 1;
+    }
   }
 
   .section-title {
@@ -2728,6 +2743,118 @@
     user-select: none;
   }
 
+  /* Progressbar */
+  .progressbar {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    counter-reset: step;
+    margin: 2rem 0 4rem;
+  }
+
+  .progressbar::before,
+  .progress {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 4px;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.1);
+    z-index: -1;
+  }
+
+  .progress {
+    background: linear-gradient(135deg, #6fa0ff, #9c7bff);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  .progress-step {
+    width: 2.1875rem;
+    height: 2.1875rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+
+  .progress-step::before {
+    counter-increment: step;
+    content: counter(step);
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+  }
+
+  .progress-step::after {
+    content: attr(data-title);
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+  }
+
+  .progress-step-active {
+    background: linear-gradient(135deg, #6fa0ff, #9c7bff);
+  }
+
+  .progress-step-active::before {
+    color: #fff;
+  }
+
+  .progress-step-active::after {
+    color: #f2f3ff;
+    font-weight: 600;
+  }
+
+  /* Button Styles */
+  .btns-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .btn {
+    padding: 0.75rem;
+    display: block;
+    text-decoration: none;
+    background: linear-gradient(135deg, #6fa0ff, #9c7bff);
+    color: #f3f3f3;
+    text-align: center;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: 0.3s;
+    border: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .btn:hover:not(:disabled) {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1), 0 0 0 4px rgba(111, 160, 255, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-prev {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f2f3ff;
+  }
+
+  .btn-next,
+  .btn-submit {
+    background: linear-gradient(135deg, #6fa0ff, #9c7bff);
+  }
+
   @media (max-width: 720px) {
     .form-section {
       padding: 1.9rem 1.25rem 2.4rem;
@@ -2735,6 +2862,28 @@
 
     .form-block {
       padding: 1.35rem 1.2rem;
+    }
+
+    .form-title {
+      font-size: 1.5rem;
+    }
+
+    .progressbar {
+      margin: 1.5rem 0 3rem;
+    }
+
+    .progress-step {
+      width: 1.75rem;
+      height: 1.75rem;
+    }
+
+    .progress-step::after {
+      font-size: 0.75rem;
+    }
+
+    .btns-group {
+      grid-template-columns: 1fr;
+      gap: 1rem;
     }
 
     .task-card-header {
