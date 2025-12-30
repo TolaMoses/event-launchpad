@@ -120,6 +120,26 @@ html, body {
 	.game-item h6 {
 		font-size: 14px;
 	}
+
+
+	.form-section {
+		max-width: 980px;
+		margin: 0 auto;
+		padding: 1.5rem 1.75rem;
+		background-color: (var(--background-color));
+		border-radius: 15px;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+	  }
+	
+	  .event-form {
+		background-color: (var(--background-color));
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		color: (var(--foreground-color));
+	  }
+	
+
 	.flex{
 		display: flex;
 		align-items: center;
@@ -198,11 +218,6 @@ html, body {
   background-repeat: no-repeat;
   padding: 12px 20px 12px 40px;
 
-}
-
-.form-section {
-	margin: 5%;
-	width: 50%;
 }
 
 .remove-btn {
