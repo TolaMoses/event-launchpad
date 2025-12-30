@@ -13,6 +13,7 @@
   import type { TaskInstance, TaskRegistryEntry, TaskTypeKey } from "$lib/tasks/TaskTypes";
   import { browser } from "$app/environment";
   import RewardBuilder from "$lib/components/RewardBuilder.svelte";
+    import { ASSETS } from "$lib/config/assets";
 
   type NftInput = {
     id: string;
@@ -1576,18 +1577,30 @@
         <h2 class="section-title">Choose Event Type</h2>
         
         <div class="event-type-options">
-          <label class="event-type-card" class:selected={eventType === "quick_event"}>
+          <label class="event-type-card quick-event-card" class:selected={eventType === "quick_event"}>
             <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
-            <div class="type-icon">⚡</div>
-            <h3>Quick Event</h3>
-            <p>Create an event ready to launch immediately. Best for one-off events.</p>
+            <div class="flex space-between"><h3>Quick Event</h3><img src="{ASSETS.icons.ui.nextDotted}" alt="next >"></div>
+            <div class="type-icon"><img src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
+            <div class="clickable-info"><img src="{ASSETS.icons.ui.info}" alt="more info">
+              <input type="checkbox" id="info-toggle-checkbox" class="toggle-checkbox" />
+              <label for="info-toggle-checkbox" class="toggle-label">Toggle Information</label>
+              <div class="toggle-content">
+                <p class="info-text-quick-event">Create an event ready to launch immediately. Best for one-off events.</p>
+              </div>
+            </div>
           </label>
 
-          <label class="event-type-card" class:selected={eventType === "community"}>
+          <label class="event-type-card community-event-card" class:selected={eventType === "community"}>
             <input type="radio" name="event-type" value="community" bind:group={eventType} />
-            <div class="type-icon">🏘️</div>
-            <h3>Community</h3>
-            <p>Manage your event over time. Perfect for ongoing community engagement.</p>
+            <div class="flex space-between"><h3>Community</h3><img src="{ASSETS.icons.ui.nextDotted}" alt="next "></div>
+            <div class="type-icon"><img src="{ASSETS.icons.ui.community}" alt="community"></div>
+            <div class="clickable-info"><img src="{ASSETS.icons.ui.info}" alt="more info">
+              <input type="checkbox" id="info-toggle-checkbox" class="toggle-checkbox" />
+              <label for="info-toggle-checkbox" class="toggle-label">Toggle Information</label>
+              <div class="toggle-content">
+                <p class="info-text-community">Manage your event over time. Perfect for ongoing community engagement.</p>
+              </div>
+            </div>
           </label>
         </div>
       </div>
@@ -2007,37 +2020,35 @@
   .form-section {
     max-width: 980px;
     margin: 0 auto;
-    padding: 2.5rem 1.75rem 3rem;
-    background: (var(--form-section));
-    border-radius: 20px;
+    padding: 1.5rem 1.75rem;
+    background: (var(--background-color));
+    border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.45);
   }
 
   .event-form {
+    background: (var(--background-color));
     display: flex;
     flex-direction: column;
-    gap: 2.25rem;
-    color: #f2f3ff;
+    gap: 1.25rem;
+    color: (var(--foreground-color));
   }
 
   .form-title {
     text-align: center;
     margin: 0 0 1rem;
-    font-size: 2rem;
+    font-size: 1rem;
     font-weight: 700;
-    color: #f2f3ff;
+    color: (var(--foreground-color));
   }
 
   .form-block {
     display: flex;
     flex-direction: column;
     gap: 1.35rem;
-    background: (var(--form-section));
-    border-radius: 18px;
-    padding: 1.75rem 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    animation: fadeInScale 0.5s ease;
+    background: (var(--background-color));
+    padding: 0;
+    animation: fadeInScale 0.3s ease;
   }
 
   @keyframes fadeInScale {
@@ -2051,6 +2062,68 @@
     }
   }
 
+  .quick-event-card {
+    background: (var(--green));
+  }
+
+  .community-event-card {
+    background: (var(--orange));
+  }
+
+  .info-text-quick {
+    display: none;
+  }
+
+  .info-text-community {
+    display: none;
+  }
+
+  .clickable-info {
+    cursor: pointer;
+  }
+
+  .clickable-info:hover {
+    opacity: 0.8;
+  }
+
+  .clickable-info:active {
+    opacity: 0.6;
+  }
+  
+  /* Hide the actual checkbox input */
+.toggle-checkbox {
+    display: none;
+}
+
+/* Style the label to look like a button or link */
+.toggle-label {
+    display: inline-block;
+    padding: 10px 15px;
+    background-color: var(--background-color);
+    color: var(--foreground-color);
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.toggle-label:hover {
+    background-color: var(--background-color);
+}
+
+/* Hide the content by default */
+.toggle-content {
+    display: none;
+    padding: 15px;
+    border: 1px solid var(--foreground-color);
+    border-radius: 4px;
+}
+
+/* Show the content when the sibling checkbox is checked */
+.toggle-checkbox:checked ~ .toggle-content {
+    display: block;
+}
+
+    
   .section-title {
     margin: 0;
     font-size: 1.32rem;
@@ -2075,7 +2148,7 @@
   }
 
   .form-group.readonly input {
-    background: hsl(var(--card));
+    background: (var(--foreground-color));
     cursor: not-allowed;
   }
 
@@ -2092,7 +2165,7 @@
   input,
   textarea,
   select {
-    background: hsl(var(--card));
+    background: (var(--foreground-color));
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 0.75rem 1rem;
@@ -2119,7 +2192,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.7rem;
-    background: hsl(var(--card));
+    background: (var(--foreground-color));
     border: 1px dashed rgba(255, 255, 255, 0.18);
     border-radius: 12px;
     padding: 0.85rem 1.2rem;
@@ -2149,7 +2222,7 @@
     margin-top: 0.75rem;
     max-height: 200px;
     border-radius: 12px;
-    background: hsl(var(--card));
+    background: (var(--background-color));
     padding: 0.6rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     object-fit: cover;
@@ -2159,14 +2232,14 @@
     margin-top: 0.75rem;
     max-height: 140px;
     border-radius: 12px;
-    background: hsl(var(--card));
+    background: (var(--background-color));
     padding: 0.6rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     object-fit: cover;
   }
 
   .task-builder {
-    background: hsl(var(--card));
+    background: (var(--background-color));
     border-radius: 14px;
     padding: 1.25rem 1.1rem;
   }
@@ -2197,7 +2270,7 @@
   }
 
   .reward-card {
-    background: hsl(var(--card));
+    background: (var(--background-color));
     border-radius: 14px;
     padding: 1.25rem 1.1rem;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2235,7 +2308,7 @@
   }
 
   .task-card {
-    background: hsl(var(--card));
+    background: (var(--background-color));
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 14px;
     padding: 1.1rem;
@@ -2270,7 +2343,7 @@
   .task-config {
     margin: 0;
     padding: 0.85rem;
-    background: hsl(var(--card));
+    background: (var(--background-color));
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     font-size: 0.85rem;
@@ -2283,14 +2356,14 @@
     display: flex;
     gap: 1rem;
     padding: 1rem 1.25rem;
-    background:  hsl(var(--card));
+    background: (var(--background-color));
     border: 1px solid rgba(111, 160, 255, 0.2);
     border-radius: 12px;
     margin-bottom: 1.5rem;
   }
 
   .points-banner {
-    background: hsl(var(--card));
+    background: (var(--background-color));
     border-color: rgba(255, 193, 7, 0.25);
   }
 
@@ -2400,10 +2473,11 @@
   }
 
   .step-number {
-    background: hsl(var(--card));
-    color: #5865f2;
+    background: var(--background-color);
+    color: var(--foreground-color);
     width: 32px;
     height: 32px;
+    border: 1px solid var(--foreground-color);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2413,19 +2487,19 @@
   }
 
   .setup-step.completed .step-number {
-    background: hsl(var(--card));
-    color: #28a745;
+    background: var(--foreground-color);
+    color: var(--background-color);
   }
 
   .step-header h4 {
     flex: 1;
     margin: 0;
     font-size: 1.1rem;
-    color: #f2f3ff;
+    color: var(--foreground-color);
   }
 
   .check-icon {
-    color: #28a745;
+    color: var(--foreground-color);
     font-size: 1.5rem;
     font-weight: 700;
   }

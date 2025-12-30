@@ -102,7 +102,11 @@ export const ASSETS = {
 			close: '/icons/close.svg',
 			menu: '/icons/menu.svg',
 			settings: '/icons/settings.svg',
-			notification: '/icons/notification.svg'
+			notification: '/icons/notification.svg',
+			nextDotted: '/icons/next-dotted.svg',
+			info: '/icons/info.svg',
+			quickEvent: '/icons/quick-event.svg',
+			community: '/icons/community.svg'
 		}
 	},
 
