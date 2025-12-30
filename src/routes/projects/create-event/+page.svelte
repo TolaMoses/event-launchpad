@@ -1581,9 +1581,9 @@
             <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
             <div class="flex space-between"><h3>Quick Event</h3><img src="{ASSETS.icons.ui.nextDotted}" alt="next >"></div>
             <div class="type-icon"><img src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
-            <div class="clickable-info"><img src="{ASSETS.icons.ui.info}" alt="more info">
+            <div class="clickable-info">
               <input type="checkbox" id="info-toggle-checkbox" class="toggle-checkbox" />
-              <label for="info-toggle-checkbox" class="toggle-label">Toggle Information</label>
+              <label for="info-toggle-checkbox" class="toggle-label"><img src="{ASSETS.icons.ui.info}" alt="more info"></label>
               <div class="toggle-content">
                 <p class="info-text-quick-event">Create an event ready to launch immediately. Best for one-off events.</p>
               </div>
@@ -1594,9 +1594,9 @@
             <input type="radio" name="event-type" value="community" bind:group={eventType} />
             <div class="flex space-between"><h3>Community</h3><img src="{ASSETS.icons.ui.nextDotted}" alt="next "></div>
             <div class="type-icon"><img src="{ASSETS.icons.ui.community}" alt="community"></div>
-            <div class="clickable-info"><img src="{ASSETS.icons.ui.info}" alt="more info">
+            <div class="clickable-info">
               <input type="checkbox" id="info-toggle-checkbox" class="toggle-checkbox" />
-              <label for="info-toggle-checkbox" class="toggle-label">Toggle Information</label>
+              <label for="info-toggle-checkbox" class="toggle-label"><img src="{ASSETS.icons.ui.info}" alt="more info"></label>
               <div class="toggle-content">
                 <p class="info-text-community">Manage your event over time. Perfect for ongoing community engagement.</p>
               </div>
@@ -2088,6 +2088,15 @@
 
   .clickable-info:active {
     opacity: 0.6;
+  }
+
+  .clickable-info img {
+    width: 3px;
+    height: 3px;
+  }
+
+  .type-icon {
+    width: 50px;
   }
   
   /* Hide the actual checkbox input */
@@ -2760,12 +2769,6 @@
     position: absolute;
     opacity: 0;
     pointer-events: none;
-  }
-
-  .type-icon {
-    font-size: 3rem;
-    text-align: center;
-    margin-bottom: 0.5rem;
   }
 
   .event-type-card h3 {

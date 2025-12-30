@@ -8,7 +8,7 @@
 }
 
 html, body {
-		background-color: hsl(var(--background-color));
+		background-color: (var(--background-color));
 		max-width: 100vw;
 		padding: 0;
 		margin: 0;
@@ -21,7 +21,7 @@ html, body {
 	}
 	
 	* {
-		color: hsl(var(--foreground-color));
+		color: (var(--foreground-color));
 	}
 	@font-face {
         font-family: "dylan";
@@ -50,10 +50,10 @@ html, body {
 		font-weight: 600;
 	}
 	.event-summary div:nth-child(2) {
-		color: hsl(var(--accent));
+		color: var(--accent);
 	}
 	.event-summary div:nth-child(3) {
-		color: hsl(var(--accent));
+		color: var(--accent);
 	}
 	.main-directory-1 {
 		
@@ -99,7 +99,7 @@ html, body {
 		gap: 1rem;
 	}
 	.games-section div > h2 {
-		color: hsl(var(--accent));
+		color: var(--accent);
 	}
 	.game-item {
 		flex-basis: 40%;
@@ -107,7 +107,7 @@ html, body {
 		gap: 1rem;
 		padding: 10px;
 		margin-bottom: 5px;
-		border: 1px solid hsl(var(--card));
+		border: 1px solid var(--card);
 	}
 	.game-item h6,p,h5 {
 		white-space: nowrap;
@@ -165,7 +165,7 @@ html, body {
 		background-color: yellow;
 	}
 	.thin-border {
-		border: 1px solid hsl(var(--card));
+		border: 1px solid var(--card);
 	}
 	.padding-2 {
 		padding: 2rem;
