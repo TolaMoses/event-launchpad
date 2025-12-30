@@ -2151,7 +2151,7 @@
 
   .event-type-card {
     position: relative;
-    border-radius: 10px;
+    border-radius: 5px;
     padding: 1.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -2162,7 +2162,7 @@
     transform: translateY(-2px);
   }
 
-  .event-type-card.selected {
+  .event-type-card:active {
     border-color: var(--foreground-color);
   }
 
@@ -2223,7 +2223,7 @@
     display: flex;
     justify-content: space-between;
     counter-reset: step;
-    margin: 2rem 0 4rem;
+    margin: 1rem 0 2rem;
   }
 
   .progressbar::before,
@@ -2245,9 +2245,10 @@
   }
 
   .progress-step {
-    width: 2.1875rem;
-    height: 2.1875rem;
-    background-color: var(--foreground-color);
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: var(--background-color);
+    border: 1px solid var(--foreground-color);
     border-radius: 50%;
     display: flex;
     justify-content: center;
@@ -2260,7 +2261,7 @@
   .progress-step::before {
     counter-increment: step;
     content: counter(step);
-    color: var(--foreground-color);
+    color: var(--background-color);
     font-weight: 600;
   }
 
@@ -2269,12 +2270,13 @@
     position: absolute;
     top: calc(100% + 0.5rem);
     font-size: 0.85rem;
-    color: var(--foreground-color);
+    background-color: var(--foreground-color);
+    color: var(--background-color);
     white-space: nowrap;
   }
 
   .progress-step-active {
-    background: linear-gradient(135deg, var(--background-color), var(--foreground-color));
+    background: #8da9ff;
   }
 
   .progress-step-active::before {
