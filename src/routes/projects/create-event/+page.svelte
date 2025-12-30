@@ -1525,6 +1525,10 @@
       isSaving = false;
     }
   }
+
+  function infoToggle() {
+   
+  }
 </script>
 
 <section class="form-section">
@@ -1579,28 +1583,16 @@
         <div class="event-type-options">
           <div class="event-type-card quick-event-card" class:selected={eventType === "quick_event"}>
             <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
-            <div class="flex space-between"><h3>Quick Event</h3><img class="next-icon" src="{ASSETS.icons.ui.nextDotted}" alt="next >"></div>
+            <div class="flex space-between"><h3>Quick Event</h3><img class="info-icon-quick-event" src="{ASSETS.icons.ui.info}" alt="info"></div>
             <div class="type-icon"><img class="quick-event-icon" src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
-            <div class="clickable-info">
-              <input type="checkbox" id="info-toggle-checkbox" class="toggle-checkbox" />
-              <label for="info-toggle-checkbox" class="toggle-label"><img class="info-icon" src="{ASSETS.icons.ui.info}" alt="more info"></label>
-              <div class="toggle-content">
-                <p class="info-text-quick-event">Create an event ready to launch immediately. Best for one-off events.</p>
-              </div>
-            </div>
+            <p class="info-text-quick-event">Create an event ready to launch immediately. Best for one-off events.</p>
           </div>
 
           <div class="event-type-card community-event-card" class:selected={eventType === "community"}>
             <input type="radio" name="event-type" value="community" bind:group={eventType} />
-            <div class="flex space-between"><h3>Community</h3><img class="next-icon" src="{ASSETS.icons.ui.nextDotted}" alt="next "></div>
+            <div class="flex space-between"><h3>Community</h3><img class="info-icon-community" src="{ASSETS.icons.ui.info}" alt="info"></div>
             <div class="type-icon"><img class="community-icon" src="{ASSETS.icons.ui.community}" alt="community"></div>
-            <div class="clickable-info">
-              <input type="checkbox" id="info-toggle-checkbox" class="toggle-checkbox" />
-              <label for="info-toggle-checkbox" class="toggle-label"><img class="info-icon" src="{ASSETS.icons.ui.info}" alt="more info"></label>
-              <div class="toggle-content-community">
-                <p class="info-text-community">Manage your event over time. Perfect for ongoing community engagement.</p>
-              </div>
-            </div>
+            <p class="info-text-community">Manage your event over time. Perfect for ongoing community engagement.</p>
           </div>
         </div>
       </div>
@@ -2017,21 +2009,17 @@
 </section>
 
 <style>
-  :root {
-    --background-color: #000;
-    --foreground-color: #fff;
-  }
   .form-section {
     max-width: 980px;
     margin: 0 auto;
     padding: 1.5rem 1.75rem;
-    background: (var(--background-color));
+    background-color: (var(--background-color));
     border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .event-form {
-    background: (var(--background-color));
+    background-color: (var(--background-color));
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -2050,7 +2038,7 @@
     display: flex;
     flex-direction: column;
     gap: 1.35rem;
-    background: (var(--background-color));
+    background-color: (var(--background-color));
     padding: 0;
     animation: fadeInScale 0.3s ease;
   }
@@ -2074,18 +2062,6 @@
     background: (var(--orange));
   }
 
-  .clickable-info {
-    cursor: pointer;
-  }
-
-  .clickable-info:hover {
-    opacity: 0.8;
-  }
-
-  .clickable-info:active {
-    opacity: 0.6;
-  }
-
   .info-icon {
     width: 5px;
   }
@@ -2094,57 +2070,10 @@
     width: 50px;
   }
 
-  .next-icon {
-    width: 5px;
-  }
 
   .type-icon {
     width: 50px;
   }
-  
-  /* Hide the actual checkbox input */
-.toggle-checkbox {
-    display: none;
-}
-
-/* Style the label to look like a button or link */
-.toggle-label {
-    display: inline-block;
-    padding: 10px 15px;
-    background-color: var(--background-color);
-    color: var(--foreground-color);
-    cursor: pointer;
-    border-radius: 4px;
-    margin-bottom: 10px;
-}
-
-.toggle-label:hover {
-    background-color: var(--background-color);
-}
-
-/* Hide the content by default */
-.toggle-content {
-    display: none;
-    padding: 15px;
-    border: 1px solid var(--foreground-color);
-    border-radius: 4px;
-}
-
-/* Show the content when the sibling checkbox is checked */
-.toggle-checkbox:checked ~ .toggle-content {
-    display: block;
-}
-
-.toggle-content-community {
-    display: none;
-    padding: 15px;
-    border: 1px solid var(--foreground-color);
-    border-radius: 4px;
-}
-
-.toggle-checkbox:checked ~ .toggle-content-community {
-    display: block;
-}
 
     
   .section-title {
