@@ -3,8 +3,8 @@
 	--foreground-color: #fff;
 	--accent: 240 4.8% 95.9%;
 	--accent-foreground: 240 5.9% 10%;
-	--green: #03c03c;
-	--orange: #ff9f00;
+	--purple: #ccccff;
+	--yellow: #fdfd96;
 }
 
 html, body {
@@ -40,8 +40,8 @@ a {
 }
 
 .form-section {
-	max-width: 60%;
-	margin: 0 auto;
+	max-width: 60vw;
+	margin: 0 15vw;
 	padding: 1.5rem 1.75rem;
 	background-color: var(--background-color);
 	border-radius: 15px;

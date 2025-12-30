@@ -2088,11 +2088,11 @@
   }
 
   .quick-event-card {
-    background: var(--green);
+    background: var(--purple);
   }
 
   .community-event-card {
-    background: var(--orange);
+    background: var(--yellow);
   }
 
   .info-icon-quick-event,
@@ -2261,7 +2261,7 @@
   .progress-step::before {
     counter-increment: step;
     content: counter(step);
-    color: var(--background-color);
+    color: var(--foreground-color);
     font-weight: 600;
   }
 
@@ -2276,11 +2276,8 @@
   }
 
   .progress-step-active {
-    background: #8da9ff;
-  }
-
-  .progress-step-active::before {
-    color: var(--foreground-color);
+    background: var(--foreground-color);
+    color: var(--background-color);
   }
 
   .progress-step-active::after {
