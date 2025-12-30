@@ -2008,7 +2008,7 @@
     max-width: 980px;
     margin: 0 auto;
     padding: 2.5rem 1.75rem 3rem;
-    background: hsl(var(--card));
+    background: (var(--form-section));
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 28px 60px rgba(0, 0, 0, 0.45);
@@ -2033,7 +2033,7 @@
     display: flex;
     flex-direction: column;
     gap: 1.35rem;
-    background: hsl(var(--card));
+    background: (var(--form-section));
     border-radius: 18px;
     padding: 1.75rem 1.5rem;
     border: 1px solid rgba(255, 255, 255, 0.07);
@@ -2765,7 +2765,7 @@
   }
 
   .progress {
-    background: linear-gradient(135deg, #41d3b3, #05bd05);
+    background: linear-gradient(135deg, #101312, #101610);
     width: 0%;
     transition: width 0.3s ease;
   }
@@ -2786,7 +2786,7 @@
   .progress-step::before {
     counter-increment: step;
     content: counter(step);
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(17, 15, 15, 0.5);
     font-weight: 600;
   }
 
@@ -2795,7 +2795,7 @@
     position: absolute;
     top: calc(100% + 0.5rem);
     font-size: 0.85rem;
-    color: rgba(10, 206, 92, 0.6);
+    color: rgba(24, 23, 23, 0.664);
     white-space: nowrap;
   }
 

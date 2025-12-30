@@ -1,6 +1,6 @@
 :root {
-	--background-color:  0 0% 0%;
-	--foreground-color: 24 10% 3.9%;
+	--background-color:  0 0% 0;
+	--foreground-color: #fff;
 	--accent: 240 4.8% 95.9%;
 	--accent-foreground: 240 5.9% 10%;
 	--card: 0 0% 100%;
@@ -13,6 +13,7 @@
 	--secondary-foreground: 240 5.9% 10%;
 	--muted: 240 4.8% 95.9%;
 	--muted-foreground: 240 3.8% 46.1%;
+	--form-section: #000;
 }
 
 html, body {
