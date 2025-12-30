@@ -1597,7 +1597,7 @@
             <div class="clickable-info">
               <input type="checkbox" id="info-toggle-checkbox" class="toggle-checkbox" />
               <label for="info-toggle-checkbox" class="toggle-label"><img class="info-icon" src="{ASSETS.icons.ui.info}" alt="more info"></label>
-              <div class="toggle-content">
+              <div class="toggle-content-community">
                 <p class="info-text-community">Manage your event over time. Perfect for ongoing community engagement.</p>
               </div>
             </div>
@@ -2017,6 +2017,10 @@
 </section>
 
 <style>
+  :root {
+    --background-color: #000;
+    --foreground-color: #fff;
+  }
   .form-section {
     max-width: 980px;
     margin: 0 auto;
@@ -2128,6 +2132,17 @@
 
 /* Show the content when the sibling checkbox is checked */
 .toggle-checkbox:checked ~ .toggle-content {
+    display: block;
+}
+
+.toggle-content-community {
+    display: none;
+    padding: 15px;
+    border: 1px solid var(--foreground-color);
+    border-radius: 4px;
+}
+
+.toggle-checkbox:checked ~ .toggle-content-community {
     display: block;
 }
 
