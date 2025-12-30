@@ -2765,7 +2765,7 @@
   }
 
   .progress {
-    background: linear-gradient(135deg, #6fa0ff, #9c7bff);
+    background: linear-gradient(135deg, #41d3b3, #05bd05);
     width: 0%;
     transition: width 0.3s ease;
   }
@@ -2795,7 +2795,7 @@
     position: absolute;
     top: calc(100% + 0.5rem);
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(10, 206, 92, 0.6);
     white-space: nowrap;
   }
 
