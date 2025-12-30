@@ -2046,17 +2046,17 @@
     max-width: 980px;
     margin: 0 auto;
     padding: 1.5rem 1.75rem;
-    background-color: (var(--background-color));
+    background-color: var(--background-color);
     border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .event-form {
-    background-color: (var(--background-color));
+    background-color: var(--background-color);
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-    color: (var(--foreground-color));
+    color: var(--foreground-color);
   }
 
   .form-title {
@@ -2064,14 +2064,14 @@
     margin: 0 0 1rem;
     font-size: 1rem;
     font-weight: 700;
-    color: (var(--foreground-color));
+    color: var(--foreground-color);
   }
 
   .form-block {
     display: flex;
     flex-direction: column;
     gap: 1.35rem;
-    background-color: (var(--background-color));
+    background-color: var(--background-color);
     padding: 0;
     animation: fadeInScale 0.3s ease;
   }
@@ -2165,7 +2165,7 @@
   }
 
   .form-group.readonly input {
-    background: (var(--foreground-color));
+    background: var(--foreground-color));
     cursor: not-allowed;
   }
 
@@ -2182,7 +2182,7 @@
   input,
   textarea,
   select {
-    background: (var(--foreground-color));
+    background: var(--foreground-color));
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 0.75rem 1rem;
@@ -2209,7 +2209,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.7rem;
-    background: (var(--foreground-color));
+    background: var(--foreground-color));
     border: 1px dashed rgba(255, 255, 255, 0.18);
     border-radius: 12px;
     padding: 0.85rem 1.2rem;
@@ -2239,7 +2239,7 @@
     margin-top: 0.75rem;
     max-height: 200px;
     border-radius: 12px;
-    background: (var(--background-color));
+    background: var(--background-color));
     padding: 0.6rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     object-fit: cover;
@@ -2249,14 +2249,14 @@
     margin-top: 0.75rem;
     max-height: 140px;
     border-radius: 12px;
-    background: (var(--background-color));
+    background: var(--background-color));
     padding: 0.6rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     object-fit: cover;
   }
 
   .task-builder {
-    background: (var(--background-color));
+    background: var(--background-color));
     border-radius: 14px;
     padding: 1.25rem 1.1rem;
   }
@@ -2287,7 +2287,7 @@
   }
 
   .reward-card {
-    background: (var(--background-color));
+    background: var(--background-color));
     border-radius: 14px;
     padding: 1.25rem 1.1rem;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2325,7 +2325,7 @@
   }
 
   .task-card {
-    background: (var(--background-color));
+    background: var(--background-color));
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 14px;
     padding: 1.1rem;
@@ -2360,7 +2360,7 @@
   .task-config {
     margin: 0;
     padding: 0.85rem;
-    background: (var(--background-color));
+    background: var(--background-color));
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     font-size: 0.85rem;
@@ -2373,14 +2373,14 @@
     display: flex;
     gap: 1rem;
     padding: 1rem 1.25rem;
-    background: (var(--background-color));
+    background: var(--background-color));
     border: 1px solid rgba(111, 160, 255, 0.2);
     border-radius: 12px;
     margin-bottom: 1.5rem;
   }
 
   .points-banner {
-    background: (var(--background-color));
+    background: var(--background-color));
     border-color: rgba(255, 193, 7, 0.25);
   }
 
@@ -2486,9 +2486,6 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
   .step-number {
     background: var(--background-color);
     color: var(--foreground-color);
@@ -2497,6 +2494,7 @@
     border: 1px solid var(--foreground-color);
     border-radius: 50%;
     display: flex;
+{{ ... }}
     align-items: center;
     justify-content: center;
     font-weight: 700;
