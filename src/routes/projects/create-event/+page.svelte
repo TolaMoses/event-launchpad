@@ -2141,6 +2141,151 @@
   }
 
 
+  /* Event Type Selector Styles */
+  .event-type-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .event-type-card {
+    position: relative;
+    border-radius: 10px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    gap: 0.5rem;
+  }
+
+  .event-type-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .event-type-card.selected {
+    border-color: var(--foreground-color);
+  }
+
+  .event-type-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .event-type-card h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--foreground-color);
+  }
+
+  .event-type-card p {
+    margin: 0;
+    color: var(--foreground-color);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .type-features {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+    gap: 0.5rem;
+  }
+
+  .type-features li {
+    color: var(--foreground-color);
+    font-size: 0.9rem;
+    padding-left: 0.5rem;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+  }
+
+  .checkbox-label span {
+    user-select: none;
+  }
+
+  /* Progressbar */
+  .progressbar {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    counter-reset: step;
+    margin: 2rem 0 4rem;
+  }
+
+  .progressbar::before,
+  .progress {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    width: 100%;
+    background-color: var(--foreground-color);
+    z-index: -1;
+  }
+
+  .progress {
+    background: var(--foreground-color);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  .progress-step {
+    width: 2.1875rem;
+    height: 2.1875rem;
+    background-color: var(--foreground-color);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+
+  .progress-step::before {
+    counter-increment: step;
+    content: counter(step);
+    color: var(--foreground-color);
+    font-weight: 600;
+  }
+
+  .progress-step::after {
+    content: attr(data-title);
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    font-size: 0.85rem;
+    color: var(--foreground-color);
+    white-space: nowrap;
+  }
+
+  .progress-step-active {
+    background: linear-gradient(135deg, var(--background-color), var(--foreground-color));
+  }
+
+  .progress-step-active::before {
+    color: var(--foreground-color);
+  }
+
+  .progress-step-active::after {
+    color: var(--background-color);
+    font-weight: 600;
+  }
+
   .section-title {
     margin: 0;
     font-size: 1.32rem;
@@ -2733,161 +2878,6 @@
     padding-left: 1.25rem;
   }
 
-  /* Event Type Selector Styles */
-  .event-type-selector {
-    background: var(--background-color);
-    border: 1px solid var(--foreground-color);
-  }
-
-  .event-type-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1.5rem;
-  }
-
-  .event-type-card {
-    position: relative;
-    border: 1px solid var(--foreground-color);
-    border-radius: 16px;
-    padding: 1.5rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .event-type-card:hover {
-    transform: translateY(-2px);
-  }
-
-  .event-type-card.selected {
-    border-color: var(--foreground-color);
-    box-shadow: 0 0 0 3px var(--foreground-color);
-  }
-
-  .event-type-card input[type="radio"] {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .event-type-card h3 {
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--foreground-color);
-  }
-
-  .event-type-card p {
-    margin: 0;
-    color: var(--foreground-color);
-    font-size: 0.9rem;
-    line-height: 1.5;
-  }
-
-  .type-features {
-    list-style: none;
-    padding: 0;
-    margin: 1rem 0 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .type-features li {
-    color: var(--foreground-color);
-    font-size: 0.9rem;
-    padding-left: 0.5rem;
-  }
-
-  .checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  .checkbox-label input[type="checkbox"] {
-    width: 1.25rem;
-    height: 1.25rem;
-    cursor: pointer;
-  }
-
-  .checkbox-label span {
-    user-select: none;
-  }
-
-  /* Progressbar */
-  .progressbar {
-    position: relative;
-    display: flex;
-    justify-content: space-between;
-    counter-reset: step;
-    margin: 2rem 0 4rem;
-  }
-
-  .progressbar::before,
-  .progress {
-    content: "";
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    height: 4px;
-    width: 100%;
-    background-color: rgba(255, 255, 255, 0.1);
-    z-index: -1;
-  }
-
-  .progress {
-    background: linear-gradient(135deg, #101312, #101610);
-    width: 0%;
-    transition: width 0.3s ease;
-  }
-
-  .progress-step {
-    width: 2.1875rem;
-    height: 2.1875rem;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    z-index: 1;
-    transition: all 0.3s ease;
-  }
-
-  .progress-step::before {
-    counter-increment: step;
-    content: counter(step);
-    color: rgba(17, 15, 15, 0.5);
-    font-weight: 600;
-  }
-
-  .progress-step::after {
-    content: attr(data-title);
-    position: absolute;
-    top: calc(100% + 0.5rem);
-    font-size: 0.85rem;
-    color: rgba(24, 23, 23, 0.664);
-    white-space: nowrap;
-  }
-
-  .progress-step-active {
-    background: linear-gradient(135deg, #6fa0ff, #9c7bff);
-  }
-
-  .progress-step-active::before {
-    color: #fff;
-  }
-
-  .progress-step-active::after {
-    color: #f2f3ff;
-    font-weight: 600;
-  }
 
   /* Button Styles */
   .btns-group {
