@@ -2067,15 +2067,13 @@
   }
 
   .quick-event-icon, .community-icon {
-    width: 50px;
+    width: 100px;
   }
-
 
   .type-icon {
     width: 50px;
   }
 
-    
   .section-title {
     margin: 0;
     font-size: 1.32rem;
@@ -2672,8 +2670,8 @@
 
   /* Event Type Selector Styles */
   .event-type-selector {
-    background: linear-gradient(135deg, rgba(111, 160, 255, 0.08), rgba(156, 123, 255, 0.08));
-    border: 2px solid rgba(111, 160, 255, 0.2);
+    background: var(--background-color)
+    border: 1px solid var(--foreground-color);
   }
 
   .event-type-options {
@@ -2685,27 +2683,20 @@
 
   .event-type-card {
     position: relative;
-    background: hsl(var(--card));
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--foreground-color);
     border-radius: 16px;
-    padding: 2rem 1.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
     gap: 1rem;
   }
 
   .event-type-card:hover {
-    border-color: rgba(111, 160, 255, 0.4);
-    background: hsl(var(--card));
     transform: translateY(-2px);
   }
 
   .event-type-card.selected {
-    border-color: hsl(var(--card));
-    background: hsl(var(--card));
-    box-shadow: 0 0 0 3px rgba(111, 160, 255, 0.2);
+    border-color: var(--foreground-color);
+    box-shadow: 0 0 0 3px var(--foreground-color);
   }
 
   .event-type-card input[type="radio"] {
@@ -2718,13 +2709,13 @@
     margin: 0;
     font-size: 1.4rem;
     font-weight: 700;
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
     text-align: center;
   }
 
   .event-type-card p {
     margin: 0;
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
     font-size: 0.95rem;
     line-height: 1.6;
     text-align: center;
@@ -2740,7 +2731,7 @@
   }
 
   .type-features li {
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
     font-size: 0.9rem;
     padding-left: 0.5rem;
   }
