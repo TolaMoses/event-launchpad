@@ -2038,7 +2038,7 @@
     margin: 0 0 1rem;
     font-size: 1.2rem;
     font-weight: 700;
-    color: var(--accent-background);
+    color: var(--accent-color);
   }
 
   .section-title {
@@ -2761,6 +2761,7 @@
 
   @media (max-width: 720px) {
     .form-section {
+      max-width: 100vw;
       padding: 1.9rem 1.25rem 2.4rem;
     }
 
@@ -2770,6 +2771,10 @@
 
     .form-title {
       font-size: 1.5rem;
+    }
+
+    .event-type-options {
+      flex-direction: column;
     }
 
     .progressbar {

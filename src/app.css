@@ -146,3 +146,7 @@ a {
   padding: 0.25rem 0.5rem;
   cursor: pointer;
 }
+
+.btn img{
+	width: 16px;
+}
