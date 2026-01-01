@@ -1983,6 +1983,7 @@
         <button
           type="button"
           class="btn btn-next"
+          style="position: absolute; right: 0;"
           on:click={handleNextStep}
         >
           Next
@@ -2133,8 +2134,8 @@
     transform: translateY(-2px);
   }
 
-  .event-type-card:active {
-    border-color: var(--foreground-color);
+  .event-type-card:select {
+    border: 1px dotted var(--foreground-color);
   }
 
   .event-type-card input[type="radio"] {
@@ -2148,12 +2149,6 @@
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--foreground-color);
-  }
-
-  .section-title {
-    margin: 0;
-    font-size: 1.32rem;
-    font-weight: 700;
   }
 
   .form-group {
@@ -2179,9 +2174,8 @@
   input,
   textarea,
   select {
-    background: var(--foreground-color);
-    border: 1px solid var(--thin-border);
-    border-radius: 12px;
+    background: var(--accent-background);
+    border-radius: 10px;
     padding: 0.75rem 1rem;
     font-size: 0.95rem;
     color: var(--foreground-color);
@@ -2189,7 +2183,7 @@
   }
 
   textarea {
-    min-height: 140px;
+    min-height: 100px;
     resize: vertical;
   }
 
@@ -2244,7 +2238,7 @@
 
   .logo-preview {
     margin-top: 0.75rem;
-    max-height: 140px;
+    max-height: 100px;
     border-radius: 12px;
     background: var(--background-color);
     padding: 0.6rem;
@@ -2723,7 +2717,7 @@
   }
 
   .btn {
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     display: block;
     text-decoration: none;
     background: var(--foreground-color);
@@ -2752,10 +2746,14 @@
     color: var(--foreground-color);
   }
 
-  .btn-next,
-  .btn-submit {
+  .btn-next {
     background: var(--foreground-color);
     color: var(--background-color);
+  }
+
+  .btn-submit {
+    background: var(--community-color);
+    color: var(--foreground-color);
   }
 
   @media (max-width: 720px) {
