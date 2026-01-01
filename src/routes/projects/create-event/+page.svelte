@@ -2124,7 +2124,7 @@
   .event-type-card {
     position: relative;
     border-radius: 5px;
-    padding: 0 1.5rem;
+    padding: 1.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
     gap: 0.5rem;
