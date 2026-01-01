@@ -1554,20 +1554,10 @@
       </div>
     {/if}
 
-    {#if stepErrors.length}
-      <div class="step-errors">
-        <h3>Complete these before continuing</h3>
-        <ul>
-          {#each stepErrors as error}
-            <li>{error}</li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
 
     {#if currentStepKey === "type"}
       <div class="form-block event-type-selector">
-        <div class="flex space-between">
+        <div class="form-block-header">
           <h2 class="section-title">Select Event Type</h2>
           <p>{currentStep}/{steps.length}</p>
         </div>
@@ -1595,7 +1585,7 @@
 
     {#if currentStepKey === "details"}
       <div class="form-block">
-        <div class="flex space-between">
+        <div class="form-block-header">
           <h2 class="section-title">Basic Event Details</h2>
           <p>{currentStep}/{steps.length}</p>
         </div>
@@ -1707,7 +1697,7 @@
     {#if currentStepKey === "tasks"}
       {#if eventType === "quick_event"}
         <div class="form-block">
-          <div class="flex space-between">
+          <div class="form-block-header">
             <h2 class="section-title">Add Event Tasks</h2>
             <p>{currentStep}/{steps.length}</p>
           </div>
@@ -1881,7 +1871,7 @@
 
     {#if currentStepKey === "rewards"}
       <div class="form-block">
-        <div class="flex space-between">
+        <div class="form-block-header">
           <h2 class="section-title">Reward Configuration</h2>
           <p>{currentStep}/{steps.length}</p>
         </div>
@@ -1967,6 +1957,17 @@
       </div>
     {/if}
 
+    {#if stepErrors.length}
+      <div class="step-errors">
+        <h3>Complete these before continuing</h3>
+        <ul>
+          {#each stepErrors as error}
+            <li>{error}</li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+
     <div class="btns-group">
       {#if currentStep > 0}
         <button type="button" class="btn btn-prev" on:click={handlePreviousStep}>
@@ -2014,12 +2015,12 @@
 
 <style>
   .form-section {
-    max-width: 980px;
+    max-width: 60vw;
     margin: 0 auto;
     padding: 1.5rem 1.75rem;
     background-color: var(--background-color);
     border-radius: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--thin-border);
   }
 
   .event-form {
@@ -2051,6 +2052,12 @@
     background-color: var(--background-color);
     padding: 0;
     animation: fadeInScale 0.3s ease;
+  }
+
+  .form-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   @keyframes fadeInScale {
@@ -2100,6 +2107,8 @@
   .community-icon {
     width: 64px;
     height: auto;
+    margin: 0 auto;
+    padding: 0;
   }
 
 
@@ -2159,7 +2168,7 @@
 
   .helper-text {
     font-size: 0.8rem;
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
   }
 
   label {
@@ -2171,11 +2180,11 @@
   textarea,
   select {
     background: var(--foreground-color);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--thin-border);
     border-radius: 12px;
     padding: 0.75rem 1rem;
     font-size: 0.95rem;
-    color: #f6f6ff;
+    color: var(--foreground-color);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
@@ -2188,7 +2197,7 @@
   textarea:focus,
   select:focus {
     outline: none;
-    border-color: #6fa0ff;
+    border-color: var(--foreground-color);
     box-shadow: 0 0 0 3px rgba(111, 160, 255, 0.18);
   }
 
@@ -2198,7 +2207,7 @@
     align-items: center;
     gap: 0.7rem;
     background: var(--foreground-color);
-    border: 1px dashed rgba(255, 255, 255, 0.18);
+    border: 1px dashed var(--thin-border);
     border-radius: 12px;
     padding: 0.85rem 1.2rem;
     cursor: pointer;
@@ -2214,12 +2223,12 @@
   .file-input span {
     pointer-events: none;
     font-weight: 600;
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
   }
 
   .field-hint {
     margin: 0.3rem 0 0;
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
     font-size: 0.85rem;
   }
 
@@ -2229,7 +2238,7 @@
     border-radius: 12px;
     background: var(--background-color);
     padding: 0.6rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--thin-border);
     object-fit: cover;
   }
 
@@ -2239,7 +2248,7 @@
     border-radius: 12px;
     background: var(--background-color);
     padding: 0.6rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--thin-border);
     object-fit: cover;
   }
 
@@ -2247,6 +2256,7 @@
     background: var(--background-color);
     border-radius: 14px;
     padding: 1.25rem 1.1rem;
+    border: 1px solid var(--thin-border);
   }
 
   .task-list {
@@ -2257,7 +2267,7 @@
 
   .empty-state {
     margin: 0;
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
   }
 
   .task-selector-row {
@@ -2278,7 +2288,7 @@
     background: var(--background-color);
     border-radius: 14px;
     padding: 1.25rem 1.1rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--thin-border);
   }
 
   .reward-card-header {
@@ -2291,13 +2301,13 @@
   .reward-info h3 {
     margin: 0 0 0.25rem;
     font-size: 1.05rem;
-    color: #f2f3ff;
+    color: var(--foreground-color);
   }
 
   .reward-summary {
     margin: 0;
     font-size: 0.9rem;
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
   }
 
   .reward-actions {
@@ -2309,12 +2319,12 @@
   .reward-config {
     margin-top: 1.25rem;
     padding-top: 1.25rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--thin-border);
   }
 
   .task-card {
     background: var(--background-color);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--thin-border);
     border-radius: 14px;
     padding: 1.1rem;
     display: flex;
@@ -2337,7 +2347,7 @@
   .task-meta {
     margin: 0.2rem 0 0;
     font-size: 0.85rem;
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
   }
 
   .task-actions {
@@ -2350,7 +2360,7 @@
     padding: 0.85rem;
     background: var(--background-color);
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--thin-border);
     font-size: 0.85rem;
     max-height: 220px;
     overflow: auto;
@@ -2362,14 +2372,14 @@
     gap: 1rem;
     padding: 1rem 1.25rem;
     background: var(--background-color);
-    border: 1px solid rgba(111, 160, 255, 0.2);
+    border: 1px solid var(--thin-border);
     border-radius: 12px;
     margin-bottom: 1.5rem;
   }
 
   .points-banner {
     background: var(--background-color);
-    border-color: rgba(255, 193, 7, 0.25);
+    border-color: var(--thin-border);
   }
 
   .banner-icon {
@@ -2384,21 +2394,21 @@
   .banner-content strong {
     display: block;
     margin-bottom: 0.25rem;
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
   }
 
   .banner-content p {
     margin: 0;
     font-size: 0.9rem;
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
     line-height: 1.5;
   }
 
   .ghost-btn {
     padding: 0.55rem 1rem;
-    background: hsl(var(--card));
-    color: #8da9ff;
-    border: 1px solid rgba(111, 160, 255, 0.22);
+    background: var(--background-color);
+    color: var(--foreground-color);
+    border: 1px solid var(--thin-border);
     border-radius: 10px;
     cursor: pointer;
     font-weight: 600;
@@ -2409,16 +2419,16 @@
   }
 
   .ghost-btn.danger {
-    background: hsl(var(--card));
-    border-color: rgba(218, 30, 40, 0.3);
-    color: #ff9b9b;
+    background: var(--background-color);
+    border-color: var(--thin-border);
+    color: var(--foreground-color);
   }
 
   .primary-btn {
     align-self: flex-start;
     padding: 0.85rem 2.1rem;
-    background: linear-gradient(135deg, #6fa0ff, #9c7bff);
-    color: #fff;
+    background: var(--background-color);
+    color: var(--foreground-color);
     border: none;
     border-radius: 14px;
     font-weight: 700;
@@ -2438,8 +2448,8 @@
 
   /* Discord Setup Section */
   .discord-setup-section {
-    background: hsl(var(--card));
-    border: 2px solid rgba(88, 101, 242, 0.2);
+    background: var(--background-color);
+    border: 2px solid var(--thin-border);
     border-radius: 12px;
     padding: 2rem;
     margin: 2rem 0;
@@ -2447,18 +2457,18 @@
 
   .discord-setup-section h3 {
     font-size: 1.5rem;
-    color: #f2f3ff;
+    color: var(--foreground-color);
     margin: 0 0 0.5rem;
   }
 
   .setup-description {
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
     margin: 0 0 2rem;
   }
 
   .setup-step {
-    background: hsl(var(--card));
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--background-color);
+    border: 1px solid var(--thin-border);
     border-radius: 10px;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
@@ -2466,8 +2476,8 @@
   }
 
   .setup-step.completed {
-    border-color: hsl(var(--card));
-    background: hsl(var(--card));
+    border-color: var(--thin-border);
+    background: var(--background-color);
   }
 
   .step-header {
@@ -2480,7 +2490,7 @@
     color: var(--foreground-color);
     width: 32px;
     height: 32px;
-    border: 1px solid var(--foreground-color);
+    border: 1px solid var(--thin-border);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2510,16 +2520,16 @@
   .guild-select {
     width: 100%;
     padding: 0.75rem;
-    background: hsl(var(--card));
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--background-color);
+    border: 1px solid var(--thin-border);
     border-radius: 8px;
-    color: #f2f3ff;
+    color: var(--foreground-color);
     font-size: 1rem;
   }
 
   .guild-select option {
-    background: #1a1c2d;
-    color: #f2f3ff;
+    background: var(--background-color);
+    color: var(--foreground-color);
   }
 
   .bot-invite-section {
@@ -2535,31 +2545,14 @@
   }
 
   .info-text {
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
     margin: 0;
   }
 
   .helper-text {
-    color: hsl(var(--accent-foreground));
+    color: var(--foreground-color);
     font-size: 0.9rem;
     margin: 0;
-  }
-
-  .setup-warning {
-    background: hsl(var(--card));
-    border: 1px solid rgba(255, 193, 7, 0.3);
-    border-radius: 8px;
-    padding: 1rem;
-    color: hsl(var(--accent-foreground));
-    font-weight: 600;
-    text-align: center;
-  }
-
-  .submit-blocked-message {
-    color: #ff6b6b;
-    text-align: center;
-    margin: 1rem 0 0;
-    font-weight: 600;
   }
 
   .group-header {
@@ -2703,14 +2696,6 @@
     word-break: break-all;
   }
 
-  .validation-errors {
-    background: hsl(var(--card));
-    border: 1px solid rgba(218, 30, 40, 0.32);
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    color: hsl(var(--accent-foreground));
-  }
-
   .validation-errors h3 {
     margin: 0 0 0.6rem;
     font-size: 1rem;
@@ -2721,12 +2706,19 @@
     padding-left: 1.25rem;
   }
 
+  .step-errors, .validation-errors, .submit-blocked-message, .setup-warning {
+    background: var(--accent-background);
+    border: 1px solid var(--step-error-color);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    color: var(--step-error-color);
+  }
+
 
   /* Button Styles */
   .btns-group {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    display: flex;
+    justify-content: space-between;
     margin-top: 1rem;
   }
 
@@ -2734,8 +2726,8 @@
     padding: 0.75rem;
     display: block;
     text-decoration: none;
-    background: linear-gradient(135deg, #6fa0ff, #9c7bff);
-    color: #f3f3f3;
+    background: var(--foreground-color);
+    color: var(--background-color);
     text-align: center;
     border-radius: 0.25rem;
     cursor: pointer;
@@ -2757,12 +2749,13 @@
 
   .btn-prev {
     background: rgba(255, 255, 255, 0.1);
-    color: #f2f3ff;
+    color: var(--foreground-color);
   }
 
   .btn-next,
   .btn-submit {
-    background: linear-gradient(135deg, #6fa0ff, #9c7bff);
+    background: var(--foreground-color);
+    color: var(--background-color);
   }
 
   @media (max-width: 720px) {
