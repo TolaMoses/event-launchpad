@@ -380,7 +380,7 @@
 		}
 
 		.dropdown-menu {
-			right: 10vw;
+			right: 10px;
 			min-width: 260px;
 		}
 	}
