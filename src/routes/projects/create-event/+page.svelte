@@ -2033,8 +2033,14 @@
   .form-title {
     text-align: center;
     margin: 0 0 1rem;
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 700;
+    color: var(--accent-background);
+  }
+
+  .section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
     color: var(--foreground-color);
   }
 
@@ -2069,7 +2075,7 @@
   .section-description {
     color: var(--accent-color);
     font-size: 0.9rem;
-    margin-top: 0.5rem;
+    margin: 0 0 0.3rem 0;
   }
 
   @keyframes fadeIn {
@@ -2092,7 +2098,7 @@
 
   .quick-event-icon, 
   .community-icon {
-    width: 10px;
+    width: 100px;
     height: auto;
   }
 
@@ -2149,11 +2155,6 @@
 
   .form-group.align-end {
     justify-content: flex-end;
-  }
-
-  .form-group.readonly input {
-    background: var(--foreground-color);
-    cursor: not-allowed;
   }
 
   .helper-text {
