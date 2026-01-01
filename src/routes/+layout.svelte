@@ -287,7 +287,7 @@
 		</div>
 		<div class="primary-links">
 			<a class="launch-link" href="/projects/create-event">
-				<button class="green-button">Create Event</button>
+				<button class="btn btn-submit">Create Event</button>
 			</a>
 			<a class="home-link nav-link" href="/">Home</a>
 			{#if isLoggedIn}

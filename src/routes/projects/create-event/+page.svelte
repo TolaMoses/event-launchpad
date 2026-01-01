@@ -2029,13 +2029,13 @@
     background-color: var(--background-color);
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 0.4rem;
     color: var(--foreground-color);
   }
 
   .form-title {
     text-align: center;
-    margin: 0 0 1rem;
+    margin: 0 0 0.4rem;
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--accent-color);
@@ -2709,57 +2709,6 @@
     color: var(--step-error-color);
   }
 
-
-  /* Button Styles */
-  .btns-group {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1rem;
-  }
-
-  .btn {
-    padding: 0.75rem 1rem;
-    display: block;
-    text-decoration: none;
-    background: var(--foreground-color);
-    color: var(--background-color);
-    text-align: center;
-    border-radius: 0.25rem;
-    cursor: pointer;
-    transition: 0.3s;
-    border: none;
-    font-weight: 600;
-    font-size: 0.95rem;
-  }
-
-  .btn:hover:not(:disabled) {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1), 0 0 0 4px rgba(111, 160, 255, 0.4);
-    transform: translateY(-1px);
-  }
-
-  .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-prev {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--foreground-color);
-  }
-
-  .btn-next {
-    background: var(--foreground-color);
-    color: var(--background-color);
-    display: flex; 
-    align-items: center; 
-    gap: 0.5rem;
-  }
-
-  .btn-submit {
-    background: var(--community-color);
-    color: var(--foreground-color);
-  }
-
   @media (max-width: 720px) {
     .form-section {
       max-width: 100vw;
@@ -2778,17 +2727,8 @@
       flex-direction: column;
     }
 
-    .progressbar {
-      margin: 1.5rem 0 3rem;
-    }
-
-    .progress-step {
-      width: 1.75rem;
-      height: 1.75rem;
-    }
-
-    .progress-step::after {
-      font-size: 0.75rem;
+    .event-type-card {
+      width: 100%;
     }
 
     .btns-group {
