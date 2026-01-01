@@ -118,7 +118,7 @@
 		{/if}
 	{:else}
 		<!-- Not Logged In: Show Login Button -->
-		<button class="btn login-btn btn-submit" on:click|stopPropagation={toggleLoginOptions}>
+		<button class="login-btn" on:click|stopPropagation={toggleLoginOptions}>
 			<span>Login</span>
 			<span class="dropdown-arrow">{showLoginOptions ? '▲' : '▼'}</span>
 		</button>
@@ -195,6 +195,13 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		color: white;
+		border: none;
+		border-radius: 12px;
+		padding: 0.75rem 1.5rem;
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
 		transition: all 0.2s ease;
 	}
 
@@ -372,6 +379,7 @@
 		}
 
 		.dropdown-menu {
+			left: 10vw;
 			min-width: 260px;
 		}
 	}
