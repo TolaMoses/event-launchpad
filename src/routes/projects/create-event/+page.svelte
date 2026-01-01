@@ -1980,13 +1980,14 @@
           {isSaving ? "Saving..." : eventType === "community" ? "Create Community" : "Create Event"}
         </button>
       {:else}
+        <span></span>
         <button
           type="button"
           class="btn btn-next"
-          style="position: absolute; right: 0;"
           on:click={handleNextStep}
         >
           Next
+          <img src={ASSETS.icons.next} alt="Next" />
         </button>
       {/if}
     </div>
@@ -2041,7 +2042,7 @@
   }
 
   .section-title {
-    font-size: 0.8rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--foreground-color);
   }
@@ -2115,8 +2116,7 @@
 
   /* Event Type Selector Styles */
   .event-type-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    display: flex;
     gap: 1.5rem;
     margin-top: 1.5rem;
   }
@@ -2124,7 +2124,7 @@
   .event-type-card {
     position: relative;
     border-radius: 5px;
-    padding: 1.5rem;
+    padding: 0 1.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
     gap: 0.5rem;
@@ -2134,7 +2134,7 @@
     transform: translateY(-2px);
   }
 
-  .event-type-card:select {
+  .event-type-card:active {
     border: 1px dotted var(--foreground-color);
   }
 
@@ -2749,6 +2749,9 @@
   .btn-next {
     background: var(--foreground-color);
     color: var(--background-color);
+    display: flex; 
+    align-items: center; 
+    gap: 0.5rem;
   }
 
   .btn-submit {
