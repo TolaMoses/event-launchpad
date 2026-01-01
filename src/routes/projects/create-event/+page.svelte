@@ -1566,7 +1566,7 @@
         <div class="event-type-options">
           <div class="event-type-card quick-event-card" class:selected={eventType === "quick_event"}>
             <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
-            <div class="flex space-between">
+            <div class="flex space-between gap-2">
               <h3>Quick Event</h3>
               <div class="type-icon"><img class="quick-event-icon" src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
             </div>
@@ -1574,7 +1574,7 @@
 
           <div class="event-type-card community-event-card" class:selected={eventType === "community"}>
             <input type="radio" name="event-type" value="community" bind:group={eventType} />
-            <div class="flex space-between">
+            <div class="flex space-between gap-2">
               <h3>Community</h3>
               <div class="type-icon"><img class="community-icon" src="{ASSETS.icons.ui.community}" alt="community"></div>
             </div>
@@ -1987,7 +1987,7 @@
           on:click={handleNextStep}
         >
           Next
-          <img src={ASSETS.icons.next} alt="Next" />
+          <img src={ASSETS.icons.ui.nextArrow} alt="Next" />
         </button>
       {/if}
     </div>
@@ -2175,11 +2175,12 @@
   textarea,
   select {
     background: var(--accent-background);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 0.75rem 1rem;
     font-size: 0.95rem;
     color: var(--foreground-color);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--thin-border);
+    transition: border-color 0.2s ease;
   }
 
   textarea {
@@ -2192,7 +2193,6 @@
   select:focus {
     outline: none;
     border-color: var(--foreground-color);
-    box-shadow: 0 0 0 3px rgba(111, 160, 255, 0.18);
   }
 
   .file-input {
