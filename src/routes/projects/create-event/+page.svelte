@@ -2017,7 +2017,7 @@
 
 <style>
   .form-section {
-    max-width: 60vw;
+    max-width: 50vw;
     margin: 0 auto;
     padding: 1.5rem 1.75rem;
     background-color: var(--background-color);
@@ -2107,7 +2107,7 @@
 
   .quick-event-icon, 
   .community-icon {
-    width: 64px;
+    width: 48px;
     height: auto;
     margin: 0 auto;
     padding: 0;
@@ -2124,7 +2124,7 @@
   .event-type-card {
     position: relative;
     border-radius: 5px;
-    padding: 1.5rem;
+    padding: 1.5rem 2.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
     gap: 0.5rem;
