@@ -2098,7 +2098,7 @@
 
   .quick-event-icon, 
   .community-icon {
-    width: 100px;
+    width: 64px;
     height: auto;
   }
 
