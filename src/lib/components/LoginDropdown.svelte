@@ -195,7 +195,8 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		color: white;
+		background-color: var(--foreground-color);
+		color: var(--background-color);
 		border: none;
 		border-radius: 12px;
 		padding: 0.75rem 1.5rem;
@@ -379,7 +380,7 @@
 		}
 
 		.dropdown-menu {
-			left: 10vw;
+			right: 10vw;
 			min-width: 260px;
 		}
 	}
