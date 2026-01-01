@@ -2117,14 +2117,15 @@
   /* Event Type Selector Styles */
   .event-type-options {
     display: flex;
+    justify-content: space-between;
     gap: 1.5rem;
     margin-top: 1.5rem;
   }
 
   .event-type-card {
-    position: relative;
+    width: 48%;
     border-radius: 5px;
-    padding: 1.5rem 2.5rem;
+    padding: 1.5rem 1.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
     gap: 0.5rem;
