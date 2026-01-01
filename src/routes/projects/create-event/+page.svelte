@@ -1554,24 +1554,6 @@
       </div>
     {/if}
 
-    <!-- Progress bar -->
-    <div class="progressbar">
-      <div class="progress" style="width: {(currentStep / (steps.length - 1)) * 100}%"></div>
-      
-      {#each steps as step, index}
-        <div
-          class="progress-step"
-          class:progress-step-active={index <= currentStep}
-          data-title={STEP_LABELS[step]}
-          on:click={() => goToStep(index)}
-          on:keydown={(e) => e.key === 'Enter' && goToStep(index)}
-          role="button"
-          tabindex="0"
-          style="cursor: {index <= currentStep ? 'pointer' : 'not-allowed'}"
-        ></div>
-      {/each}
-    </div>
-
     {#if stepErrors.length}
       <div class="step-errors">
         <h3>Complete these before continuing</h3>
@@ -1585,47 +1567,27 @@
 
     {#if currentStepKey === "type"}
       <div class="form-block event-type-selector">
-        <h2 class="section-title">Choose Event Type</h2>
+        <div class="flex space-between">
+          <h2 class="section-title">Select Event Type</h2>
+          <p>{currentStep}/{steps.length}</p>
+        </div>
+        <p class="section-description">To create a one-off event, select "Quick Event".<br>To create recurring events, for ongoing community engagement, select "Community".</p>
         
         <div class="event-type-options">
           <div class="event-type-card quick-event-card" class:selected={eventType === "quick_event"}>
             <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
             <div class="flex space-between">
               <h3>Quick Event</h3>
-              <img 
-                class="info-icon-quick-event" 
-                src="{ASSETS.icons.ui.info}" 
-                alt="info"
-                on:click={toggleQuickEventInfo}
-                on:keydown={(e) => e.key === 'Enter' && toggleQuickEventInfo()}
-                role="button"
-                tabindex="0"
-              >
+              <div class="type-icon"><img class="quick-event-icon" src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
             </div>
-            <div class="type-icon"><img class="quick-event-icon" src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
-            {#if showQuickEventInfo}
-              <p class="info-text-quick-event">Create an event ready to launch immediately. Best for one-off events.</p>
-            {/if}
           </div>
 
           <div class="event-type-card community-event-card" class:selected={eventType === "community"}>
             <input type="radio" name="event-type" value="community" bind:group={eventType} />
             <div class="flex space-between">
               <h3>Community</h3>
-              <img 
-                class="info-icon-community" 
-                src="{ASSETS.icons.ui.info}" 
-                alt="info"
-                on:click={toggleCommunityInfo}
-                on:keydown={(e) => e.key === 'Enter' && toggleCommunityInfo()}
-                role="button"
-                tabindex="0"
-              >
+              <div class="type-icon"><img class="community-icon" src="{ASSETS.icons.ui.community}" alt="community"></div>
             </div>
-            <div class="type-icon"><img class="community-icon" src="{ASSETS.icons.ui.community}" alt="community"></div>
-            {#if showCommunityInfo}
-              <p class="info-text-community">Manage your event over time. Perfect for ongoing community engagement.</p>
-            {/if}
           </div>
         </div>
       </div>
@@ -1633,7 +1595,10 @@
 
     {#if currentStepKey === "details"}
       <div class="form-block">
-        <h2 class="section-title">Basic Event Details</h2>
+        <div class="flex space-between">
+          <h2 class="section-title">Basic Event Details</h2>
+          <p>{currentStep}/{steps.length}</p>
+        </div>
         <p class="section-description">
           Provide an overview, timing, and hero artwork for your event. <br>These details appear on the
           public event page.
@@ -1742,8 +1707,11 @@
     {#if currentStepKey === "tasks"}
       {#if eventType === "quick_event"}
         <div class="form-block">
-          <h2 class="section-title">Add Event Tasks</h2>
-
+          <div class="flex space-between">
+            <h2 class="section-title">Add Event Tasks</h2>
+            <p>{currentStep}/{steps.length}</p>
+          </div>
+          <p class="section-description">Add tasks to your event to engage participants.</p>
           <div class="grid-two">
             <div class="form-group">
               <label for="task-type">Select Task Type</label>
@@ -1913,7 +1881,10 @@
 
     {#if currentStepKey === "rewards"}
       <div class="form-block">
-        <h2 class="section-title">Reward Configuration</h2>
+        <div class="flex space-between">
+          <h2 class="section-title">Reward Configuration</h2>
+          <p>{currentStep}/{steps.length}</p>
+        </div>
         <p class="section-description">
           Add one or more rewards for your event.
         </p>
@@ -2088,32 +2059,17 @@
   }
 
   .quick-event-card {
-    background: var(--purple);
+    background: var(--quick-event-color);
   }
 
   .community-event-card {
-    background: var(--yellow);
+    background: var(--community-color);
   }
 
-  .info-icon-quick-event,
-  .info-icon-community {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-  }
-
-  .info-icon-quick-event:hover,
-  .info-icon-community:hover {
-    transform: scale(1.1);
-  }
-
-  .info-text-quick-event,
-  .info-text-community {
-    color: var(--foreground-color);
+  .section-description {
+    color: var(--accent-color);
     font-size: 0.9rem;
     margin-top: 0.5rem;
-    animation: fadeIn 0.3s ease;
   }
 
   @keyframes fadeIn {
@@ -2136,7 +2092,7 @@
 
   .quick-event-icon, 
   .community-icon {
-    width: 100px;
+    width: 10px;
     height: auto;
   }
 
@@ -2179,123 +2135,10 @@
     color: var(--foreground-color);
   }
 
-  .event-type-card p {
-    margin: 0;
-    color: var(--foreground-color);
-    font-size: 0.9rem;
-    line-height: 1.5;
-  }
-
-  .type-features {
-    list-style: none;
-    padding: 0;
-    margin: 1rem 0 0;
-    gap: 0.5rem;
-  }
-
-  .type-features li {
-    color: var(--foreground-color);
-    font-size: 0.9rem;
-    padding-left: 0.5rem;
-  }
-
-  .checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  .checkbox-label input[type="checkbox"] {
-    width: 1.25rem;
-    height: 1.25rem;
-    cursor: pointer;
-  }
-
-  .checkbox-label span {
-    user-select: none;
-  }
-
-  /* Progressbar */
-  .progressbar {
-    position: relative;
-    display: flex;
-    justify-content: space-between;
-    counter-reset: step;
-    margin: 1rem 0 2rem;
-  }
-
-  .progressbar::before,
-  .progress {
-    content: "";
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    height: 2px;
-    width: 100%;
-    background-color: var(--foreground-color);
-    z-index: -1;
-  }
-
-  .progress {
-    background: var(--foreground-color);
-    width: 0%;
-    transition: width 0.3s ease;
-  }
-
-  .progress-step {
-    width: 1.5rem;
-    height: 1.5rem;
-    background-color: var(--background-color);
-    border: 1px solid var(--foreground-color);
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    z-index: 1;
-    transition: all 0.3s ease;
-  }
-
-  .progress-step::before {
-    counter-increment: step;
-    content: counter(step);
-    color: var(--foreground-color);
-    font-weight: 600;
-  }
-
-  .progress-step::after {
-    content: attr(data-title);
-    position: absolute;
-    top: calc(100% + 0.5rem);
-    font-size: 0.85rem;
-    background-color: var(--foreground-color);
-    color: var(--background-color);
-    white-space: nowrap;
-  }
-
-  .progress-step-active {
-    background: var(--foreground-color);
-    color: var(--background-color);
-  }
-
-  .progress-step-active::after {
-    color: var(--background-color);
-    font-weight: 600;
-  }
-
   .section-title {
     margin: 0;
     font-size: 1.32rem;
     font-weight: 700;
-  }
-
-  .section-description {
-    margin: -0.25rem 0 0;
-    color: hsl(var(--accent-foreground));
-    font-size: 0.95rem;
-    line-height: 1.6;
   }
 
   .form-group {

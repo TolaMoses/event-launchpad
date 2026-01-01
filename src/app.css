@@ -1,10 +1,10 @@
 :root {
 	--background-color:  #000;
 	--foreground-color: #fff;
-	--accent: 240 4.8% 95.9%;
+	--accent-color: #999;
 	--accent-foreground: 240 5.9% 10%;
-	--purple: #ccccff;
-	--yellow: #fdfd96;
+	--community-color: #ff4500;
+	--quick-event-color: #00575C;
 }
 
 html, body {
