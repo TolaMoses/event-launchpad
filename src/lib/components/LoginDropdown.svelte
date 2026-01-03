@@ -195,8 +195,8 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		background-color: var(--foreground-color);
-		color: var(--background-color);
+		background-color: var(--background-color);
+		color: var(--foreground-color);
 		border: none;
 		border-radius: 12px;
 		padding: 0.75rem 1.5rem;
@@ -380,8 +380,7 @@
 		}
 
 		.dropdown-menu {
-			right: 10px;
-			min-width: 260px;
+			width: 100vw;
 		}
 	}
 </style>

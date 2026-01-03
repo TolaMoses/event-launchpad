@@ -3,7 +3,7 @@
 	--foreground-color: #fff;
 	--accent-color: #999;
 	--accent-background: #222;
-	--community-color: #ff4500;
+	--community-color: #ff3300;
 	--quick-event-color: #00575C;
 	--step-error-color: #ff2222;
 	--thin-border: rgba(255, 255, 255, 0.08);
@@ -196,7 +196,7 @@ a {
     background: var(--community-color);
     color: var(--foreground-color);
   }
-  
+
 .btn img{
 	width: 16px;
 }
