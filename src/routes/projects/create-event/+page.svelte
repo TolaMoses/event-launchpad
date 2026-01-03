@@ -1559,7 +1559,7 @@
       <div class="form-block event-type-selector">
         <div class="form-block-header">
           <h2 class="section-title">Select Event Type</h2>
-          <p>{currentStep + 1}/{steps.length}</p>
+          <p>{currentStep + 1}/4</p>
         </div>
         <p class="section-description">To create a one-off event, select "Quick Event".<br>To create recurring events, for ongoing community engagement, select "Community".</p>
         
