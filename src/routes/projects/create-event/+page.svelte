@@ -2107,6 +2107,7 @@
 
   .quick-event-icon, 
   .community-icon {
+    align-self: center;
     width: 48px;
     height: auto;
     margin: 0 auto;
@@ -2118,11 +2119,13 @@
   .event-type-options {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 1.5rem;
-    margin: 1.5rem 0.5rem;
+    margin: 1.5rem;
   }
 
   .event-type-card {
+    align-self: center;
     width: 48%;
     border-radius: 5px;
     padding: 1.5rem 1.5rem;
@@ -2215,10 +2218,12 @@
     opacity: 0;
   }
 
-  .file-input span {
-    pointer-events: none;
-    font-weight: 600;
-    color: var(--foreground-color);
+  .file-input img {
+    align-self: center;
+    width: 24px;
+    height: auto;
+    margin: 0 auto;
+    padding: 0;
   }
 
   .field-hint {
@@ -2239,12 +2244,12 @@
 
   .logo-preview {
     margin-top: 0.75rem;
-    max-height: 100px;
     border-radius: 12px;
     background: var(--background-color);
     padding: 0.6rem;
     border: 1px solid var(--thin-border);
     object-fit: cover;
+    width: 50px;
   }
 
   .task-builder {
