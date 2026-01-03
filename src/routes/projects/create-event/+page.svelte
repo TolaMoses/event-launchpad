@@ -1977,7 +1977,7 @@
 
       {#if isLastStep && currentStepKey !== "type"}
         <button type="submit" class="btn btn-submit" disabled={isSaving || !canSubmitForm || !eventType}>
-          {isSaving ? "Saving..." : "Submit"}
+          {isSaving ? "Saving..." : eventType === "community" ? "Submit" : "Submit"}
         </button>
       {:else}
         <span></span>
