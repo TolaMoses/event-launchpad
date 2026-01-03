@@ -1559,7 +1559,7 @@
       <div class="form-block event-type-selector">
         <div class="form-block-header">
           <h2 class="section-title">Select Event Type</h2>
-          <p>{currentStep}/{steps.length}</p>
+          <p>{currentStep + 1}/{steps.length}</p>
         </div>
         <p class="section-description">To create a one-off event, select "Quick Event".<br>To create recurring events, for ongoing community engagement, select "Community".</p>
         
@@ -1587,7 +1587,7 @@
       <div class="form-block">
         <div class="form-block-header">
           <h2 class="section-title">Basic Event Details</h2>
-          <p>{currentStep}/{steps.length}</p>
+          <p>{currentStep + 1}/{steps.length}</p>
         </div>
         <p class="section-description">
           Provide an overview, timing, and hero artwork for your event. <br>These details appear on the
@@ -1667,7 +1667,7 @@
           <p class="field-hint">Recommended size: 1600 × 600 px (wide hero format)</p>
           <div class="file-input">
             <input id="banner-upload" type="file" accept="image/*" on:change={handleBannerUpload} />
-            <span>Upload banner image</span>
+            <img src="{ASSETS.icons.ui.uploadImage}" alt="Upload Image" />
           </div>
           {#if bannerError}
             <p class="error-text">{bannerError}</p>
@@ -1682,7 +1682,7 @@
           <p class="field-hint">Recommended size: 480 × 480 px (square with transparent background)</p>
           <div class="file-input">
             <input id="logo-upload" type="file" accept="image/*" on:change={handleLogoUpload} />
-            <span>Upload logo image</span>
+            <img src="{ASSETS.icons.ui.uploadImage}" alt="Upload Image" />
           </div>
           {#if logoError}
             <p class="error-text">{logoError}</p>
@@ -1699,7 +1699,7 @@
         <div class="form-block">
           <div class="form-block-header">
             <h2 class="section-title">Add Event Tasks</h2>
-            <p>{currentStep}/{steps.length}</p>
+            <p>{currentStep + 1}/{steps.length}</p>
           </div>
           <p class="section-description">Add tasks to your event to engage participants.</p>
           <div class="grid-two">
@@ -1873,7 +1873,7 @@
       <div class="form-block">
         <div class="form-block-header">
           <h2 class="section-title">Reward Configuration</h2>
-          <p>{currentStep}/{steps.length}</p>
+          <p>{currentStep + 1}/{steps.length}</p>
         </div>
         <p class="section-description">
           Add one or more rewards for your event.
@@ -1977,7 +1977,7 @@
 
       {#if isLastStep}
         <button type="submit" class="btn btn-submit" disabled={isSaving || !canSubmitForm || !eventType}>
-          {isSaving ? "Saving..." : eventType === "community" ? "Create Community" : "Create Event"}
+          {isSaving ? "Saving..." : "Submit"}
         </button>
       {:else}
         <span></span>
@@ -2119,7 +2119,7 @@
     display: flex;
     justify-content: space-between;
     gap: 1.5rem;
-    margin-top: 1.5rem;
+    margin: 1.5rem 0.5rem;
   }
 
   .event-type-card {

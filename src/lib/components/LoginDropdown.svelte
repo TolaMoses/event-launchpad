@@ -380,7 +380,14 @@
 		}
 
 		.dropdown-menu {
+			position: fixed;
+			right: 0;
+			left: 0;
+			top: auto;
 			width: 100vw;
+			max-width: 100vw;
+			border-radius: 16px 16px 0 0;
+			margin: 0;
 		}
 	}
 </style>

@@ -107,7 +107,8 @@ export const ASSETS = {
 			nextArrow: '/icons/arrow-right.svg',
 			info: '/icons/info.svg',
 			quickEvent: '/icons/quick-event.svg',
-			community: '/icons/community.svg'
+			community: '/icons/community.svg',
+			uploadImage: '/icons/upload-image.svg'
 		}
 	},
 
