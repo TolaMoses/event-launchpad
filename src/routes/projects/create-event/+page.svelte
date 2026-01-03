@@ -1975,7 +1975,7 @@
         </button>
       {/if}
 
-      {#if isLastStep}
+      {#if isLastStep && currentStepKey !== "type"}
         <button type="submit" class="btn btn-submit" disabled={isSaving || !canSubmitForm || !eventType}>
           {isSaving ? "Saving..." : "Submit"}
         </button>
@@ -1985,6 +1985,7 @@
           type="button"
           class="btn btn-next"
           on:click={handleNextStep}
+          disabled={currentStepKey === "type" && !eventType}
         >
           Next
           <img src={ASSETS.icons.ui.nextArrow} alt="Next" />
@@ -2204,7 +2205,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.7rem;
-    background: var(--foreground-color);
+    background: var(--background-color);
     border: 1px dashed var(--thin-border);
     border-radius: 12px;
     padding: 0.85rem 1.2rem;
