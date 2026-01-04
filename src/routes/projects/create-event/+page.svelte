@@ -2074,12 +2074,20 @@
     }
   }
 
-  .quick-event-card {
+  .quick-event-card:active {
     background: var(--quick-event-color);
   }
 
-  .community-event-card {
+  .community-event-card:active {
     background: var(--community-color);
+  }
+
+  .quick-event-card:hover {
+    border-color: var(--quick-event-color);
+  }
+
+  .community-event-card:hover {
+    border-color: var(--community-color);
   }
 
   .section-description {
@@ -2129,6 +2137,7 @@
     align-self: center;
     width: 48%;
     border-radius: 5px;
+    border: 1px solid var(--thin-border);
     padding: 1.5rem 1.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -2137,10 +2146,6 @@
 
   .event-type-card:hover {
     transform: translateY(-2px);
-  }
-
-  .event-type-card:active {
-    border: 1px dotted var(--foreground-color);
   }
 
   .event-type-card input[type="radio"] {
