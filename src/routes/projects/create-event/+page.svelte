@@ -2088,11 +2088,11 @@
     transform: scale(1.02);
   }
 
-  .quick-event-card:hover:not(.selected) {
+  .quick-event-card:hover {
     border-color: var(--quick-event-color);
   }
 
-  .community-event-card:hover:not(.selected) {
+  .community-event-card:hover {
     border-color: var(--community-color);
   }
 
@@ -2148,10 +2148,6 @@
     cursor: pointer;
     transition: all 0.3s ease;
     gap: 0.5rem;
-  }
-
-  .event-type-card:hover {
-    transform: translateY(-2px);
   }
 
   .event-type-card input[type="radio"] {
