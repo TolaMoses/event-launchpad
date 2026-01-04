@@ -310,6 +310,7 @@
   $: syncStepsWithType(eventType);
   $: currentStepKey = steps[currentStep] ?? "type";
   $: isLastStep = currentStep === steps.length - 1;
+  $: if (browser) console.log('Event Type Changed:', eventType, 'Steps:', steps.length);
 
   // Legacy variables kept for backward compatibility during migration
   let prizeType = "";
@@ -1564,21 +1565,21 @@
         <p class="section-description">To create a one-off event, select "Quick Event".<br>To create recurring events, for ongoing community engagement, select "Community".</p>
         
         <div class="event-type-options">
-          <div class="event-type-card quick-event-card" class:selected={eventType === "quick_event"}>
+          <label class="event-type-card quick-event-card" class:selected={eventType === "quick_event"}>
             <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
             <div class="flex space-between gap-2">
               <h3>Quick Event</h3>
               <div class="type-icon"><img class="quick-event-icon" src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
             </div>
-          </div>
+          </label>
 
-          <div class="event-type-card community-event-card" class:selected={eventType === "community"}>
+          <label class="event-type-card community-event-card" class:selected={eventType === "community"}>
             <input type="radio" name="event-type" value="community" bind:group={eventType} />
             <div class="flex space-between gap-2">
               <h3>Community</h3>
               <div class="type-icon"><img class="community-icon" src="{ASSETS.icons.ui.community}" alt="community"></div>
             </div>
-          </div>
+          </label>
         </div>
       </div>
     {/if}
