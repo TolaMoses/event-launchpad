@@ -277,7 +277,7 @@
 	<div class="nav-container">
 		<div class="logo-and-socials">
 			<a href="/" aria-label="MoonFlux home" class="logo-link">
-				<img src={logo} alt="MoonFlux.fun's logo" />
+				<img src={logo} alt="logo" />
 			</a>
 			<div class="top-nav-socials desktop-top-socials">
 				<img src={xLogo} alt="Twitter X logo" />
@@ -431,9 +431,6 @@
 		display: flex;
 		align-items: center;
 	}
-	.launch-link .green-button {
-		white-space: nowrap;
-	}
 	.dashboard-link {
 		display: flex;
 		align-items: center;
@@ -505,6 +502,7 @@
 			display: flex;
 		}
 		.nav-container {
+			font-size: 0.9rem;
 			margin: 1rem;
 			display: flex;
 			align-items: center;
@@ -530,6 +528,7 @@
 			display: flex;
 			grid-column: 4;
 			justify-self: end;
+			width: 2rem;
 		}
 		.mobile-menu-overlay {
 			display: flex;

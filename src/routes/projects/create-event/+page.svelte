@@ -2040,7 +2040,7 @@
     margin: 0 0 0.4rem;
     font-size: 1.2rem;
     font-weight: 700;
-    color: var(--accent-color);
+    color: var(--foreground-color);
   }
 
   .section-title {
@@ -2078,15 +2078,11 @@
   .quick-event-card.selected {
     background: var(--quick-event-color);
     border-color: var(--quick-event-color);
-    border-width: 2px;
-    transform: scale(1.02);
   }
 
   .community-event-card.selected {
     background: var(--community-color);
     border-color: var(--community-color);
-    border-width: 2px;
-    transform: scale(1.02);
   }
 
   .quick-event-card:hover {
@@ -2099,7 +2095,7 @@
 
   .section-description {
     color: var(--accent-color);
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     margin: 0 0 0.3rem 0;
   }
 
@@ -2213,7 +2209,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.7rem;
-    background: var(--background-color);
+    background: var(--accent-background);
     border: 1px dashed var(--thin-border);
     border-radius: 12px;
     padding: 0.85rem 1.2rem;
