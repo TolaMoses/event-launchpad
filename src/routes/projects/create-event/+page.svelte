@@ -1240,6 +1240,11 @@
   }
 
   async function uploadAsset(file: File, kind: UploadKind): Promise<UploadedAsset> {
+    // Validate file still exists (mobile Chrome issue)
+    if (!file || file.size === 0) {
+      throw new Error(`${kind} file is no longer available. Please select the file again.`);
+    }
+
     const formData = new FormData();
     formData.set("file", file);
     formData.set("kind", kind);
@@ -1253,6 +1258,9 @@
     const result = await response.json().catch(() => null);
 
     if (!response.ok || !result) {
+      if (response.status === 401) {
+        throw new Error("You must be logged in to upload files. Please log in and try again.");
+      }
       const message = result?.error ?? "Failed to upload asset.";
       throw new Error(message);
     }
@@ -1440,12 +1448,20 @@
     isSaving = true;
 
     try {
+      // Upload banner if present
       let bannerAsset: UploadedAsset | null = uploadedBanner;
       if (bannerFile) {
-        bannerAsset = await uploadAsset(bannerFile, "banner");
-        uploadedBanner = bannerAsset;
+        try {
+          bannerAsset = await uploadAsset(bannerFile, "banner");
+          uploadedBanner = bannerAsset;
+        } catch (err) {
+          // Banner is optional, so we can continue without it
+          console.warn('Banner upload failed:', err);
+          bannerAsset = null;
+        }
       }
 
+      // Upload logo (required)
       let logoAsset: UploadedAsset | null = uploadedLogo;
       if (logoFile) {
         logoAsset = await uploadAsset(logoFile, "logo");
@@ -1664,7 +1680,7 @@
         </div>
 
         <div class="form-group">
-          <label for="banner-upload">Banner Image</label>
+          <label for="banner-upload">Banner Image (optional)</label>
           <p class="field-hint">Recommended size: 1600 × 600 px (wide hero format)</p>
           <div class="file-input">
             <input id="banner-upload" type="file" accept="image/*" on:change={handleBannerUpload} />
@@ -2041,6 +2057,8 @@
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--foreground-color);
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
   }
 
   .section-title {
@@ -2711,12 +2729,14 @@
     padding-left: 1.25rem;
   }
 
-  .step-errors, .validation-errors, .submit-blocked-message, .setup-warning {
+  .step-errors, .validation-errors, .submit-blocked-message, .setup-warning, .upload-error {
     background: var(--accent-background);
     border: 1px solid var(--step-error-color);
     border-radius: 10px;
     padding: 1rem 1.25rem;
     color: var(--step-error-color);
+    margin-top: 1rem;
+    font-weight: 600;
   }
 
   @media (max-width: 720px) {
