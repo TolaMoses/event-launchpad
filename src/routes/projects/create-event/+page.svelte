@@ -2074,19 +2074,25 @@
     }
   }
 
-  .quick-event-card:active {
+  .quick-event-card.selected {
     background: var(--quick-event-color);
+    border-color: var(--quick-event-color);
+    border-width: 2px;
+    transform: scale(1.02);
   }
 
-  .community-event-card:active {
+  .community-event-card.selected {
     background: var(--community-color);
+    border-color: var(--community-color);
+    border-width: 2px;
+    transform: scale(1.02);
   }
 
-  .quick-event-card:hover {
+  .quick-event-card:hover:not(.selected) {
     border-color: var(--quick-event-color);
   }
 
-  .community-event-card:hover {
+  .community-event-card:hover:not(.selected) {
     border-color: var(--community-color);
   }
 
