@@ -2460,6 +2460,10 @@
     cursor: not-allowed;
   }
 
+  .danger {
+    background: var(--step-error-color);
+  }
+
   /* Discord Setup Section */
   .discord-setup-section {
     background: var(--background-color);
@@ -2732,14 +2736,14 @@
 
   /* Highlight action button animation */
   .highlight-action {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+    background: var(--community-color) !important;
     color: white !important;
     animation: pulse-glow 2s ease-in-out infinite;
     box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
   }
 
   .highlight-action:hover {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+    background: var(--community-color) !important;
     box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
   }
 
