@@ -1044,13 +1044,6 @@
     selectedRewardType = "";
     triggerAutosave();
   }
-  function editReward(rewardId: string) {
-    if (editingRewardId === rewardId) {
-      editingRewardId = null;
-    } else {
-      editingRewardId = rewardId;
-    }
-  }
 
   function removeReward(rewardId: string) {
     rewards = rewards.filter((reward) => reward.id !== rewardId);
@@ -1730,7 +1723,13 @@
               </select>
             </div>
             <div class="form-group align-end">
-              <button type="button" class="ghost-btn" on:click={startCreateTask} disabled={!selectedTaskType}>
+              <button 
+                type="button" 
+                class="ghost-btn" 
+                class:highlight-action={selectedTaskType && !creatingTaskType}
+                on:click={startCreateTask} 
+                disabled={!selectedTaskType}
+              >
                 Add Task
               </button>
             </div>
@@ -1918,6 +1917,7 @@
             <button
               type="button"
               class="ghost-btn"
+              class:highlight-action={selectedRewardType}
               on:click={addReward}
               disabled={!selectedRewardType}
             >
@@ -1938,13 +1938,6 @@
                   <div class="reward-actions">
                     <button
                       type="button"
-                      class="ghost-btn"
-                      on:click={() => editReward(reward.id)}
-                    >
-                      {editingRewardId === reward.id ? "▲ Collapse" : "▼ Configure"}
-                    </button>
-                    <button
-                      type="button"
                       class="ghost-btn danger"
                       on:click={() => removeReward(reward.id)}
                     >
@@ -1953,18 +1946,16 @@
                   </div>
                 </div>
 
-                {#if editingRewardId === reward.id}
-                  <div class="reward-config">
-                    <RewardBuilder
-                      reward={reward}
-                      {numWinners}
-                      chainId={selectedChain || $chainId?.toString() || ""}
-                      on:update={(e) => {
-                        rewards = rewards.map(r => r.id === reward.id ? e.detail : r);
-                      }}
-                    />
-                  </div>
-                {/if}
+                <div class="reward-config">
+                  <RewardBuilder
+                    reward={reward}
+                    {numWinners}
+                    chainId={selectedChain || $chainId?.toString() || ""}
+                    on:update={(e) => {
+                      rewards = rewards.map(r => r.id === reward.id ? e.detail : r);
+                    }}
+                  />
+                </div>
               </div>
             {/each}
           </div>
@@ -2737,6 +2728,30 @@
     color: var(--step-error-color);
     margin-top: 1rem;
     font-weight: 600;
+  }
+
+  /* Highlight action button animation */
+  .highlight-action {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+    color: white !important;
+    animation: pulse-glow 2s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+  }
+
+  .highlight-action:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+      transform: scale(1.02);
+    }
   }
 
   @media (max-width: 720px) {

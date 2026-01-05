@@ -24,15 +24,17 @@
 		status: string;
 		created_by: string;
 	};
-
 	let events: Event[] = [];
 	let loading = true;
 	let wallet: string | null = null;
 
 	// Group events by category
-	$: activeEvents = events.filter(e => e.status === 'active');
-	$: upcomingEvents = events.filter(e => e.status === 'draft' && new Date(e.start_time) > new Date());
-	$: endedEvents = events.filter(e => e.status === 'ended' || (e.status === 'active' && new Date(e.end_time) < new Date()));
+	// Active events are approved events that have started
+	$: activeEvents = events.filter(e => e.status === 'approved' && new Date(e.start_time) <= new Date() && new Date(e.end_time) > new Date());
+	// Upcoming events are approved events that haven't started yet
+	$: upcomingEvents = events.filter(e => e.status === 'approved' && new Date(e.start_time) > new Date());
+	// Ended events are approved events that have passed their end time
+	$: endedEvents = events.filter(e => e.status === 'approved' && new Date(e.end_time) <= new Date());
 
 	onMount(async () => {
 		// Get logged in wallet
@@ -53,7 +55,7 @@
 
 		if (data) {
 			// Filter to only show approved/active events on client side
-			events = data.filter(e => e.status === 'approved' || e.status === 'active');
+			events = data.filter(e => e.status === 'approved' || e.status === 'draft');
 		}
 		loading = false;
 	});
