@@ -23,6 +23,10 @@
 		}>;
 		status: string;
 		created_by: string;
+		creator?: {
+			username: string | null;
+			wallet_address: string;
+		};
 	};
 	let events: Event[] = [];
 	let loading = true;
@@ -37,27 +41,32 @@
 	$: endedEvents = events.filter(e => e.status === 'approved' && new Date(e.end_time) <= new Date());
 
 	onMount(async () => {
-		// Get logged in wallet
 		const { data: { user } } = await supabase.auth.getUser();
 		if (user?.user_metadata?.wallet_address) {
 			wallet = user.user_metadata.wallet_address;
 		}
 
-		// Fetch only approved events for homepage
+		// Fetch events with creator usernames
 		const { data, error } = await supabase
-			.from('events')
-			.select('*')
-			.order('created_at', { ascending: false });
+		.from('events')
+		.select(`
+			*,
+			creator:created_by (
+				username,
+				wallet_address
+			)
+		`)
+		.order('created_at', { ascending: false });
 
-		if (error) {
-			console.error('Error fetching events:', error);
-		}
+	if (error) {
+		console.error('Error fetching events:', error);
+	}
 
-		if (data) {
-			// Filter to only show approved/active events on client side
-			events = data.filter(e => e.status === 'approved' || e.status === 'draft');
-		}
-		loading = false;
+	if (data) {
+		// Filter to only show approved/active events on client side
+		events = data.filter(e => e.status === 'approved' || e.status === 'draft');
+	}
+	loading = false;
 	});
 
 	function getRewardIcon(prizeType: string): string {
@@ -118,6 +127,15 @@
 		const types = tasks.map(t => t.type);
 		return [...new Set(types)];
 	}
+
+	function getCreatorName(event: Event): string {
+		if (event.creator?.username) {
+			return event.creator.username;
+		}
+		// Fallback to shortened wallet address
+		const wallet = event.creator?.wallet_address || event.created_by;
+		return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+	}
 </script>
 
 <div class="home-container">
@@ -149,7 +167,7 @@
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
-										<span class="creator">By Creator</span>
+										<span class="creator">By {getCreatorName(event)}</span>
 										<span class="separator">•</span>
 										<span class="time">{getTimeRemaining(event.end_time)}</span>
 									</p>
@@ -189,7 +207,7 @@
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
-										<span class="creator">By Creator</span>
+										<span class="creator">By {getCreatorName(event)}</span>
 										<span class="separator">•</span>
 										<span class="time">Starts {new Date(event.start_time).toLocaleDateString()}</span>
 									</p>
@@ -229,7 +247,7 @@
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
-										<span class="creator">By Creator</span>
+										<span class="creator">By {getCreatorName(event)}</span>
 										<span class="separator">•</span>
 										<span class="time ended-text">Ended</span>
 									</p>

@@ -205,22 +205,51 @@
 	function getTaskComponent(taskType: string) {
 		return taskRegistry[taskType as keyof typeof taskRegistry];
 	}
+
+	function getTaskCategory(taskType: string): string {
+		const categories: Record<string, string> = {
+			twitter: 'Social',
+			discord: 'Social',
+			telegram: 'Social',
+			quiz: 'Quiz & Games',
+			game: 'Quiz & Games',
+			puzzle: 'Quiz & Games',
+			content_submission: 'Content',
+			treasure_hunt: 'Challenges',
+			irl: 'IRL Events'
+		};
+		return categories[taskType] || 'Other';
+	}
+
+	function groupTasksByCategory(tasks: typeof event.tasks) {
+		const grouped: Record<string, typeof event.tasks> = {};
+		tasks.forEach(task => {
+			const category = getTaskCategory(task.type);
+			if (!grouped[category]) {
+				grouped[category] = [];
+			}
+			grouped[category].push(task);
+		});
+		return grouped;
+	}
+
+	$: groupedTasks = event ? groupTasksByCategory(event.tasks) : {};
 </script>
 
-<div class="event-modal">
-	<div class="modal-overlay" on:click={() => goto('/')} role="button" tabindex="0"></div>
-	
-	<div class="modal-content">
-		{#if loading}
-			<div class="loading">Loading event...</div>
-		{:else if event}
-			<button class="close-btn" on:click={() => goto('/')}>✕</button>
+<div class="event-page">
+	{#if loading}
+		<div class="loading">Loading event...</div>
+	{:else if event}
+		<!-- Banner -->
+		<div class="event-banner">
+			<img src={event.banner_url || '/images/default-banner.jpg'} alt={event.title} />
+			<button class="back-btn" on:click={() => goto('/')}>
+				<img src="/icons/back-button.svg" alt="Back" />
+				Back to Events
+			</button>
+		</div>
 
-			<!-- Banner -->
-			<div class="event-banner">
-				<img src={event.banner_url || '/images/default-banner.jpg'} alt={event.title} />
-			</div>
-
+		<div class="event-container">
 			<!-- Event Header -->
 			<div class="event-header">
 				<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} class="event-logo" />
@@ -279,96 +308,135 @@
 				{:else}
 					<p class="section-hint">Complete all tasks to be eligible for rewards</p>
 				{/if}
-				<div class="tasks-list">
-					{#each event.tasks as task, index}
-						{@const taskEntry = getTaskComponent(task.type)}
-						{@const isCompleted = taskStates[task.id]?.completed}
-						{@const isSubmitting = taskStates[task.id]?.submitting}
-						
-						<div class="task-card" class:completed={isCompleted}>
-							<div class="task-header">
-								<div class="task-number">Task #{index + 1}</div>
-								<div class="task-type-badge">{taskEntry?.label || task.type}</div>
-								{#if isCompleted}
-									<div class="completed-badge">✓ Completed</div>
-								{/if}
-							</div>
+				
+				{#each Object.entries(groupedTasks) as [category, tasks]}
+					<div class="task-category">
+						<h3 class="category-title">{category}</h3>
+						<div class="tasks-list">
+							{#each tasks as task, index}
+								{@const taskEntry = getTaskComponent(task.type)}
+								{@const isCompleted = taskStates[task.id]?.completed}
+								{@const isSubmitting = taskStates[task.id]?.submitting}
+								
+								<div class="task-card" class:completed={isCompleted}>
+									<div class="task-header">
+										<div class="task-info">
+											<div class="task-type-badge">{taskEntry?.label || task.type}</div>
+											{#if isCompleted}
+												<div class="completed-badge">✓ Completed</div>
+											{/if}
+										</div>
+									</div>
 
-							<div class="task-body">
-								{#if taskEntry?.component}
-									<svelte:component 
-										this={taskEntry.component} 
-										config={task.config}
-										readonly={isCompleted || !userId}
-										onComplete={userId ? async () => await verifyAndSubmitTask(task.id, task.type, task.config) : undefined}
-									/>
-								{:else}
-									<p>Task type: {task.type}</p>
-									<pre>{JSON.stringify(task.config, null, 2)}</pre>
-								{/if}
-							</div>
+									<div class="task-body">
+										{#if task.type === 'content_submission'}
+											<!-- Content Submission Task -->
+											<div class="content-submission-task">
+												<p class="task-description">{task.config.description || 'Submit your content'}</p>
+												{#if !isCompleted && userId}
+													<input 
+														type="url" 
+														placeholder="Enter content URL (e.g., YouTube, Twitter, etc.)"
+														class="content-input"
+													/>
+													<button class="submit-btn">Submit</button>
+												{:else if isCompleted}
+													<p class="completed-text">✓ Content submitted successfully</p>
+												{:else}
+													<p class="login-prompt">Log in to submit content</p>
+												{/if}
+											</div>
+										{:else if ['twitter', 'discord', 'telegram'].includes(task.type)}
+											<!-- Social Task -->
+											<div class="social-task">
+												<p class="task-description">{task.config.description || `Complete this ${task.type} task`}</p>
+												{#if task.config.invite_link || task.config.link || task.config.url}
+													<a 
+														href={task.config.invite_link || task.config.link || task.config.url} 
+														target="_blank" 
+														rel="noopener noreferrer"
+														class="social-link"
+													>
+														{#if task.type === 'twitter'}
+															🐦 Follow on Twitter
+														{:else if task.type === 'discord'}
+															💬 Join Discord Server
+														{:else if task.type === 'telegram'}
+															✈️ Join Telegram Channel
+														{/if}
+													</a>
+												{/if}
+												{#if !isCompleted && userId}
+													<button class="confirm-btn" on:click={() => verifyAndSubmitTask(task.id, task.type, task.config)}>
+														{isSubmitting ? 'Verifying...' : 'Confirm Completion'}
+													</button>
+												{:else if isCompleted}
+													<p class="completed-text">✓ Task completed</p>
+												{:else}
+													<p class="login-prompt">Log in to complete this task</p>
+												{/if}
+											</div>
+										{:else if taskEntry?.component}
+											<svelte:component 
+												this={taskEntry.component} 
+												config={task.config}
+												readonly={isCompleted || !userId}
+												onComplete={userId ? async () => await verifyAndSubmitTask(task.id, task.type, task.config) : undefined}
+											/>
+										{:else}
+											<p>Task type: {task.type}</p>
+											<pre>{JSON.stringify(task.config, null, 2)}</pre>
+										{/if}
+									</div>
+								</div>
+							{/each}
 						</div>
-					{/each}
-				</div>
+					</div>
+				{/each}
 			</div>
-		{/if}
-	</div>
+		</div>
+	{/if}
 </div>
 
 <style>
-	.event-modal {
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		z-index: 1000;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 2rem;
+	.event-page {
+		min-height: 100vh;
+		background: var(--background-color);
 	}
 
-	.modal-overlay {
+	.event-container {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 0 2rem 4rem;
+	}
+
+	.back-btn {
 		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: rgba(0, 0, 0, 0.8);
-		backdrop-filter: blur(4px);
-	}
-
-	.modal-content {
-		position: relative;
-		background: #1a1c2d;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: 16px;
-		max-width: 900px;
-		width: 100%;
-		max-height: 90vh;
-		overflow-y: auto;
-		z-index: 1001;
-	}
-
-	.close-btn {
-		position: absolute;
-		top: 1rem;
-		right: 1rem;
-		background: rgba(0, 0, 0, 0.5);
+		top: 2rem;
+		left: 2rem;
+		background: rgba(0, 0, 0, 0.7);
+		backdrop-filter: blur(10px);
 		color: white;
-		border: none;
-		border-radius: 50%;
-		width: 40px;
-		height: 40px;
-		font-size: 1.5rem;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		border-radius: 8px;
+		padding: 0.75rem 1.5rem;
+		font-size: 0.95rem;
 		cursor: pointer;
 		z-index: 10;
-		transition: background 0.2s ease;
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
-	.close-btn:hover {
-		background: rgba(0, 0, 0, 0.8);
+	.back-btn:hover {
+		background: rgba(0, 0, 0, 0.9);
+		transform: translateX(-4px);
+	}
+
+	.back-btn img {
+		width: 16px;
+		height: 16px;
 	}
 
 	.loading {
@@ -378,10 +446,10 @@
 	}
 
 	.event-banner {
+		position: relative;
 		width: 100%;
-		height: 300px;
+		height: 400px;
 		overflow: hidden;
-		border-radius: 16px 16px 0 0;
 	}
 
 	.event-banner img {
@@ -496,6 +564,19 @@
 		color: #5a8dff;
 	}
 
+	.task-category {
+		margin-bottom: 3rem;
+	}
+
+	.category-title {
+		font-size: 1.3rem;
+		font-weight: 700;
+		color: #6fa0ff;
+		margin: 0 0 1.5rem;
+		padding-bottom: 0.5rem;
+		border-bottom: 2px solid rgba(111, 160, 255, 0.3);
+	}
+
 	.tasks-list {
 		display: flex;
 		flex-direction: column;
@@ -518,18 +599,15 @@
 	.task-header {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		justify-content: space-between;
 		margin-bottom: 1rem;
-		flex-wrap: wrap;
 	}
 
-	.task-number {
-		background: rgba(111, 160, 255, 0.2);
-		color: #6fa0ff;
-		padding: 0.35rem 0.85rem;
-		border-radius: 6px;
-		font-weight: 600;
-		font-size: 0.85rem;
+	.task-info {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
 	}
 
 	.task-type-badge {
@@ -619,23 +697,120 @@
 		background: rgba(255, 255, 255, 0.12);
 	}
 
-	@media (max-width: 768px) {
-		.event-modal {
-			padding: 0;
-		}
+	/* Content Submission Task Styles */
+	.content-submission-task,
+	.social-task {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
 
-		.modal-content {
-			max-height: 100vh;
-			border-radius: 0;
+	.task-description {
+		color: rgba(242, 243, 255, 0.9);
+		margin: 0;
+		line-height: 1.6;
+	}
+
+	.content-input {
+		width: 100%;
+		padding: 0.85rem 1rem;
+		background: rgba(255, 255, 255, 0.06);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 8px;
+		color: #f2f3ff;
+		font-size: 0.95rem;
+		transition: border-color 0.2s ease;
+	}
+
+	.content-input:focus {
+		outline: none;
+		border-color: #6fa0ff;
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	.content-input::placeholder {
+		color: rgba(242, 243, 255, 0.4);
+	}
+
+	.submit-btn,
+	.confirm-btn {
+		background: linear-gradient(135deg, #6fa0ff 0%, #5a8dff 100%);
+		color: white;
+		border: none;
+		border-radius: 8px;
+		padding: 0.85rem 1.5rem;
+		font-size: 0.95rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		align-self: flex-start;
+	}
+
+	.submit-btn:hover,
+	.confirm-btn:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 16px rgba(111, 160, 255, 0.4);
+	}
+
+	.social-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		background: rgba(111, 160, 255, 0.15);
+		color: #6fa0ff;
+		text-decoration: none;
+		padding: 0.85rem 1.5rem;
+		border-radius: 8px;
+		font-weight: 600;
+		transition: all 0.2s ease;
+		border: 1px solid rgba(111, 160, 255, 0.3);
+	}
+
+	.social-link:hover {
+		background: rgba(111, 160, 255, 0.25);
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(111, 160, 255, 0.3);
+	}
+
+	.completed-text {
+		color: #28a745;
+		font-weight: 600;
+		margin: 0;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.login-prompt {
+		color: rgba(242, 243, 255, 0.5);
+		font-style: italic;
+		margin: 0;
+	}
+
+	@media (max-width: 768px) {
+		.event-container {
+			padding: 0 1rem 2rem;
 		}
 
 		.event-banner {
-			height: 200px;
+			height: 250px;
+		}
+
+		.back-btn {
+			top: 1rem;
+			left: 1rem;
+			padding: 0.6rem 1rem;
+			font-size: 0.85rem;
 		}
 
 		.event-header {
 			flex-direction: column;
 			align-items: flex-start;
+			padding: 1.5rem;
+		}
+
+		.category-title {
+			font-size: 1.1rem;
 		}
 	}
 </style>
