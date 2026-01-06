@@ -210,45 +210,6 @@
 				</div>
 			</section>
 		{/if}
-		{#if communityEvents.length > 0}
-			<section class="events-section">
-				<div class="section-header">
-					<h2>Community Events</h2>
-					<button class="view-all-btn" on:click={() => goto('/events?filter=community')}>
-						See all ({communityEvents.length})
-					</button>
-				</div>
-				<div class="events-scroll">
-					{#each communityEvents as event (event.id)}
-						<div class="event-card" on:click={() => goto(`/events/${event.id}`)} role="button" tabindex="0">
-							<div class="event-main">
-								<div class="event-logo">
-									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
-								</div>
-								<div class="event-info">
-									<h3 class="event-title">{event.title}</h3>
-									<p class="event-meta">
-										<span class="creator">By Creator</span>
-										<span class="separator">•</span>
-										<span class="time">Starts {new Date(event.start_time).toLocaleDateString()}</span>
-									</p>
-								</div>
-								<div class="reward-icon">
-									<img src={getRewardIcon(event.prize_details.type)} alt="Reward" />
-								</div>
-							</div>
-							<div class="event-tags">
-								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<span class="tag" style="background-color: {getTaskColor(taskType)};">
-										{getTaskLabel(taskType)}
-									</span>
-								{/each}
-							</div>
-						</div>
-					{/each}
-				</div>
-			</section>
-		{/if}
 		
 		{#if endedEvents.length > 0}
 			<section class="events-section">
