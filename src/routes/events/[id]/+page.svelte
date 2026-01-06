@@ -254,15 +254,14 @@
 			<div class="event-header">
 				<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} class="event-logo" />
 				<div class="event-title-section">
-					<h1>{event.title}</h1>
+					<h3>{event.title}</h3>
 					<div class="event-meta">
 						<span>Ends: {formatDate(event.end_time)}</span>
-						<span>•</span>
 						<span>Winners: {event.num_winners || 'All participants'}</span>
-						<span>•</span>
 						<span>Prize: {event.prize_details.type}</span>
 					</div>
 				</div>
+				
 			</div>
 
 			<!-- Description -->
@@ -488,9 +487,10 @@
 
 	.event-meta {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		gap: 0.75rem;
-		font-size: 0.9rem;
+		font-size: 0.7rem;
 		color: rgba(242, 243, 255, 0.6);
 	}
 

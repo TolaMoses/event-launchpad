@@ -161,19 +161,17 @@
 					{#each activeEvents as event (event.id)}
 						<div class="event-card" on:click={() => goto(`/events/${event.id}`)} role="button" tabindex="0">
 							<div class="event-main">
-								<div class="event-logo">
-									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
-								</div>
+								
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
 										<span class="creator">By {getCreatorName(event)}</span>
-										<span class="separator">•</span>
+							
 										<span class="time">{getTimeRemaining(event.end_time)}</span>
 									</p>
 								</div>
-								<div class="reward-icon">
-									<img src={getRewardIcon(event.prize_details.type)} alt="Reward" />
+								<div class="event-logo">
+									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
 								</div>
 							</div>
 							<div class="event-tags">
@@ -201,19 +199,16 @@
 					{#each upcomingEvents as event (event.id)}
 						<div class="event-card" on:click={() => goto(`/events/${event.id}`)} role="button" tabindex="0">
 							<div class="event-main">
-								<div class="event-logo">
-									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
-								</div>
+								
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
 										<span class="creator">By {getCreatorName(event)}</span>
-										<span class="separator">•</span>
 										<span class="time">Starts {new Date(event.start_time).toLocaleDateString()}</span>
 									</p>
 								</div>
-								<div class="reward-icon">
-									<img src={getRewardIcon(event.prize_details.type)} alt="Reward" />
+								<div class="event-logo">
+									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
 								</div>
 							</div>
 							<div class="event-tags">
@@ -241,19 +236,16 @@
 					{#each endedEvents as event (event.id)}
 						<div class="event-card ended" on:click={() => goto(`/events/${event.id}`)} role="button" tabindex="0">
 							<div class="event-main">
-								<div class="event-logo">
-									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
-								</div>
+								
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
 										<span class="creator">By {getCreatorName(event)}</span>
-										<span class="separator">•</span>
 										<span class="time ended-text">Ended</span>
 									</p>
 								</div>
-								<div class="reward-icon">
-									<img src={getRewardIcon(event.prize_details.type)} alt="Reward" />
+								<div class="event-logo">
+									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
 								</div>
 							</div>
 							<div class="event-tags">
@@ -441,6 +433,7 @@
 
 	.event-meta {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		gap: 0.5rem;
 		font-size: 0.9rem;
@@ -481,11 +474,9 @@
 	.tag {
 		padding: 0.35rem 0.75rem;
 		border-radius: 6px;
-		font-size: 0.8rem;
+		font-size: 0.6rem;
 		font-weight: 600;
 		color: white;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
 	}
 
 	.empty-state {
