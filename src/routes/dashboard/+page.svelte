@@ -183,11 +183,11 @@
 							</div>
 							<div class="event-actions">
 								{#if getSetupProgress(event) < 100}
-									<button class="primary-btn small" on:click|stop propagation={() => goto(`/projects/setup-event/${event.id}`)}>
+									<button class="primary-btn small" on:click|stopPropagation={() => goto(`/projects/setup-event/${event.id}`)}>
 										Continue Setup
 									</button>
 								{:else}
-									<button class="secondary-btn small" on:click|stop propagation={() => viewEventStats(event.id)}>
+									<button class="secondary-btn small" on:click|stopPropagation={() => viewEventStats(event.id)}>
 										View Stats
 									</button>
 								{/if}
