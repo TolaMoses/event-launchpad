@@ -133,7 +133,7 @@
     }
   }
 
-  let eventType: "quick_event" | "community" | "" = "";
+  let eventType: "quick_event" | "community" | "" = "quick_event"; // Default to quick_event
   let eventTitle = "";
   let eventDescription = "";
   let startDate = "";
@@ -198,22 +198,17 @@
     rewards: "Rewards"
   };
 
-  let steps: Step[] = ["type"];
+  let steps: Step[] = ["details", "tasks", "rewards"];
   let currentStep = 0;
-  let currentStepKey: Step = "type";
+  let currentStepKey: Step = "details";
   let isLastStep = true;
   let stepErrors: string[] = [];
   let showDiscordReturnNotice = false;
   let cleanupFocusListener: (() => void) | null = null;
 
   function buildStepsForType(type: typeof eventType): Step[] {
-    if (type === "quick_event") {
-      return ["type", "details", "tasks", "rewards"];
-    }
-    if (type === "community") {
-      return ["type", "details", "tasks", "rewards"];
-    }
-    return ["type"];
+    // Always use the same steps now
+    return ["details", "tasks", "rewards"];
   }
 
   function arraysEqual<T>(a: T[], b: T[]) {
@@ -237,11 +232,7 @@
   function validateStep(step: Step): string[] {
     const errors: string[] = [];
 
-    if (step === "type") {
-      if (!eventType) {
-        errors.push("Select an event type to continue.");
-      }
-    } else if (step === "details") {
+    if (step === "details") {
       updateDateTimes();
 
       if (!eventTitle.trim()) {
@@ -1264,7 +1255,7 @@
   function isFormValid() {
     const errors: string[] = [];
 
-    if (!eventType) errors.push("Select an event type (Quick Event or Community)");
+    // eventType is now always set to "quick_event" by default
     if (!eventTitle.trim()) errors.push("Provide an event title");
     if (!eventDescription.trim()) errors.push("Provide an event description");
     if (!eventStartISO) errors.push("Set a start date and time");
@@ -1561,35 +1552,6 @@
         <button type="button" class="ghost-btn" on:click={dismissDiscordReturnNotice}>
           Dismiss
         </button>
-      </div>
-    {/if}
-
-
-    {#if currentStepKey === "type"}
-      <div class="form-block event-type-selector">
-        <div class="form-block-header">
-          <h2 class="section-title">Select Event Type</h2>
-          <p>{currentStep + 1}/4</p>
-        </div>
-        <p class="section-description">To create a one-off event, select "Quick Event".<br>To create recurring events, for ongoing community engagement, select "Community".</p>
-        
-        <div class="event-type-options">
-          <label class="event-type-card quick-event-card" class:selected={eventType === "quick_event"}>
-            <input type="radio" name="event-type" value="quick_event" bind:group={eventType} />
-            <div class="flex space-between gap-2">
-              <h3>Quick Event</h3>
-              <div class="type-icon"><img class="quick-event-icon" src="{ASSETS.icons.ui.quickEvent}" alt="quick event"></div>
-            </div>
-          </label>
-
-          <label class="event-type-card community-event-card" class:selected={eventType === "community"}>
-            <input type="radio" name="event-type" value="community" bind:group={eventType} />
-            <div class="flex space-between gap-2">
-              <h3>Community</h3>
-              <div class="type-icon"><img class="community-icon" src="{ASSETS.icons.ui.community}" alt="community"></div>
-            </div>
-          </label>
-        </div>
       </div>
     {/if}
 
@@ -1983,9 +1945,9 @@
         </button>
       {/if}
 
-      {#if isLastStep && currentStepKey !== "type"}
-        <button type="submit" class="btn btn-submit" disabled={isSaving || !canSubmitForm || !eventType}>
-          {isSaving ? "Saving..." : eventType === "community" ? "Submit" : "Submit"}
+      {#if isLastStep}
+        <button type="submit" class="btn btn-submit" disabled={isSaving || !canSubmitForm}>
+          {isSaving ? "Saving..." : "Submit Event"}
         </button>
       {:else}
         <span></span>
@@ -1993,7 +1955,6 @@
           type="button"
           class="btn btn-next"
           on:click={handleNextStep}
-          disabled={currentStepKey === "type" && !eventType}
         >
           Next
           <img src={ASSETS.icons.ui.nextArrow} alt="Next" />

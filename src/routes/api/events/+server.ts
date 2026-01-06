@@ -22,8 +22,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 
   const eventType = ensureString(body.event_type, 'event_type');
-  if (eventType !== 'quick_event' && eventType !== 'community') {
-    throw error(400, 'event_type must be either "quick_event" or "community"');
+  if (eventType !== 'quick_event') {
+    throw error(400, 'event_type must be "quick_event"');
   }
 
   const title = ensureString(body.title, 'title');
@@ -50,27 +50,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 
   const rewards = Array.isArray(body.rewards) ? body.rewards : [];
-  // Rewards are required for quick events, optional for communities
-  if (eventType === 'quick_event' && rewards.length === 0) {
-    throw error(400, 'At least one reward is required for quick event');
+  // Rewards are required
+  if (rewards.length === 0) {
+    throw error(400, 'At least one reward is required');
   }
 
   const tasks = Array.isArray(body.tasks) ? body.tasks : [];
-  // Tasks are required for quick events, optional for communities
-  if (eventType === 'quick_event' && tasks.length === 0) {
-    throw error(400, 'At least one task is required for quick event');
+  // Tasks are required
+  if (tasks.length === 0) {
+    throw error(400, 'At least one task is required');
   }
 
-  // Calculate setup progress for community events
-  let setupProgress = null;
-  if (eventType === 'community') {
-    const tasksProgress = tasks.length > 0 ? 100 : 0;
-    const rewardsProgress = rewards.length > 0 ? 100 : 0;
-    setupProgress = { tasks: tasksProgress, rewards: rewardsProgress };
-  }
-
-  // Quick events go to 'review' status, community events stay as 'draft'
-  const initialStatus = eventType === 'quick_event' ? 'review' : 'draft';
+  // All events go to 'review' status
+  const initialStatus = 'review';
 
   const insertPayload = {
     event_type: eventType,
@@ -87,7 +79,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     prize_details: rewards.length > 0 ? rewards[0] : null, // Legacy single reward for backwards compatibility
     reward_types: rewards, // New multi-reward system
     tasks: tasks,
-    setup_progress: setupProgress,
+    setup_progress: null, // No longer needed - all events are complete on creation
     created_by: locals.user.id,
     status: initialStatus
   };

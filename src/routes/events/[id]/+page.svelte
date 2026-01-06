@@ -55,8 +55,9 @@
 
 		event = eventData;
 
-		// Check if user has joined
+		// Load task completion states for logged-in users
 		if (userId) {
+			// Check if user has already joined (by completing tasks)
 			const { data: participantData } = await supabase
 				.from('event_participants')
 				.select('id')
@@ -67,21 +68,19 @@
 			hasJoined = !!participantData;
 
 			// Load task completion states
-			if (hasJoined) {
-				const { data: submissions } = await supabase
-					.from('task_submissions')
-					.select('task_id, verified')
-					.eq('user_id', userId)
-					.in('task_id', event.tasks.map(t => t.id));
+			const { data: submissions } = await supabase
+				.from('task_submissions')
+				.select('task_id, verified')
+				.eq('user_id', userId)
+				.in('task_id', event.tasks.map(t => t.id));
 
-				if (submissions) {
-					submissions.forEach(sub => {
-						taskStates[sub.task_id] = {
-							completed: sub.verified,
-							submitting: false
-						};
-					});
-				}
+			if (submissions) {
+				submissions.forEach(sub => {
+					taskStates[sub.task_id] = {
+						completed: sub.verified,
+						submitting: false
+					};
+				});
 			}
 		}
 
@@ -163,6 +162,20 @@
 			throw new Error('Failed to save submission');
 		}
 
+		// Add user to event participants if this is their first task completion
+		if (!hasJoined) {
+			const { error: participantError } = await supabase
+				.from('event_participants')
+				.insert({
+					event_id: event.id,
+					user_id: userId
+				});
+
+			if (!participantError) {
+				hasJoined = true;
+			}
+		}
+
 		// Update local state
 		taskStates[taskId] = { completed: true, submitting: false };
 	}
@@ -223,19 +236,6 @@
 				</div>
 			</div>
 
-			<!-- Join Button -->
-			{#if userId && !hasJoined}
-				<div class="join-section">
-					<button class="primary-btn large" on:click={joinEvent}>
-						Join Event
-					</button>
-				</div>
-			{:else if !userId}
-				<div class="join-section">
-					<p class="info-text">Please connect your wallet to join this event</p>
-				</div>
-			{/if}
-
 			<!-- Description -->
 			<div class="section">
 				<h2>Description</h2>
@@ -272,49 +272,45 @@
 			{/if}
 
 			<!-- Tasks -->
-			{#if hasJoined}
-				<div class="section">
-					<h2>Tasks</h2>
+			<div class="section">
+				<h2>Tasks</h2>
+				{#if !userId}
+					<p class="section-hint">Please log in to complete tasks and earn rewards</p>
+				{:else}
 					<p class="section-hint">Complete all tasks to be eligible for rewards</p>
-					<div class="tasks-list">
-						{#each event.tasks as task, index}
-							{@const taskEntry = getTaskComponent(task.type)}
-							{@const isCompleted = taskStates[task.id]?.completed}
-							{@const isSubmitting = taskStates[task.id]?.submitting}
-							
-							<div class="task-card" class:completed={isCompleted}>
-								<div class="task-header">
-									<div class="task-number">Task #{index + 1}</div>
-									<div class="task-type-badge">{taskEntry?.label || task.type}</div>
-									{#if isCompleted}
-										<div class="completed-badge">✓ Completed</div>
-									{/if}
-								</div>
-
-								<div class="task-body">
-									{#if taskEntry?.component}
-										<svelte:component 
-											this={taskEntry.component} 
-											config={task.config}
-											readonly={isCompleted}
-											onComplete={async () => await verifyAndSubmitTask(task.id, task.type, task.config)}
-										/>
-									{:else}
-										<p>Task type: {task.type}</p>
-										<pre>{JSON.stringify(task.config, null, 2)}</pre>
-									{/if}
-								</div>
+				{/if}
+				<div class="tasks-list">
+					{#each event.tasks as task, index}
+						{@const taskEntry = getTaskComponent(task.type)}
+						{@const isCompleted = taskStates[task.id]?.completed}
+						{@const isSubmitting = taskStates[task.id]?.submitting}
+						
+						<div class="task-card" class:completed={isCompleted}>
+							<div class="task-header">
+								<div class="task-number">Task #{index + 1}</div>
+								<div class="task-type-badge">{taskEntry?.label || task.type}</div>
+								{#if isCompleted}
+									<div class="completed-badge">✓ Completed</div>
+								{/if}
 							</div>
-						{/each}
-					</div>
+
+							<div class="task-body">
+								{#if taskEntry?.component}
+									<svelte:component 
+										this={taskEntry.component} 
+										config={task.config}
+										readonly={isCompleted || !userId}
+										onComplete={userId ? async () => await verifyAndSubmitTask(task.id, task.type, task.config) : undefined}
+									/>
+								{:else}
+									<p>Task type: {task.type}</p>
+									<pre>{JSON.stringify(task.config, null, 2)}</pre>
+								{/if}
+							</div>
+						</div>
+					{/each}
 				</div>
-			{:else if userId}
-				<div class="section">
-					<div class="locked-tasks">
-						<p>🔒 Join the event to see and complete tasks</p>
-					</div>
-				</div>
-			{/if}
+			</div>
 		{/if}
 	</div>
 </div>

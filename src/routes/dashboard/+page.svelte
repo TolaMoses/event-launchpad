@@ -5,7 +5,7 @@
 
 	type Event = {
 		id: string;
-		event_type: 'quick_event' | 'community';
+		event_type: 'quick_event';
 		title: string;
 		description: string;
 		logo_url: string | null;
@@ -117,10 +117,9 @@
 		return badges[status] || { text: status, color: '#6c757d' };
 	}
 
+	// All events are complete on creation now
 	function getSetupProgress(event: Event): number {
-		if (event.event_type !== 'community' || !event.setup_progress) return 100;
-		const { tasks, rewards } = event.setup_progress;
-		return Math.round((tasks + rewards) / 2);
+		return 100;
 	}
 
 	function viewEventStats(eventId: string) {
@@ -157,8 +156,8 @@
 								<div class="event-header-info">
 									<h3>{event.title}</h3>
 									<div class="badges">
-										<span class="type-badge" class:community={event.event_type === 'community'}>
-											{event.event_type === 'community' ? '🏘️ Community' : '⚡ Quick Event'}
+										<span class="type-badge">
+											⚡ Event
 										</span>
 										<span class="status-badge" style="background-color: {getStatusBadge(event.status).color};">
 											{getStatusBadge(event.status).text}
@@ -167,52 +166,28 @@
 								</div>
 							</div>
 							<div class="event-meta">
-								{#if event.event_type === 'community' && getSetupProgress(event) < 100}
-									<div class="setup-progress-section">
-										<div class="progress-header">
-											<span class="progress-label">Setup Progress</span>
-											<span class="progress-percentage">{getSetupProgress(event)}%</span>
-										</div>
-										<div class="progress-bar-container">
-											<div class="progress-bar-fill" style="width: {getSetupProgress(event)}%"></div>
-										</div>
-										<div class="setup-items">
-											<div class="setup-item" class:complete={event.setup_progress?.tasks === 100}>
-												{event.setup_progress?.tasks === 100 ? '✓' : '○'} Add Event Tasks
-											</div>
-											<div class="setup-item" class:complete={event.setup_progress?.rewards === 100}>
-												{event.setup_progress?.rewards === 100 ? '✓' : '○'} Reward Settings
-											</div>
-										</div>
+								<div class="event-stats">
+									<div class="stat">
+										<span class="stat-label">Participants</span>
+										<span class="stat-value">{event.participant_count || 0}</span>
 									</div>
-								{/if}
-								<div class="meta-item">
-									<span class="meta-label">Prize:</span>
-									<div class="meta-value">
-										{#if event.prize_details}
-											<img src={getRewardIcon(event.prize_details.type)} alt="Reward" class="reward-icon-small" />
-											<span>{event.prize_details.type}</span>
-										{:else}
-											<span class="not-set">Not set</span>
-										{/if}
+									<div class="stat">
+										<span class="stat-label">Tasks</span>
+										<span class="stat-value">{event.tasks?.length || 0}</span>
 									</div>
-								</div>
-								<div class="meta-item">
-									<span class="meta-label">Time:</span>
-									<span class="meta-value">{getTimeRemaining(event.end_time)}</span>
-								</div>
-								<div class="meta-item">
-									<span class="meta-label">Winners:</span>
-									<span class="meta-value">{event.num_winners || 'All'}</span>
+									<div class="stat">
+										<span class="stat-label">Ends</span>
+										<span class="stat-value">{new Date(event.end_time).toLocaleDateString()}</span>
+									</div>
 								</div>
 							</div>
 							<div class="event-actions">
-								{#if event.event_type === 'community' && getSetupProgress(event) < 100}
-									<button class="primary-btn small" on:click|stopPropagation={() => goto(`/projects/setup-event/${event.id}`)}>
+								{#if getSetupProgress(event) < 100}
+									<button class="primary-btn small" on:click|stop propagation={() => goto(`/projects/setup-event/${event.id}`)}>
 										Continue Setup
 									</button>
 								{:else}
-									<button class="secondary-btn small" on:click|stopPropagation={() => viewEventStats(event.id)}>
+									<button class="secondary-btn small" on:click|stop propagation={() => viewEventStats(event.id)}>
 										View Stats
 									</button>
 								{/if}

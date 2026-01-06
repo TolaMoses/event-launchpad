@@ -2,7 +2,7 @@
 
 <script lang="ts">
   import "../app.css";
-  import { invalidateAll } from "$app/navigation";
+  import { invalidateAll, goto } from "$app/navigation";
   import { onMount } from "svelte";
   import { derived, get, writable } from "svelte/store";
   import {
@@ -190,6 +190,15 @@
     await invalidateAll();
   }
 
+  function handleCreateEventClick(event: Event) {
+    event.preventDefault();
+    if (!isLoggedIn) {
+      alert('Please log in first to create an event');
+      return;
+    }
+    goto('/projects/create-event');
+  }
+
   function applyChainConfig(id: number) {
     const config = CONTRACTS[id];
     if (!config) return;
@@ -286,9 +295,7 @@
 			</div>
 		</div>
 		<div class="primary-links">
-			<a class="launch-link" href="/projects/create-event">
-				<button class="btn btn-submit">Create Event</button>
-			</a>
+			<button class="btn btn-submit" on:click={handleCreateEventClick}>Create Event</button>
 			<a class="home-link nav-link" href="/">Home</a>
 			{#if isLoggedIn}
 				<a class="dashboard-link nav-link" href="/dashboard">Dashboard</a>
@@ -347,7 +354,7 @@
 				{#if isLoggedIn}
 					<a class="mobile-menu-link" on:click={closeMobileMenu} href="/dashboard">Dashboard</a>
 				{/if}
-				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/projects/create-event">Create Event</a>
+				<button class="mobile-menu-link" on:click={(e) => { closeMobileMenu(); handleCreateEventClick(e); }}>Create Event</button>
 				<div class="mobile-socials top-nav-socials">
 					<img src={xLogo} alt="Twitter X logo" />
 					<img src={discordLogo} alt="Discord logo" />
