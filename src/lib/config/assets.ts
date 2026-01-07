@@ -92,7 +92,20 @@ export const ASSETS = {
 			nft: '/icons/rewards/nft.svg',
 			gift: '/icons/rewards/gift.svg',
 			voucher: '/icons/rewards/voucher.svg',
-			points: '/icons/rewards/points.svg'
+			points: '/icons/rewards/points.svg',
+			raffle: '/icons/rewards/raffle.svg'
+		},
+		// Tasks
+		tasks: {
+			twitter: '/icons/tasks/twitter.svg',
+			discord: '/icons/tasks/discord.svg',
+			telegram: '/icons/tasks/telegram.svg',
+			quiz: '/icons/tasks/quiz.svg',
+			game: '/icons/tasks/game.svg',
+			puzzle: '/icons/tasks/puzzle.svg',
+			content_submission: '/icons/tasks/content-submission.svg',
+			treasure_hunt: '/icons/tasks/treasure-hunt.svg',
+			irl: '/icons/tasks/irl.svg'
 		},
 		// UI
 		ui: {

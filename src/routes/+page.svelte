@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { supabase } from '$lib/supabaseClient';
 	import { goto } from '$app/navigation';
+	import { ASSETS } from "$lib/config/assets";
 
 	type Event = {
 		id: string;
@@ -154,7 +155,7 @@
 				<div class="section-header">
 					<h2>Active Events</h2>
 					<button class="view-all-btn" on:click={() => goto('/events?filter=active')}>
-						See all ({activeEvents.length})
+						Show all ({activeEvents.length})
 					</button>
 				</div>
 				<div class="events-scroll">
@@ -165,7 +166,7 @@
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
-										<span class="creator">By {getCreatorName(event)}</span>
+										<span class="creator">by {getCreatorName(event)}</span>
 							
 										<span class="time">{getTimeRemaining(event.end_time)}</span>
 									</p>
@@ -174,11 +175,10 @@
 									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
 								</div>
 							</div>
-							<div class="event-tags">
+							<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<span class="tag" style="background-color: {getTaskColor(taskType)};">
-										{getTaskLabel(taskType)}
-									</span>
+									<img src={ASSETS.icons.tasks[taskType]} alt={taskType} class="task-icon"/>
+									
 								{/each}
 							</div>
 						</div>
@@ -190,9 +190,9 @@
 		{#if upcomingEvents.length > 0}
 			<section class="events-section">
 				<div class="section-header">
-					<h2>📅 Upcoming Events</h2>
+					<h2>Upcoming Events</h2>
 					<button class="view-all-btn" on:click={() => goto('/events?filter=upcoming')}>
-						See all ({upcomingEvents.length})
+						Show all ({upcomingEvents.length})
 					</button>
 				</div>
 				<div class="events-scroll">
@@ -203,7 +203,7 @@
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
-										<span class="creator">By {getCreatorName(event)}</span>
+										<span class="creator">by {getCreatorName(event)}</span>
 										<span class="time">Starts {new Date(event.start_time).toLocaleDateString()}</span>
 									</p>
 								</div>
@@ -211,11 +211,9 @@
 									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
 								</div>
 							</div>
-							<div class="event-tags">
+							<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<span class="tag" style="background-color: {getTaskColor(taskType)};">
-										{getTaskLabel(taskType)}
-									</span>
+									<img src={ASSETS.icons.tasks[taskType]} alt={taskType} class="task-icon"/>
 								{/each}
 							</div>
 						</div>
@@ -227,9 +225,9 @@
 		{#if endedEvents.length > 0}
 			<section class="events-section">
 				<div class="section-header">
-					<h2>✅ Past Events</h2>
+					<h2>Past Events</h2>
 					<button class="view-all-btn" on:click={() => goto('/events?filter=ended')}>
-						See all ({endedEvents.length})
+						Show all ({endedEvents.length})
 					</button>
 				</div>
 				<div class="events-scroll">
@@ -240,7 +238,7 @@
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
-										<span class="creator">By {getCreatorName(event)}</span>
+										<span class="creator">by {getCreatorName(event)}</span>
 										<span class="time ended-text">Ended</span>
 									</p>
 								</div>
@@ -248,11 +246,9 @@
 									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
 								</div>
 							</div>
-							<div class="event-tags">
+							<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<span class="tag" style="background-color: {getTaskColor(taskType)};">
-										{getTaskLabel(taskType)}
-									</span>
+									<img src={ASSETS.icons.tasks[taskType]} alt={taskType} class="task-icon"/>
 								{/each}
 							</div>
 						</div>
@@ -324,8 +320,8 @@
 	}
 
 	.section-header h2 {
-		font-size: 1.8rem;
-		font-weight: 700;
+		font-size: 1rem;
+		font-weight: 600;
 		color: #f2f3ff;
 		margin: 0;
 	}
@@ -333,15 +329,11 @@
 	.view-all-btn {
 		background: transparent;
 		border: none;
-		color: #6fa0ff;
 		font-size: 1rem;
-		font-weight: 600;
 		cursor: pointer;
-		transition: color 0.2s ease;
-	}
-
-	.view-all-btn:hover {
-		color: #5a8dff;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+		text-decoration-color: var(--accent-background);
 	}
 
 	.events-scroll {
@@ -434,9 +426,8 @@
 	.event-meta {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
 		gap: 0.5rem;
-		font-size: 0.9rem;
+		font-size: 0.7rem;
 		color: rgba(242, 243, 255, 0.6);
 		margin: 0;
 	}
@@ -465,18 +456,22 @@
 		object-fit: contain;
 	}
 
-	.event-tags {
+	.event-task-icons {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
+		justify-content: center;
+		align-items: center;
 	}
 
-	.tag {
-		padding: 0.35rem 0.75rem;
-		border-radius: 6px;
-		font-size: 0.6rem;
-		font-weight: 600;
-		color: white;
+	.task-icon {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		object-fit: cover;
+		margin-left: -15px;
+	}
+
+	.task-icon:first-child {
+		margin-left: 0;
 	}
 
 	.empty-state {
