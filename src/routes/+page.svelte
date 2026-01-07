@@ -177,7 +177,7 @@
 							</div>
 							<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<img src={ASSETS.icons.tasks[taskType]} alt={taskType} class="task-icon"/>
+									<img src={ASSETS.icons.tasks.tasks[taskType]} alt={taskType} class="task-icon"/>
 									
 								{/each}
 							</div>
@@ -213,7 +213,7 @@
 							</div>
 							<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<img src={ASSETS.icons.tasks[taskType]} alt={taskType} class="task-icon"/>
+									<img src={ASSETS.icons.tasks.tasks[taskType]} alt={taskType} class="task-icon"/>
 								{/each}
 							</div>
 						</div>
@@ -248,7 +248,7 @@
 							</div>
 							<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<img src={ASSETS.icons.tasks[taskType]} alt={taskType} class="task-icon"/>
+									<img src={ASSETS.icons.tasks.tasks[taskType]} alt={taskType} class="task-icon"/>
 								{/each}
 							</div>
 						</div>
