@@ -13,7 +13,7 @@
   import type { TaskInstance, TaskRegistryEntry, TaskTypeKey } from "$lib/tasks/TaskTypes";
   import { browser } from "$app/environment";
   import RewardBuilder from "$lib/components/RewardBuilder.svelte";
-    import { ASSETS } from "$lib/config/assets";
+  import { ASSETS } from "$lib/config/assets";
 
   type NftInput = {
     id: string;

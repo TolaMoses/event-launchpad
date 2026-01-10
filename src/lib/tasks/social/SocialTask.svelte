@@ -959,7 +959,7 @@
   }
 
   .setup-step.completed .step-number {
-    background: rgba(40, 167, 69, 0.2);
+    background: rgba(27, 197, 66, 0.2);
     color: #28a745;
   }
 

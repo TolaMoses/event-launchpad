@@ -98,9 +98,9 @@
 
 	function getTaskLabel(taskType: string): string {
 		const labels: Record<string, string> = {
-			twitter: 'Social',
-			discord: 'Social',
-			telegram: 'Social',
+			twitter: 'Twitter',
+			discord: 'Discord',
+			telegram: 'Telegram',
 			quiz: 'Quiz',
 			game: 'Game',
 			puzzle: 'Puzzle',
@@ -110,18 +110,18 @@
 		return labels[taskType] || taskType;
 	}
 
-	function getTaskColor(taskType: string): string {
-		const colors: Record<string, string> = {
-			twitter: '#1DA1F2',
-			discord: '#5865F2',
-			telegram: '#0088cc',
-			quiz: '#FF6B6B',
-			game: '#4ECDC4',
-			puzzle: '#FFE66D',
-			treasure_hunt: '#FF8C42',
-			irl: '#A8E6CF'
+	function getTaskIcon(taskType: string): string {
+		const icons: Record<string, string> = {
+			twitter: '/icons/tasks/twitter.svg',
+			discord: '/icons/tasks/discord.svg',
+			telegram: '/icons/tasks/telegram.svg',
+			quiz: '/icons/tasks/quiz.svg',
+			game: '/icons/tasks/game.svg',
+			puzzle: '/icons/tasks/puzzle.svg',
+			treasure_hunt: '/icons/tasks/treasure-hunt.svg',
+			irl: '/icons/tasks/irl.svg'
 		};
-		return colors[taskType] || '#6c757d';
+		return icons[taskType] || '/icons/tasks/unknown.svg';
 	}
 
 	function getUniqueTaskTypes(tasks: Array<{ type: string }>): string[] {
@@ -177,7 +177,7 @@
 							</div>
 							<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<img src={ASSETS.icons.tasks.tasks[taskType]} alt={taskType} class="task-icon"/>
+									<img src={getTaskIcon(taskType)} alt={taskType} class="task-icon"/>
 									
 								{/each}
 							</div>
@@ -213,7 +213,7 @@
 							</div>
 							<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<img src={ASSETS.icons.tasks.tasks[taskType]} alt={taskType} class="task-icon"/>
+									<img src={getTaskIcon(taskType)} alt={taskType} class="task-icon"/>
 								{/each}
 							</div>
 						</div>
@@ -248,7 +248,7 @@
 							</div>
 							<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<img src={ASSETS.icons.tasks.tasks[taskType]} alt={taskType} class="task-icon"/>
+									<img src={getTaskIcon(taskType)} alt={taskType} class="task-icon"/>
 								{/each}
 							</div>
 						</div>
@@ -332,7 +332,7 @@
 		font-size: 1rem;
 		cursor: pointer;
 		text-decoration: underline;
-		text-underline-offset: 2px;
+		text-underline-offset: 6px;
 		text-decoration-color: var(--accent-background);
 	}
 
@@ -511,15 +511,15 @@
 
 	@media (max-width: 768px) {
 		.hero-title {
-			font-size: 1.8rem;
+			font-size: 1.2rem;
 		}
 
 		.event-card {
-			min-width: 320px;
+			min-width: 240px;
 		}
 
 		.section-header h2 {
-			font-size: 1.4rem;
+			font-size: 1rem;
 		}
 	}
 </style>
