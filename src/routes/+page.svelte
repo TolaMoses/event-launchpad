@@ -112,17 +112,17 @@
 
 	function getTaskIcon(taskType: string): string {
 		const icons: Record<string, string> = {
-			twitter: '/icons/tasks/twitter.svg',
-			discord: '/icons/tasks/discord.svg',
-			telegram: '/icons/tasks/telegram.svg',
-			quiz: '/icons/tasks/quiz.svg',
-			game: '/icons/tasks/game.svg',
-			puzzle: '/icons/tasks/puzzle.svg',
-			content_submission: '/icons/tasks/content-submission.svg',
-			treasure_hunt: '/icons/tasks/treasure-hunt.svg',
-			irl: '/icons/tasks/irl.svg'
+			twitter: ASSETS.icons.tasks.twitter,
+			discord: ASSETS.icons.tasks.discord,
+			telegram: ASSETS.icons.tasks.telegram,
+			quiz: ASSETS.icons.tasks.quiz,
+			game: ASSETS.icons.tasks.game,
+			puzzle: ASSETS.icons.tasks.puzzle,
+			content_submission: ASSETS.icons.tasks.content_submission,
+			treasure_hunt: ASSETS.icons.tasks.treasure_hunt,
+			irl: ASSETS.icons.tasks.irl
 		};
-		return icons[taskType] || '/icons/tasks/unknown.svg';
+		return icons[taskType] || ASSETS.icons.tasks.placeholder;
 	}
 
 	function getUniqueTaskTypes(tasks: Array<{ type: string }>): string[] {

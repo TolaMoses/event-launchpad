@@ -105,7 +105,8 @@ export const ASSETS = {
 			puzzle: '/icons/tasks/puzzle.svg',
 			content_submission: '/icons/tasks/content-submission.svg',	
 			treasure_hunt: '/icons/tasks/treasure-hunt.svg',
-			irl: '/icons/tasks/irl.svg'
+			irl: '/icons/tasks/irl.svg',
+			placeholder: '/icons/tasks/placeholder.svg'
 		},
 		// UI
 		ui: {
