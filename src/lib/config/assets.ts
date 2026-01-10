@@ -103,7 +103,7 @@ export const ASSETS = {
 			quiz: '/icons/tasks/quiz.svg',
 			game: '/icons/tasks/game.svg',
 			puzzle: '/icons/tasks/puzzle.svg',
-			content_submission: '/icons/tasks/content-submission.svg',
+			content_submission: '/icons/tasks/content-submission.svg',	
 			treasure_hunt: '/icons/tasks/treasure-hunt.svg',
 			irl: '/icons/tasks/irl.svg'
 		},
