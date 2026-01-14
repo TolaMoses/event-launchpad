@@ -73,7 +73,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     prize_details: rewards.length > 0 ? rewards[0] : null, // Legacy single reward for backwards compatibility
     reward_types: rewards, // New multi-reward system
     tasks: tasks,
-    setup_progress: null, // No longer needed - all events are complete on creation
     created_by: locals.user.id,
     status: initialStatus
   };
