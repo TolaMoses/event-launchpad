@@ -1470,7 +1470,6 @@
       }
 
       const payload = {
-        event_type: eventType,
         title: eventTitle.trim(),
         description: eventDescription.trim(),
         video_url: videoUrl.trim() || null,
