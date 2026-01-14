@@ -21,11 +21,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     throw error(400, 'Invalid JSON payload');
   }
 
-  const eventType = ensureString(body.event_type, 'event_type');
-  if (eventType !== 'quick_event') {
-    throw error(400, 'event_type must be "quick_event"');
-  }
-
   const title = ensureString(body.title, 'title');
   const description = ensureString(body.description, 'description');
   const videoUrl = typeof body.video_url === 'string' ? body.video_url.trim() : null;
@@ -65,7 +60,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const initialStatus = 'review';
 
   const insertPayload = {
-    event_type: eventType,
     title,
     description,
     video_url: videoUrl,
