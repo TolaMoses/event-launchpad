@@ -97,16 +97,17 @@ export const ASSETS = {
 		},
 		// Tasks
 		tasks: {
-			twitter: '/icons/tasks/twitter.svg',
-			discord: '/icons/tasks/discord.svg',
-			telegram: '/icons/tasks/telegram.svg',
-			quiz: '/icons/tasks/quiz.svg',
-			game: '/icons/tasks/game.svg',
-			puzzle: '/icons/tasks/puzzle.svg',
-			content_submission: '/icons/tasks/content-submission.svg',	
-			treasure_hunt: '/icons/tasks/treasure-hunt.svg',
-			irl: '/icons/tasks/irl.svg',
-			placeholder: '/icons/tasks/placeholder.svg'
+			twitter: '/icons/x-logo.svg',
+			discord: '/icons/discord-logo.svg',
+			telegram: '/icons/telegram-logo.svg',
+			quiz: '/icons/quiz.svg',
+			game: '/icons/game.svg',
+			puzzle: '/icons/quiz.svg',
+			content_submission: '/icons/content-submission.svg',	
+			treasure_hunt: '/icons/treasure-hunt.svg',
+			irl: '/icons/irl.svg',
+			scoreline: '/icons/scoreline.svg',
+			placeholder: '/icons/event-logo.svg'
 		},
 		// UI
 		ui: {
@@ -159,7 +160,7 @@ export function getAllAvatars(): string[] {
  * Get avatars by category
  */
 export function getAvatarsByCategory(category: keyof typeof ASSETS.avatars.categories): string[] {
-	return ASSETS.avatars.categories[category];
+	return [...ASSETS.avatars.categories[category]];
 }
 
 /**

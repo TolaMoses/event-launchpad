@@ -2,7 +2,7 @@ export interface ScorelinePredictionConfig {
   sportType: 'football' | 'tennis' | 'basketball' | 'other';
   homeTeam: string; // or Player 1
   awayTeam: string; // or Player 2
-  matchDate?: string;
+  matchDate: string;
   matchTime?: string;
   description?: string;
 }
@@ -29,6 +29,10 @@ export function validateScorelinePredictionConfig(config: ScorelinePredictionCon
 
   if (!config.awayTeam.trim()) {
     errors.push(config.sportType === 'tennis' ? "Enter Player 2 name" : "Enter away team name");
+  }
+
+  if (!config.matchDate || !config.matchDate.trim()) {
+    errors.push("Enter match date");
   }
 
   return errors;

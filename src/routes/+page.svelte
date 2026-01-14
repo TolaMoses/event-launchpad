@@ -105,6 +105,7 @@
 			game: 'Game',
 			puzzle: 'Puzzle',
 			treasure_hunt: 'Treasure Hunt',
+			scoreline: 'Scoreline',
 			irl: 'IRL'
 		};
 		return labels[taskType] || taskType;
@@ -113,13 +114,18 @@
 	function getTaskIcon(taskType: string): string {
 		const icons: Record<string, string> = {
 			twitter: ASSETS.icons.tasks.twitter,
+			social: ASSETS.icons.tasks.twitter,
 			discord: ASSETS.icons.tasks.discord,
 			telegram: ASSETS.icons.tasks.telegram,
 			quiz: ASSETS.icons.tasks.quiz,
 			game: ASSETS.icons.tasks.game,
 			puzzle: ASSETS.icons.tasks.puzzle,
+			content: ASSETS.icons.tasks.content_submission,
 			content_submission: ASSETS.icons.tasks.content_submission,
 			treasure_hunt: ASSETS.icons.tasks.treasure_hunt,
+			participation: ASSETS.icons.tasks.irl,
+			referral: ASSETS.icons.tasks.irl,
+			scoreline: ASSETS.icons.tasks.scoreline,
 			irl: ASSETS.icons.tasks.irl
 		};
 		return icons[taskType] || ASSETS.icons.tasks.placeholder;

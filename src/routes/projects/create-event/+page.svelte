@@ -1224,9 +1224,21 @@
   }
 
   async function uploadAsset(file: File, kind: UploadKind): Promise<UploadedAsset> {
-    // Validate file still exists (mobile Chrome issue)
-    if (!file || file.size === 0) {
+    // Validate file still exists and is accessible (mobile Chrome issue)
+    if (!file) {
       throw new Error(`${kind} file is no longer available. Please select the file again.`);
+    }
+
+    // Try to read file to ensure it's still accessible
+    try {
+      const slice = file.slice(0, 1);
+      await slice.arrayBuffer();
+    } catch (err) {
+      throw new Error(`${kind} file is no longer accessible. Please select the file again.`);
+    }
+
+    if (file.size === 0) {
+      throw new Error(`${kind} file is empty. Please select a valid file.`);
     }
 
     const formData = new FormData();
