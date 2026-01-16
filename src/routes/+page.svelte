@@ -208,7 +208,7 @@
 									{/each}
 								</div>
 								{#if completedEventIds.has(event.id)}
-									<p class="completed-badge">✓ Completed</p>
+									<p class="completed-badge">Completed</p>
 								{/if}
 							</div>
 						</div>
@@ -248,7 +248,7 @@
 								{/each}
 							</div>
 							{#if completedEventIds.has(event.id)}
-								<p class="completed-badge">✓ Completed</p>
+								<p class="completed-badge">Completed</p>
 							{/if}
 							</div>
 						</div>
@@ -288,7 +288,7 @@
 								{/each}
 							</div>
 							{#if completedEventIds.has(event.id)}
-								<p class="completed-badge">✓ Completed</p>
+								<p class="completed-badge">Completed</p>
 							{/if}
 							</div>
 						</div>

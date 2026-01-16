@@ -35,6 +35,7 @@
 	let participatedEvents: Event[] = [];
 	let loading = true;
 	let userId: string | null = null;
+	let participantCounts: Record<string, number> = {};
 
 	onMount(async () => {
 		const { data: { user } } = await supabase.auth.getUser();
@@ -55,6 +56,22 @@
 
 		if (createdEvents) {
 			myEvents = createdEvents;
+			
+			// Fetch participant counts for each event
+			for (const event of createdEvents) {
+				const { data: submissions } = await supabase
+					.from('task_submissions')
+					.select('user_id')
+					.eq('event_id', event.id);
+				
+				if (submissions) {
+					// Count unique participants
+					const uniqueParticipants = new Set(submissions.map(s => s.user_id));
+					participantCounts[event.id] = uniqueParticipants.size;
+				} else {
+					participantCounts[event.id] = 0;
+				}
+			}
 		}
 
 		// Fetch events user has participated in
@@ -169,7 +186,7 @@
 								<div class="event-stats">
 									<div class="stat">
 										<span class="stat-label">Participants</span>
-										<span class="stat-value">{event.participant_count || 0}</span>
+										<span class="stat-value">{participantCounts[event.id] || 0}</span>
 									</div>
 									<div class="stat">
 										<span class="stat-label">Tasks</span>

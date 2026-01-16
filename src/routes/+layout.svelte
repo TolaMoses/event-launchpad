@@ -65,9 +65,11 @@
   const connecting = writable(false);
   const walletError = writable<string | null>(null);
 
+  const username = writable<string | null>(null);
+
   const walletStore = derived(
-    [walletAddress, chainId, chainName, connecting, walletError],
-    ([$walletAddress, $chainId, $chainName, $connecting, $error]): WalletView => ({
+    [walletAddress, chainId, chainName, connecting, walletError, username],
+    ([$walletAddress, $chainId, $chainName, $connecting, $error, $username]): WalletView => ({
       address: $walletAddress,
       chainId: $chainId,
       chainName: $chainName ?? "Select chain",
@@ -104,7 +106,7 @@
     ? {
         username: sessionUser.username ??
           sessionUser.user_metadata?.username ??
-          (walletState.truncatedAddress || "Connected Wallet"),
+          (walletState.truncatedAddress || $username),
         wallet_address:
           sessionUser.wallet_address ??
           sessionUser.user_metadata?.wallet_address ??
@@ -116,7 +118,7 @@
       }
     : walletState.connected
     ? {
-        username: walletState.truncatedAddress || "Connected Wallet",
+        username: walletState.truncatedAddress || $username,
         wallet_address: walletState.address,
         profile_picture: null
       }

@@ -31,6 +31,7 @@
 	let userId: string | null = null;
 	let hasJoined = false;
 	let taskStates: Record<string, { completed: boolean; submitting: boolean }> = {};
+	let taskSubmissions: Record<string, any> = {}; // Store user's submissions
 	let showVideo = false;
 	let showLoginPrompt = false;
 
@@ -68,7 +69,7 @@
 
 			hasJoined = !!participantData;
 
-			// Load task completion states
+			// Load task completion states and submission data
 			// Since tasks are stored as JSON, we check submissions by event_id and extract task_id from submission JSON
 			const { data: submissions } = await supabase
 				.from('task_submissions')
@@ -84,6 +85,8 @@
 							completed: sub.verified,
 							submitting: false
 						};
+						// Store the full submission data for display
+						taskSubmissions[taskId] = sub.submission;
 					}
 				});
 			}
@@ -514,7 +517,20 @@
 														</button>
 													</div>
 												{:else if isCompleted}
-													<p class="completed-text">✓ Prediction submitted successfully</p>
+													<div class="submitted-prediction">
+														<p class="completed-text">✓ Your Prediction</p>
+														<div class="prediction-display">
+															<div class="team-score">
+																<span class="team-name">{task.config.home_team?.name || 'Home'}</span>
+																<span class="score-value">{taskSubmissions[task.id]?.home_score ?? '-'}</span>
+															</div>
+															<div class="score-separator">-</div>
+															<div class="team-score">
+																<span class="team-name">{task.config.away_team?.name || 'Away'}</span>
+																<span class="score-value">{taskSubmissions[task.id]?.away_score ?? '-'}</span>
+															</div>
+														</div>
+													</div>
 												{:else}
 													<button class="login-required-btn" on:click={promptLogin}>
 														🔒 Log in to submit your prediction
@@ -1111,6 +1127,49 @@
 		background: linear-gradient(135deg, rgba(111, 160, 255, 0.4) 0%, rgba(90, 141, 255, 0.4) 100%);
 		border-color: rgba(111, 160, 255, 0.7);
 		transform: translateY(-2px);
+	}
+
+	.submitted-prediction {
+		background: rgba(16, 185, 129, 0.1);
+		border: 2px solid rgba(16, 185, 129, 0.3);
+		border-radius: 12px;
+		padding: 1.5rem;
+		margin-top: 1rem;
+	}
+
+	.prediction-display {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 2rem;
+		margin-top: 1rem;
+	}
+
+	.team-score {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.team-name {
+		color: rgba(242, 243, 255, 0.7);
+		font-size: 0.875rem;
+		font-weight: 500;
+	}
+
+	.score-value {
+		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+		color: white;
+		font-size: 2rem;
+		font-weight: 700;
+		width: 60px;
+		height: 60px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 	}
 
 	/* Login Modal Styles */
