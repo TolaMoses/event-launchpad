@@ -32,6 +32,7 @@
 	let hasJoined = false;
 	let taskStates: Record<string, { completed: boolean; submitting: boolean }> = {};
 	let taskSubmissions: Record<string, any> = {}; // Store user's submissions
+	let editingTask: string | null = null; // Track which task is being edited
 	let showVideo = false;
 	let showLoginPrompt = false;
 
@@ -65,7 +66,8 @@
 				.from('event_participants')
 				.select('id')
 				.eq('event_id', eventId)
-				.single();
+				.eq('user_id', userId)
+				.maybeSingle();
 
 			hasJoined = !!participantData;
 
@@ -77,16 +79,18 @@
 				.eq('user_id', userId)
 				.eq('event_id', eventId);
 
-			if (submissions) {
+			if (submissions && submissions.length > 0) {
+				console.log('Loaded submissions:', submissions);
 				submissions.forEach((sub: any) => {
 					const taskId = sub.submission?.task_id || sub.submission?.taskId;
 					if (taskId) {
 						taskStates[taskId] = {
-							completed: sub.verified,
+							completed: true, // Mark as completed if submission exists
 							submitting: false
 						};
 						// Store the full submission data for display
 						taskSubmissions[taskId] = sub.submission;
+						console.log('Task submission loaded:', taskId, sub.submission);
 					}
 				});
 			}
@@ -318,7 +322,12 @@
 
 			// Update local state
 			taskStates[taskId] = { completed: true, submitting: false };
-			alert('Prediction submitted successfully!');
+			taskSubmissions[taskId] = { task_id: taskId, home_score: homeScore, away_score: awayScore };
+			editingTask = null; // Clear edit mode
+			alert(editingTask ? 'Prediction updated successfully!' : 'Prediction submitted successfully!');
+			
+			// Reload the page to refresh submission data
+			window.location.reload();
 		} catch (error) {
 			console.error('Failed to submit prediction:', error);
 			alert(error instanceof Error ? error.message : 'Failed to submit prediction');
@@ -486,7 +495,7 @@
 													{/if}
 												</div>
 
-												{#if !isCompleted && userId}
+												{#if (!isCompleted || editingTask === task.id) && userId}
 													<div class="prediction-form">
 														<div class="score-inputs">
 															<div class="score-input-group">
@@ -496,6 +505,7 @@
 																	min="0" 
 																	max="99"
 																	placeholder="0"
+																	value={editingTask === task.id ? taskSubmissions[task.id]?.home_score : ''}
 																	class="score-input"
 																	id="home-score-{task.id}"
 																/>
@@ -508,18 +518,29 @@
 																	min="0" 
 																	max="99"
 																	placeholder="0"
+																	value={editingTask === task.id ? taskSubmissions[task.id]?.away_score : ''}
 																	class="score-input"
 																	id="away-score-{task.id}"
 																/>
 															</div>
 														</div>
-														<button 
-															class="submit-prediction-btn"
-															on:click={() => submitPrediction(task.id)}
-															disabled={taskStates[task.id]?.submitting}
-														>
-															{taskStates[task.id]?.submitting ? 'Submitting...' : 'Submit Prediction'}
-														</button>
+														<div class="prediction-actions">
+															<button 
+																class="submit-prediction-btn"
+																on:click={() => submitPrediction(task.id)}
+																disabled={taskStates[task.id]?.submitting}
+															>
+																{taskStates[task.id]?.submitting ? 'Submitting...' : (editingTask === task.id ? 'Update Prediction' : 'Submit Prediction')}
+															</button>
+															{#if editingTask === task.id}
+																<button 
+																	class="cancel-edit-btn"
+																	on:click={() => editingTask = null}
+																>
+																	Cancel
+																</button>
+															{/if}
+														</div>
 													</div>
 												{:else if isCompleted}
 													<div class="submitted-prediction">
@@ -535,6 +556,14 @@
 																<span class="score-value">{taskSubmissions[task.id]?.away_score ?? '-'}</span>
 															</div>
 														</div>
+														{#if event && new Date(event.end_time) > new Date()}
+															<button 
+																class="edit-prediction-btn"
+																on:click={() => editingTask = task.id}
+															>
+																✏️ Edit Prediction
+															</button>
+														{/if}
 													</div>
 												{:else}
 													<button class="login-required-btn" on:click={promptLogin}>
@@ -1175,6 +1204,50 @@
 		justify-content: center;
 		border-radius: 12px;
 		box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+	}
+
+	.prediction-actions {
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+	}
+
+	.edit-prediction-btn {
+		background: linear-gradient(135deg, rgba(111, 160, 255, 0.2) 0%, rgba(90, 141, 255, 0.2) 100%);
+		color: #6fa0ff;
+		border: 2px solid rgba(111, 160, 255, 0.4);
+		border-radius: 8px;
+		padding: 0.6rem 1.2rem;
+		font-size: 0.875rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		margin-top: 1rem;
+		width: 100%;
+	}
+
+	.edit-prediction-btn:hover {
+		background: linear-gradient(135deg, rgba(111, 160, 255, 0.3) 0%, rgba(90, 141, 255, 0.3) 100%);
+		border-color: rgba(111, 160, 255, 0.6);
+		transform: translateY(-2px);
+	}
+
+	.cancel-edit-btn {
+		background: rgba(239, 68, 68, 0.1);
+		color: #ef4444;
+		border: 2px solid rgba(239, 68, 68, 0.3);
+		border-radius: 10px;
+		padding: 1rem 2rem;
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.cancel-edit-btn:hover {
+		background: rgba(239, 68, 68, 0.2);
+		border-color: rgba(239, 68, 68, 0.5);
+		transform: translateY(-2px);
 	}
 
 	/* Login Modal Styles */
