@@ -4,7 +4,10 @@ import { supabaseAdmin } from '$lib/server/supabaseAdmin';
 
 // POST - Submit a scoreline prediction
 export const POST: RequestHandler = async ({ request, locals }) => {
+  console.log('POST /api/predictions - User:', locals.user?.id);
+  
   if (!locals.user) {
+    console.error('Unauthorized: No user in locals');
     throw error(401, 'Unauthorized');
   }
 
@@ -12,6 +15,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   try {
     body = await request.json();
   } catch (err) {
+    console.error('Invalid JSON payload:', err);
     throw error(400, 'Invalid JSON payload');
   }
 
@@ -19,7 +23,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const eventId = typeof body.eventId === 'string' ? body.eventId : '';
   const prediction = body.prediction as Record<string, any>;
 
+  console.log('Received prediction request:', { taskId, eventId, prediction, userId: locals.user?.id });
+
   if (!taskId || !eventId || !prediction) {
+    console.error('Missing required fields:', { taskId, eventId, prediction });
     throw error(400, 'Missing required fields');
   }
 

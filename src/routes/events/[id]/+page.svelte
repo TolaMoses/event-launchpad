@@ -287,6 +287,8 @@
 		taskStates[taskId] = { completed: false, submitting: true };
 
 		try {
+			console.log('Submitting prediction:', { taskId, eventId: event.id, homeScore, awayScore });
+			
 			const response = await fetch('/api/predictions', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -301,9 +303,12 @@
 				})
 			});
 
+			console.log('Response status:', response.status);
+
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to submit prediction');
+				const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+				console.error('Error response:', errorData);
+				throw new Error(errorData.message || errorData.error || `Failed to submit prediction (${response.status})`);
 			}
 
 			// Add user to event participants if this is their first task completion
