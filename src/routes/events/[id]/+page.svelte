@@ -4,6 +4,7 @@
 	import { supabase } from '$lib/supabaseClient';
 	import { goto } from '$app/navigation';
 	import { taskRegistry } from '$lib/tasks/taskRegistry';
+	import { ASSETS } from '$lib/config/assets';
 
 	type Event = {
 		id: string;
@@ -214,6 +215,7 @@
 			quiz: 'Quiz & Games',
 			game: 'Quiz & Games',
 			puzzle: 'Quiz & Games',
+			scoreline: 'Predictions',
 			content_submission: 'Content',
 			treasure_hunt: 'Challenges',
 			irl: 'IRL Events'
@@ -233,6 +235,68 @@
 		return grouped;
 	}
 
+	async function submitPrediction(taskId: string) {
+		if (!userId || !event) return;
+
+		const homeScoreInput = document.getElementById(`home-score-${taskId}`) as HTMLInputElement;
+		const awayScoreInput = document.getElementById(`away-score-${taskId}`) as HTMLInputElement;
+
+		if (!homeScoreInput || !awayScoreInput) {
+			alert('Please enter both scores');
+			return;
+		}
+
+		const homeScore = parseInt(homeScoreInput.value);
+		const awayScore = parseInt(awayScoreInput.value);
+
+		if (isNaN(homeScore) || isNaN(awayScore)) {
+			alert('Please enter valid scores');
+			return;
+		}
+
+		if (homeScore < 0 || awayScore < 0) {
+			alert('Scores cannot be negative');
+			return;
+		}
+
+		// Mark as submitting
+		taskStates[taskId] = { completed: false, submitting: true };
+
+		try {
+			const response = await fetch('/api/predictions', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					taskId,
+					eventId: event.id,
+					prediction: {
+						home_score: homeScore,
+						away_score: awayScore
+					}
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to submit prediction');
+			}
+
+			// Add user to event participants if this is their first task completion
+			if (!hasJoined) {
+				await joinEvent();
+			}
+
+			// Update local state
+			taskStates[taskId] = { completed: true, submitting: false };
+			alert('Prediction submitted successfully!');
+		} catch (error) {
+			console.error('Failed to submit prediction:', error);
+			alert(error instanceof Error ? error.message : 'Failed to submit prediction');
+			taskStates[taskId] = { completed: false, submitting: false};
+		}
+	}
+
 	$: groupedTasks = event ? groupTasksByCategory(event.tasks) : {};
 </script>
 
@@ -242,9 +306,9 @@
 	{:else if event}
 		<!-- Banner -->
 		<div class="event-banner">
-			<img src={event.banner_url || '/images/default-banner.jpg'} alt={event.title} />
+			<img src={event.banner_url || ASSETS.events.defaultBanner} alt={event.title} />
 			<button class="back-btn" on:click={() => goto('/')}>
-				<img src="/icons/back-button.svg" alt="Back" />
+				<img src={ASSETS.icons.back} class="utility-icon" alt="Back" />
 				Back to Events
 			</button>
 		</div>
@@ -252,7 +316,7 @@
 		<div class="event-container">
 			<!-- Event Header -->
 			<div class="event-header">
-				<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} class="event-logo" />
+				<img src={event.logo_url || ASSETS.events.defaultLogo} alt={event.title} class="event-logo" />
 				<div class="event-title-section">
 					<h3>{event.title}</h3>
 					<div class="event-meta">
@@ -373,6 +437,72 @@
 													<p class="completed-text">✓ Task completed</p>
 												{:else}
 													<p class="login-prompt">Log in to complete this task</p>
+												{/if}
+											</div>
+										{:else if task.type === 'scoreline'}
+											<!-- Scoreline Prediction Task -->
+											<div class="scoreline-task">
+												<div class="match-info">
+													{#if task.config.league?.name}
+														<div class="league-name">{task.config.league.name}</div>
+													{/if}
+													<div class="match-teams">
+														<div class="team">{task.config.home_team?.name || 'Home'}</div>
+														<div class="vs">VS</div>
+														<div class="team">{task.config.away_team?.name || 'Away'}</div>
+													</div>
+													{#if task.config.match_date}
+														<div class="match-datetime">
+															📅 {new Date(task.config.match_date).toLocaleDateString()}
+															{#if task.config.match_time}
+																at {task.config.match_time}
+															{/if}
+														</div>
+													{/if}
+													{#if task.config.description}
+														<p class="match-description">{task.config.description}</p>
+													{/if}
+												</div>
+
+												{#if !isCompleted && userId}
+													<div class="prediction-form">
+														<div class="score-inputs">
+															<div class="score-input-group">
+																<label>{task.config.home_team?.name || 'Home'}</label>
+																<input 
+																	type="number" 
+																	min="0" 
+																	max="99"
+																	placeholder="0"
+																	class="score-input"
+																	id="home-score-{task.id}"
+																/>
+															</div>
+															<div class="score-separator">-</div>
+															<div class="score-input-group">
+																<label>{task.config.away_team?.name || 'Away'}</label>
+																<input 
+																	type="number" 
+																	min="0" 
+																	max="99"
+																	placeholder="0"
+																	class="score-input"
+																	id="away-score-{task.id}"
+																/>
+															</div>
+														</div>
+														<button 
+															class="submit-prediction-btn"
+															on:click={() => submitPrediction(task.id)}
+															disabled={taskStates[task.id]?.submitting}
+														>
+															{taskStates[task.id]?.submitting ? 'Submitting...' : 'Submit Prediction'}
+														</button>
+													</div>
+												{:else if isCompleted}
+													<p class="completed-text">✓ Prediction submitted successfully</p>
+												{:else}
+													<p class="login-prompt">Log in to submit your prediction</p>
 												{/if}
 											</div>
 										{:else if taskEntry?.component}
@@ -785,6 +915,147 @@
 		color: rgba(242, 243, 255, 0.5);
 		font-style: italic;
 		margin: 0;
+	}
+
+	/* Scoreline Prediction Task Styles */
+	.scoreline-task {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.match-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 1rem;
+		background: rgba(91, 141, 255, 0.08);
+		border: 1px solid rgba(91, 141, 255, 0.2);
+		border-radius: 10px;
+	}
+
+	.league-name {
+		font-size: 0.85rem;
+		color: rgba(242, 243, 255, 0.7);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		text-align: center;
+	}
+
+	.match-teams {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 1.5rem;
+		font-size: 1.2rem;
+		font-weight: 700;
+		color: #f2f3ff;
+	}
+
+	.match-teams .team {
+		flex: 1;
+		text-align: center;
+	}
+
+	.match-teams .vs {
+		color: rgba(242, 243, 255, 0.5);
+		font-size: 0.9rem;
+		font-weight: 600;
+	}
+
+	.match-datetime {
+		font-size: 0.9rem;
+		color: rgba(242, 243, 255, 0.8);
+		text-align: center;
+	}
+
+	.match-description {
+		font-size: 0.9rem;
+		color: rgba(242, 243, 255, 0.7);
+		margin: 0;
+		text-align: center;
+	}
+
+	.prediction-form {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.score-inputs {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 1.5rem;
+	}
+
+	.score-input-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 1;
+		max-width: 150px;
+	}
+
+	.score-input-group label {
+		font-size: 0.9rem;
+		color: rgba(242, 243, 255, 0.9);
+		font-weight: 600;
+		text-align: center;
+	}
+
+	.score-input {
+		width: 100%;
+		padding: 1rem;
+		background: rgba(255, 255, 255, 0.06);
+		border: 2px solid rgba(255, 255, 255, 0.15);
+		border-radius: 10px;
+		color: #f2f3ff;
+		font-size: 1.5rem;
+		font-weight: 700;
+		text-align: center;
+		transition: border-color 0.2s ease;
+	}
+
+	.score-input:focus {
+		outline: none;
+		border-color: #6fa0ff;
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	.score-input::placeholder {
+		color: rgba(242, 243, 255, 0.3);
+	}
+
+	.score-separator {
+		font-size: 1.5rem;
+		font-weight: 700;
+		color: rgba(242, 243, 255, 0.5);
+		margin-top: 1.5rem;
+	}
+
+	.submit-prediction-btn {
+		background: linear-gradient(135deg, #6fa0ff 0%, #5a8dff 100%);
+		color: white;
+		border: none;
+		border-radius: 10px;
+		padding: 1rem 2rem;
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+	}
+
+	.submit-prediction-btn:hover:not(:disabled) {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 20px rgba(111, 160, 255, 0.4);
+	}
+
+	.submit-prediction-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 
 	@media (max-width: 768px) {

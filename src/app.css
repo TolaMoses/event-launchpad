@@ -114,6 +114,9 @@ a {
 	.mrgn-right {
 		margin-right: 140px;
 	}
+	.utility-icon {
+		width: 10px;
+	}
 	footer {
 		margin-top: 50px;
 	}

@@ -15,6 +15,44 @@
     : createDefaultScorelinePredictionConfig();
 
   let errors: string[] = [];
+  let matchSuggestions: Array<{
+    league: string;
+    home_team: string;
+    away_team: string;
+    match_time?: string;
+  }> = [];
+  let loadingSuggestions = false;
+  let showSuggestions = false;
+
+  async function fetchMatchSuggestions() {
+    if (!config.match_date) return;
+    
+    loadingSuggestions = true;
+    showSuggestions = false;
+    try {
+      const response = await fetch(`/api/match-suggestions?date=${config.match_date}&sport=${config.sport}`);
+      if (response.ok) {
+        matchSuggestions = await response.json();
+        if (matchSuggestions.length > 0) {
+          showSuggestions = true;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch match suggestions', err);
+    } finally {
+      loadingSuggestions = false;
+    }
+  }
+
+  function applySuggestion(suggestion: typeof matchSuggestions[0]) {
+    config.league.name = suggestion.league;
+    config.home_team.name = suggestion.home_team;
+    config.away_team.name = suggestion.away_team;
+    if (suggestion.match_time) {
+      config.match_time = suggestion.match_time;
+    }
+    showSuggestions = false;
+  }
 
   function handleSave() {
     errors = validateScorelinePredictionConfig(config);
@@ -23,7 +61,11 @@
     }
   }
 
-  $: teamLabel = config.sportType === 'tennis' ? 'Player' : 'Team';
+  $: teamLabel = config.sport === 'tennis' ? 'Player' : 'Team';
+  $: leagueLabel = config.sport === 'tennis' ? 'Tournament' : 'League';
+  $: if (config.match_date) {
+    fetchMatchSuggestions();
+  }
 </script>
 
 <div class="task-panel">
@@ -35,7 +77,7 @@
 
     <div class="form-group">
       <label for="sport-type">Sport Type</label>
-      <select id="sport-type" bind:value={config.sportType}>
+      <select id="sport-type" bind:value={config.sport}>
         <option value="football">Football/Soccer</option>
         <option value="tennis">Tennis</option>
         <option value="basketball">Basketball</option>
@@ -45,32 +87,12 @@
 
     <div class="grid-two">
       <div class="form-group">
-        <label for="home-team">{teamLabel} 1 / Home {teamLabel}</label>
-        <input
-          id="home-team"
-          type="text"
-          bind:value={config.homeTeam}
-          placeholder={config.sportType === 'tennis' ? 'e.g., Novak Djokovic' : 'e.g., Manchester United'}
-        />
-      </div>
-      <div class="form-group">
-        <label for="away-team">{teamLabel} 2 / Away {teamLabel}</label>
-        <input
-          id="away-team"
-          type="text"
-          bind:value={config.awayTeam}
-          placeholder={config.sportType === 'tennis' ? 'e.g., Rafael Nadal' : 'e.g., Liverpool'}
-        />
-      </div>
-    </div>
-
-    <div class="grid-two">
-      <div class="form-group">
-        <label for="match-date">Match Date (Optional)</label>
+        <label for="match-date">Match Date</label>
         <input
           id="match-date"
           type="date"
-          bind:value={config.matchDate}
+          bind:value={config.match_date}
+          required
         />
       </div>
       <div class="form-group">
@@ -78,7 +100,63 @@
         <input
           id="match-time"
           type="time"
-          bind:value={config.matchTime}
+          bind:value={config.match_time}
+        />
+      </div>
+    </div>
+
+    {#if showSuggestions && matchSuggestions.length > 0}
+      <div class="suggestions-box">
+        <div class="suggestions-header">
+          <strong>💡 Match Suggestions for {config.match_date}</strong>
+          <button type="button" class="close-btn" on:click={() => showSuggestions = false}>✕</button>
+        </div>
+        <p class="suggestions-hint">Click a match to auto-fill details</p>
+        <div class="suggestions-list">
+          {#each matchSuggestions as suggestion}
+            <button 
+              type="button"
+              class="suggestion-item" 
+              on:click={() => applySuggestion(suggestion)}
+            >
+              <div class="suggestion-league">{suggestion.league}</div>
+              <div class="suggestion-match">{suggestion.home_team} vs {suggestion.away_team}</div>
+              {#if suggestion.match_time}
+                <div class="suggestion-time">⏰ {suggestion.match_time}</div>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
+
+    <div class="form-group">
+      <label for="league">{leagueLabel}</label>
+      <input
+        id="league"
+        type="text"
+        bind:value={config.league.name}
+        placeholder={config.sport === 'tennis' ? 'e.g., ATP Tour' : 'e.g., Premier League'}
+      />
+    </div>
+
+    <div class="grid-two">
+      <div class="form-group">
+        <label for="home-team">{teamLabel} 1 / Home {teamLabel}</label>
+        <input
+          id="home-team"
+          type="text"
+          bind:value={config.home_team.name}
+          placeholder={config.sport === 'tennis' ? 'e.g., Novak Djokovic' : 'e.g., Manchester United'}
+        />
+      </div>
+      <div class="form-group">
+        <label for="away-team">{teamLabel} 2 / Away {teamLabel}</label>
+        <input
+          id="away-team"
+          type="text"
+          bind:value={config.away_team.name}
+          placeholder={config.sport === 'tennis' ? 'e.g., Rafael Nadal' : 'e.g., Liverpool'}
         />
       </div>
     </div>
@@ -88,9 +166,20 @@
       <textarea
         id="description"
         bind:value={config.description}
-        placeholder="e.g., Premier League Match, Round of 16, etc."
+        placeholder="e.g., Round of 16, Quarter Finals, etc."
         rows="3"
       ></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="checkbox-label">
+        <input type="checkbox" bind:checked={config.rules.exact_score_only} />
+        Exact score only (no partial points)
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" bind:checked={config.rules.extra_time_included} />
+        Include extra time/overtime
+      </label>
     </div>
 
     <div class="info-box">
@@ -267,5 +356,105 @@
 
   .primary-btn:hover {
     opacity: 0.92;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: rgba(243, 243, 255, 0.9);
+    cursor: pointer;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+  }
+
+  .suggestions-box {
+    background: rgba(91, 141, 255, 0.08);
+    border: 1px solid rgba(91, 141, 255, 0.2);
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+
+  .suggestions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .suggestions-header strong {
+    color: rgba(243, 243, 255, 0.95);
+    font-size: 0.9rem;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    color: rgba(243, 243, 255, 0.6);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .close-btn:hover {
+    color: rgba(243, 243, 255, 0.9);
+  }
+
+  .suggestions-hint {
+    font-size: 0.8rem;
+    color: rgba(243, 243, 255, 0.6);
+    margin: 0 0 0.75rem 0;
+  }
+
+  .suggestions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .suggestion-item {
+    background: rgba(26, 28, 45, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 0.75rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    width: 100%;
+  }
+
+  .suggestion-item:hover {
+    border-color: #5b8dff;
+    background: rgba(91, 141, 255, 0.1);
+  }
+
+  .suggestion-league {
+    font-size: 0.75rem;
+    color: rgba(243, 243, 255, 0.6);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .suggestion-match {
+    font-size: 0.9rem;
+    color: rgba(243, 243, 255, 0.95);
+    font-weight: 600;
+  }
+
+  .suggestion-time {
+    font-size: 0.75rem;
+    color: rgba(243, 243, 255, 0.7);
+    margin-top: 0.25rem;
   }
 </style>
