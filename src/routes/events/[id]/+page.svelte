@@ -441,24 +441,22 @@
 											<!-- Social Task -->
 											<div class="social-task">
 												<p class="task-description">{task.config.description || `Complete this ${task.type} task`}</p>
-{{ ... }}
 												{#if !isCompleted && userId}
 													<button class="confirm-btn" on:click={() => verifyAndSubmitTask(task.id, task.type, task.config)}>
 														{isSubmitting ? 'Verifying...' : 'Confirm Completion'}
 													</button>
 												{:else if isCompleted}
-											<p class="completed-text">✓ Task completed</p>
-										{:else}
-											<button class="login-required-btn" on:click={promptLogin}>
-												🔒 Log in to complete this task
-											</button>
-										{/if}
+													<p class="completed-text">✓ Task completed</p>
+												{:else}
+													<button class="login-required-btn" on:click={promptLogin}>
+														🔒 Log in to complete this task
+													</button>
+												{/if}
 											</div>
 										{:else if task.type === 'scoreline'}
 											<!-- Scoreline Prediction Task -->
 											<div class="scoreline-task">
 												<div class="match-info">
-{{ ... }}
 													{#if task.config.league?.name}
 														<div class="league-name">{task.config.league.name}</div>
 													{/if}
