@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
 	import { supabase } from '$lib/supabaseClient';
+	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { taskRegistry } from '$lib/tasks/taskRegistry';
 	import { ASSETS } from '$lib/config/assets';
+	import { taskRegistry } from '$lib/tasks/taskRegistry';
 
 	type Event = {
 		id: string;
@@ -32,6 +32,7 @@
 	let hasJoined = false;
 	let taskStates: Record<string, { completed: boolean; submitting: boolean }> = {};
 	let showVideo = false;
+	let showLoginPrompt = false;
 
 	$: eventId = $page.params.id;
 
@@ -238,8 +239,25 @@
 		return grouped;
 	}
 
+	function promptLogin() {
+		showLoginPrompt = true;
+	}
+
+	function closeLoginPrompt() {
+		showLoginPrompt = false;
+	}
+
+	function handleLogin() {
+		// Scroll to top where the login button is in the header
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+		showLoginPrompt = false;
+	}
+
 	async function submitPrediction(taskId: string) {
-		if (!userId || !event) return;
+		if (!userId || !event) {
+			promptLogin();
+			return;
+		}
 
 		const homeScoreInput = document.getElementById(`home-score-${taskId}`) as HTMLInputElement;
 		const awayScoreInput = document.getElementById(`away-score-${taskId}`) as HTMLInputElement;
@@ -321,7 +339,7 @@
 			<div class="event-header">
 				<div class="event-title-section">
 					<h3>{event.title}</h3>
-					<div class="flex">
+					<div class="flex space-between">
 						<img src={event.logo_url || ASSETS.events.defaultLogo} alt={event.title} class="event-logo" />
 						<div class="event-meta">
 							<span>Ends: {formatDate(event.end_time)}</span>
@@ -406,48 +424,41 @@
 														type="url" 
 														placeholder="Enter content URL (e.g., YouTube, Twitter, etc.)"
 														class="content-input"
+														id="content-input-{task.id}"
 													/>
-													<button class="submit-btn">Submit</button>
+													<button class="submit-btn" on:click={() => submitContent(task.id)}>
+														{isSubmitting ? 'Verifying...' : 'Submit'}
+													</button>
 												{:else if isCompleted}
-													<p class="completed-text">✓ Content submitted successfully</p>
-												{:else}
-													<p class="login-prompt">Log in to submit content</p>
-												{/if}
+												<p class="completed-text">✓ Content submitted successfully</p>
+											{:else}
+												<button class="login-required-btn" on:click={promptLogin}>
+													🔒 Log in to submit content
+												</button>
+											{/if}
 											</div>
 										{:else if ['twitter', 'discord', 'telegram'].includes(task.type)}
 											<!-- Social Task -->
 											<div class="social-task">
 												<p class="task-description">{task.config.description || `Complete this ${task.type} task`}</p>
-												{#if task.config.invite_link || task.config.link || task.config.url}
-													<a 
-														href={task.config.invite_link || task.config.link || task.config.url} 
-														target="_blank" 
-														rel="noopener noreferrer"
-														class="social-link"
-													>
-														{#if task.type === 'twitter'}
-															🐦 Follow on Twitter
-														{:else if task.type === 'discord'}
-															💬 Join Discord Server
-														{:else if task.type === 'telegram'}
-															✈️ Join Telegram Channel
-														{/if}
-													</a>
-												{/if}
+{{ ... }}
 												{#if !isCompleted && userId}
 													<button class="confirm-btn" on:click={() => verifyAndSubmitTask(task.id, task.type, task.config)}>
 														{isSubmitting ? 'Verifying...' : 'Confirm Completion'}
 													</button>
 												{:else if isCompleted}
-													<p class="completed-text">✓ Task completed</p>
-												{:else}
-													<p class="login-prompt">Log in to complete this task</p>
-												{/if}
+											<p class="completed-text">✓ Task completed</p>
+										{:else}
+											<button class="login-required-btn" on:click={promptLogin}>
+												🔒 Log in to complete this task
+											</button>
+										{/if}
 											</div>
 										{:else if task.type === 'scoreline'}
 											<!-- Scoreline Prediction Task -->
 											<div class="scoreline-task">
 												<div class="match-info">
+{{ ... }}
 													{#if task.config.league?.name}
 														<div class="league-name">{task.config.league.name}</div>
 													{/if}
@@ -507,7 +518,9 @@
 												{:else if isCompleted}
 													<p class="completed-text">✓ Prediction submitted successfully</p>
 												{:else}
-													<p class="login-prompt">Log in to submit your prediction</p>
+													<button class="login-required-btn" on:click={promptLogin}>
+														🔒 Log in to submit your prediction
+													</button>
 												{/if}
 											</div>
 										{:else if taskEntry?.component}
@@ -531,6 +544,26 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Login Prompt Modal -->
+{#if showLoginPrompt}
+	<div class="modal-overlay" on:click={closeLoginPrompt}>
+		<div class="modal-content" on:click|stopPropagation>
+			<div class="modal-header">
+				<h3>🔒 Login Required</h3>
+				<button class="modal-close-btn" on:click={closeLoginPrompt}>✕</button>
+			</div>
+			<div class="modal-body">
+				<p>You need to be logged in to complete tasks and submit predictions.</p>
+				<p>Please log in using the button in the top navigation bar.</p>
+			</div>
+			<div class="modal-footer">
+				<button class="modal-btn-secondary" on:click={closeLoginPrompt}>Cancel</button>
+				<button class="modal-btn-primary" on:click={handleLogin}>Go to Login</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.event-page {
@@ -1061,6 +1094,136 @@
 	.submit-prediction-btn:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
+	}
+
+	.login-required-btn {
+		background: linear-gradient(135deg, rgba(111, 160, 255, 0.3) 0%, rgba(90, 141, 255, 0.3) 100%);
+		color: rgba(242, 243, 255, 0.9);
+		border: 2px dashed rgba(111, 160, 255, 0.5);
+		border-radius: 10px;
+		padding: 1rem 2rem;
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		width: 100%;
+	}
+
+	.login-required-btn:hover {
+		background: linear-gradient(135deg, rgba(111, 160, 255, 0.4) 0%, rgba(90, 141, 255, 0.4) 100%);
+		border-color: rgba(111, 160, 255, 0.7);
+		transform: translateY(-2px);
+	}
+
+	/* Login Modal Styles */
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.7);
+		backdrop-filter: blur(4px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+		padding: 1rem;
+	}
+
+	.modal-content {
+		background: linear-gradient(135deg, #1a1c2d 0%, #252840 100%);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 16px;
+		max-width: 500px;
+		width: 100%;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+	}
+
+	.modal-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1.5rem;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.modal-header h3 {
+		margin: 0;
+		color: #f2f3ff;
+		font-size: 1.25rem;
+	}
+
+	.modal-close-btn {
+		background: none;
+		border: none;
+		color: rgba(242, 243, 255, 0.6);
+		font-size: 1.5rem;
+		cursor: pointer;
+		padding: 0;
+		width: 32px;
+		height: 32px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: color 0.2s;
+	}
+
+	.modal-close-btn:hover {
+		color: #f2f3ff;
+	}
+
+	.modal-body {
+		padding: 1.5rem;
+	}
+
+	.modal-body p {
+		color: rgba(242, 243, 255, 0.8);
+		margin: 0 0 1rem 0;
+		line-height: 1.6;
+	}
+
+	.modal-body p:last-child {
+		margin-bottom: 0;
+	}
+
+	.modal-footer {
+		display: flex;
+		gap: 1rem;
+		padding: 1.5rem;
+		border-top: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.modal-btn-secondary,
+	.modal-btn-primary {
+		flex: 1;
+		padding: 0.875rem 1.5rem;
+		border-radius: 10px;
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s;
+		border: none;
+	}
+
+	.modal-btn-secondary {
+		background: rgba(255, 255, 255, 0.08);
+		color: rgba(242, 243, 255, 0.8);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+	}
+
+	.modal-btn-secondary:hover {
+		background: rgba(255, 255, 255, 0.12);
+	}
+
+	.modal-btn-primary {
+		background: linear-gradient(135deg, #6fa0ff 0%, #5a8dff 100%);
+		color: white;
+	}
+
+	.modal-btn-primary:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 20px rgba(111, 160, 255, 0.4);
 	}
 
 	@media (max-width: 768px) {
