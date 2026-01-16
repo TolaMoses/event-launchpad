@@ -55,13 +55,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     .eq('user_id', locals.user.id);
 
   // Check if any submission matches this task_id
+  let existingSubmission: any = null;
   if (existing && existing.length > 0) {
-    const alreadySubmitted = existing.some((sub: any) => 
+    existingSubmission = existing.find((sub: any) => 
       sub.submission?.task_id === taskId || sub.submission?.taskId === taskId
     );
-    if (alreadySubmitted) {
-      throw error(400, 'You have already submitted a prediction for this match');
-    }
   }
 
   // Save the prediction with task_id in the submission JSON
@@ -70,21 +68,50 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     task_id: taskId
   };
 
-  const { data, error: insertError } = await supabaseAdmin
-    .from('task_submissions')
-    .insert({
-      event_id: eventId,
-      user_id: locals.user.id,
-      submission: submissionData,
-      verified: false // Will be verified after match ends
-    })
-    .select('id')
-    .single();
+  let data;
+  let dbError;
 
-  if (insertError) {
-    console.error('Failed to save prediction', insertError);
+  if (existingSubmission) {
+    // Update existing submission
+    console.log('Updating existing submission:', existingSubmission.id);
+    const result = await supabaseAdmin
+      .from('task_submissions')
+      .update({
+        submission: submissionData,
+        verified: false // Reset verification status on update
+      })
+      .eq('id', existingSubmission.id)
+      .select('id')
+      .single();
+    
+    data = result.data;
+    dbError = result.error;
+  } else {
+    // Insert new submission
+    console.log('Inserting new submission');
+    const result = await supabaseAdmin
+      .from('task_submissions')
+      .insert({
+        event_id: eventId,
+        user_id: locals.user.id,
+        submission: submissionData,
+        verified: false // Will be verified after match ends
+      })
+      .select('id')
+      .single();
+    
+    data = result.data;
+    dbError = result.error;
+  }
+
+  if (dbError || !data) {
+    console.error('Failed to save prediction', dbError);
     throw error(500, 'Failed to save prediction');
   }
 
-  return json({ success: true, id: data.id }, { status: 201 });
+  return json({ 
+    success: true, 
+    id: data.id,
+    updated: !!existingSubmission 
+  }, { status: existingSubmission ? 200 : 201 });
 };
