@@ -32,6 +32,8 @@
 	let events: Event[] = [];
 	let loading = true;
 	let wallet: string | null = null;
+	let userId: string | null = null;
+	let completedEventIds: Set<string> = new Set();
 
 	// Group events by category
 	// Active events are approved events that have started
@@ -43,8 +45,11 @@
 
 	onMount(async () => {
 		const { data: { user } } = await supabase.auth.getUser();
-		if (user?.user_metadata?.wallet_address) {
-			wallet = user.user_metadata.wallet_address;
+		if (user) {
+			userId = user.id;
+			if (user.user_metadata?.wallet_address) {
+				wallet = user.user_metadata.wallet_address;
+			}
 		}
 
 		// Fetch events with creator usernames
@@ -59,15 +64,29 @@
 		`)
 		.order('created_at', { ascending: false });
 
-	if (error) {
-		console.error('Error fetching events:', error);
-	}
+		if (error) {
+			console.error('Error fetching events:', error);
+		}
 
-	if (data) {
-		// Filter to only show approved/active events on client side
-		events = data.filter(e => e.status === 'approved' || e.status === 'draft');
-	}
-	loading = false;
+		if (data) {
+			// Filter to only show approved/active events on client side
+			events = data.filter(e => e.status === 'approved' || e.status === 'draft');
+		}
+
+		// Fetch user's task submissions to determine which events they've completed tasks for
+		if (userId) {
+			const { data: submissions } = await supabase
+				.from('task_submissions')
+				.select('event_id')
+				.eq('user_id', userId);
+
+			if (submissions) {
+				// Get unique event IDs where user has submitted tasks
+				completedEventIds = new Set(submissions.map(s => s.event_id).filter(Boolean));
+			}
+		}
+
+		loading = false;
 	});
 
 	function getRewardIcon(prizeType: string): string {
@@ -182,11 +201,15 @@
 									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
 								</div>
 							</div>
-							<div class="event-task-icons">
-								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<img src={getTaskIcon(taskType)} alt={taskType} class="task-icon"/>
-									
-								{/each}
+							<div class="flex space-between">
+								<div class="event-task-icons">
+									{#each getUniqueTaskTypes(event.tasks) as taskType}
+										<img src={getTaskIcon(taskType)} alt={taskType} class="task-icon"/>
+									{/each}
+								</div>
+								{#if completedEventIds.has(event.id)}
+									<p class="completed-badge">✓ Completed</p>
+								{/if}
 							</div>
 						</div>
 					{/each}
@@ -218,10 +241,15 @@
 									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
 								</div>
 							</div>
-							<div class="event-task-icons">
+							<div class="flex space-between">
+								<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
 									<img src={getTaskIcon(taskType)} alt={taskType} class="task-icon"/>
 								{/each}
+							</div>
+							{#if completedEventIds.has(event.id)}
+								<p class="completed-badge">✓ Completed</p>
+							{/if}
 							</div>
 						</div>
 					{/each}
@@ -253,10 +281,15 @@
 									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
 								</div>
 							</div>
-							<div class="event-task-icons">
+							<div class="flex space-between">
+								<div class="event-task-icons">
 								{#each getUniqueTaskTypes(event.tasks) as taskType}
 									<img src={getTaskIcon(taskType)} alt={taskType} class="task-icon"/>
 								{/each}
+							</div>
+							{#if completedEventIds.has(event.id)}
+								<p class="completed-badge">✓ Completed</p>
+							{/if}
 							</div>
 						</div>
 					{/each}
@@ -479,6 +512,26 @@
 
 	.task-icon:first-child {
 		margin-left: 0;
+	}
+
+	.flex {
+		display: flex;
+		align-items: center;
+	}
+
+	.space-between {
+		justify-content: space-between;
+	}
+
+	.completed-badge {
+		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+		color: white;
+		padding: 0.4rem 0.8rem;
+		border-radius: 20px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		margin: 0;
+		white-space: nowrap;
 	}
 
 	.empty-state {

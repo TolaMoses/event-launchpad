@@ -22,6 +22,11 @@ BEGIN
     END IF;
 END $$;
 
+-- Make task_id column nullable since we now store it in the submission JSON
+-- This allows backward compatibility while transitioning to the new structure
+ALTER TABLE task_submissions 
+ALTER COLUMN task_id DROP NOT NULL;
+
 -- Update RLS policies to work with event_id instead of task_id
 -- Drop old policies that reference tasks table
 DROP POLICY IF EXISTS "Users and creators can view submissions" ON task_submissions;
