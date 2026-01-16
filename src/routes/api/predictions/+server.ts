@@ -39,25 +39,36 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     throw error(400, 'Scores must be integers');
   }
 
-  // Check if user already submitted a prediction for this task
+  // Check if user already submitted a prediction for this event+task combination
+  // Since tasks are stored as JSON in events, we use event_id and check submission JSON
   const { data: existing } = await supabaseAdmin
     .from('task_submissions')
-    .select('id')
-    .eq('task_id', taskId)
-    .eq('user_id', locals.user.id)
-    .maybeSingle();
+    .select('id, submission')
+    .eq('event_id', eventId)
+    .eq('user_id', locals.user.id);
 
-  if (existing) {
-    throw error(400, 'You have already submitted a prediction for this match');
+  // Check if any submission matches this task_id
+  if (existing && existing.length > 0) {
+    const alreadySubmitted = existing.some((sub: any) => 
+      sub.submission?.task_id === taskId || sub.submission?.taskId === taskId
+    );
+    if (alreadySubmitted) {
+      throw error(400, 'You have already submitted a prediction for this match');
+    }
   }
 
-  // Save the prediction
+  // Save the prediction with task_id in the submission JSON
+  const submissionData = {
+    ...prediction,
+    task_id: taskId
+  };
+
   const { data, error: insertError } = await supabaseAdmin
     .from('task_submissions')
     .insert({
-      task_id: taskId,
+      event_id: eventId,
       user_id: locals.user.id,
-      submission: prediction,
+      submission: submissionData,
       verified: false // Will be verified after match ends
     })
     .select('id')

@@ -253,13 +253,16 @@
       if (!logoPreview && !uploadedLogo) {
         errors.push("Upload an event logo.");
       }
-    } else if (step === "rewards" && eventType === "quick_event") {
-      if (rewards.length === 0) {
-        errors.push("Add at least one reward.");
-      }
     } else if (step === "tasks" && eventType === "quick_event") {
+      if (tasks.length === 0) {
+        errors.push("Add at least one task before continuing.");
+      }
       if (hasDiscordTask && !discordSetupComplete) {
         errors.push("Complete Discord setup before continuing.");
+      }
+    } else if (step === "rewards" && eventType === "quick_event") {
+      if (rewards.length === 0) {
+        errors.push("Add at least one reward before continuing.");
       }
     }
 

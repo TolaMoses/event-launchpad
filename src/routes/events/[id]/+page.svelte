@@ -63,24 +63,27 @@
 				.from('event_participants')
 				.select('id')
 				.eq('event_id', eventId)
-				.eq('user_id', userId)
 				.single();
 
 			hasJoined = !!participantData;
 
 			// Load task completion states
+			// Since tasks are stored as JSON, we check submissions by event_id and extract task_id from submission JSON
 			const { data: submissions } = await supabase
 				.from('task_submissions')
-				.select('task_id, verified')
+				.select('submission, verified')
 				.eq('user_id', userId)
-				.in('task_id', event.tasks.map(t => t.id));
+				.eq('event_id', eventId);
 
 			if (submissions) {
-				submissions.forEach(sub => {
-					taskStates[sub.task_id] = {
-						completed: sub.verified,
-						submitting: false
-					};
+				submissions.forEach((sub: any) => {
+					const taskId = sub.submission?.task_id || sub.submission?.taskId;
+					if (taskId) {
+						taskStates[taskId] = {
+							completed: sub.verified,
+							submitting: false
+						};
+					}
 				});
 			}
 		}
@@ -316,13 +319,15 @@
 		<div class="event-container">
 			<!-- Event Header -->
 			<div class="event-header">
-				<img src={event.logo_url || ASSETS.events.defaultLogo} alt={event.title} class="event-logo" />
 				<div class="event-title-section">
 					<h3>{event.title}</h3>
-					<div class="event-meta">
-						<span>Ends: {formatDate(event.end_time)}</span>
-						<span>Winners: {event.num_winners || 'All participants'}</span>
-						<span>Prize: {event.prize_details.type}</span>
+					<div class="flex">
+						<img src={event.logo_url || ASSETS.events.defaultLogo} alt={event.title} class="event-logo" />
+						<div class="event-meta">
+							<span>Ends: {formatDate(event.end_time)}</span>
+							<span>Winners: {event.num_winners || 'All participants'}</span>
+							<span>Prize: {event.prize_details.type}</span>
+						</div>
 					</div>
 				</div>
 				
