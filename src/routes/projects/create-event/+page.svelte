@@ -125,12 +125,42 @@
     return taskRegistry[type]?.label ?? type;
   }
 
-  function summariseConfig(config: Record<string, unknown>): string {
-    try {
-      return JSON.stringify(config, null, 2);
-    } catch (error) {
-      return String(config);
+  function summariseTask(task: Task): string {
+    const parts: string[] = [];
+    
+    if (task.type === 'twitter') {
+      if (task.config.twitter?.followAccount) parts.push('Follow Twitter account');
+      if (task.config.twitter?.likePost) parts.push('Like post');
+      if (task.config.twitter?.retweetPost) parts.push('Retweet post');
+      if (task.config.twitter?.commentPost) parts.push('Comment on post');
+      if (task.config.twitter?.quotePost) parts.push('Quote post');
+      if (task.config.twitter?.profileLink) parts.push(`Profile: ${task.config.twitter.profileLink}`);
+    } else if (task.type === 'discord') {
+      if (task.config.discord?.joinServer) parts.push('Join Discord server');
+      if (task.config.discord?.inviteLink) parts.push(`Server: ${task.config.discord.inviteLink}`);
+    } else if (task.type === 'telegram') {
+      if (task.config.telegram?.joinChannel) parts.push('Join Telegram channel');
+      if (task.config.telegram?.joinGroup) parts.push('Join Telegram group');
+      if (task.config.telegram?.reactPinned) parts.push('React to pinned message');
+      if (task.config.telegram?.shareUsername) parts.push('Share username');
+    } else if (task.type === 'quiz') {
+      const questionCount = task.config.questions?.length || 0;
+      parts.push(`${questionCount} question${questionCount !== 1 ? 's' : ''}`);
+    } else if (task.type === 'content_submission') {
+      parts.push(`Submit ${task.config.contentType || 'content'}`);
+      if (task.config.description) parts.push(task.config.description);
+    } else if (task.type === 'code_entry') {
+      parts.push('Enter valid code');
+    } else if (task.type === 'scoreline_prediction') {
+      if (task.config.home_team?.name && task.config.away_team?.name) {
+        parts.push(`${task.config.home_team.name} vs ${task.config.away_team.name}`);
+      }
+      if (task.config.match_date) {
+        parts.push(`Match: ${new Date(task.config.match_date).toLocaleDateString()}`);
+      }
     }
+    
+    return parts.length > 0 ? parts.join(' • ') : 'Task configured';
   }
 
   let eventType: "quick_event" | "community" | "" = "quick_event"; // Default to quick_event
@@ -1741,7 +1771,7 @@
                       </button>
                     </div>
                   </div>
-                  <pre class="task-config">{summariseConfig(task.config)}</pre>
+                  <p class="task-summary">{summariseTask(task)}</p>
                 </div>
               {/each}
             {/if}
@@ -2344,16 +2374,15 @@
     gap: 0.6rem;
   }
 
-  .task-config {
+  .task-summary {
     margin: 0;
     padding: 0.85rem;
     background: var(--background-color);
     border-radius: 10px;
     border: 1px solid var(--thin-border);
-    font-size: 0.85rem;
-    max-height: 220px;
-    overflow: auto;
-    white-space: pre-wrap;
+    font-size: 0.875rem;
+    color: rgba(242, 243, 255, 0.8);
+    line-height: 1.5;
   }
 
   .info-banner {

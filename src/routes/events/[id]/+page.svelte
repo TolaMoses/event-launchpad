@@ -426,7 +426,7 @@
 										<div class="task-info">
 											<div class="task-type-badge">{taskEntry?.label || task.type}</div>
 											{#if isCompleted}
-												<div class="completed-badge">✓ Completed</div>
+												<div class="completed-badge">Completed</div>
 											{/if}
 										</div>
 									</div>
@@ -447,10 +447,10 @@
 														{isSubmitting ? 'Verifying...' : 'Submit'}
 													</button>
 												{:else if isCompleted}
-												<p class="completed-text">✓ Content submitted successfully</p>
+												<p class="completed-text">Submission successful</p>
 											{:else}
 												<button class="login-required-btn" on:click={promptLogin}>
-													🔒 Log in to submit content
+													Log in to participate
 												</button>
 											{/if}
 											</div>
@@ -463,10 +463,10 @@
 														{isSubmitting ? 'Verifying...' : 'Confirm Completion'}
 													</button>
 												{:else if isCompleted}
-													<p class="completed-text">✓ Task completed</p>
+													<p class="completed-text">Task completed</p>
 												{:else}
 													<button class="login-required-btn" on:click={promptLogin}>
-														🔒 Log in to complete this task
+														Log in to complete this task
 													</button>
 												{/if}
 											</div>
@@ -484,7 +484,7 @@
 													</div>
 													{#if task.config.match_date}
 														<div class="match-datetime">
-															📅 {new Date(task.config.match_date).toLocaleDateString()}
+															{new Date(task.config.match_date).toLocaleDateString()}
 															{#if task.config.match_time}
 																at {task.config.match_time}
 															{/if}
@@ -544,7 +544,7 @@
 													</div>
 												{:else if isCompleted}
 													<div class="submitted-prediction">
-														<p class="completed-text">✓ Your Prediction</p>
+														<p class="completed-text">Your Prediction</p>
 														<div class="prediction-display">
 															<div class="team-score">
 																<span class="team-name">{task.config.home_team?.name || 'Home'}</span>
@@ -561,13 +561,13 @@
 																class="edit-prediction-btn"
 																on:click={() => editingTask = task.id}
 															>
-																✏️ Edit Prediction
+																Edit Prediction
 															</button>
 														{/if}
 													</div>
 												{:else}
 													<button class="login-required-btn" on:click={promptLogin}>
-														🔒 Log in to submit your prediction
+														Log in to participate
 													</button>
 												{/if}
 											</div>
@@ -579,8 +579,12 @@
 												onComplete={userId ? async () => await verifyAndSubmitTask(task.id, task.type, task.config) : undefined}
 											/>
 										{:else}
-											<p>Task type: {task.type}</p>
-											<pre>{JSON.stringify(task.config, null, 2)}</pre>
+											<div class="generic-task-info">
+												<p class="task-type-label">Task: {taskEntry?.label || task.type}</p>
+												{#if task.config.description}
+													<p class="task-description">{task.config.description}</p>
+												{/if}
+											</div>
 										{/if}
 									</div>
 								</div>
@@ -1001,6 +1005,27 @@
 		color: rgba(242, 243, 255, 0.5);
 		font-style: italic;
 		margin: 0;
+	}
+
+	.generic-task-info {
+		padding: 1rem;
+		background: rgba(91, 141, 255, 0.05);
+		border: 1px solid rgba(91, 141, 255, 0.15);
+		border-radius: 10px;
+	}
+
+	.task-type-label {
+		font-size: 1rem;
+		font-weight: 600;
+		color: rgba(242, 243, 255, 0.9);
+		margin: 0 0 0.5rem 0;
+	}
+
+	.task-description {
+		font-size: 0.875rem;
+		color: rgba(242, 243, 255, 0.7);
+		margin: 0;
+		line-height: 1.5;
 	}
 
 	/* Scoreline Prediction Task Styles */

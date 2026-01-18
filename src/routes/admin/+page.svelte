@@ -334,7 +334,12 @@
                       <p class="admin-only"><strong>Valid Code:</strong> {task.config.validCode}</p>
                     </div>
                   {:else}
-                    <pre class="config-preview">{JSON.stringify(task.config, null, 2)}</pre>
+                    <div class="generic-task-config">
+                      <p><strong>Task Type:</strong> {task.type}</p>
+                      {#if task.config.description}
+                        <p><strong>Description:</strong> {task.config.description}</p>
+                      {/if}
+                    </div>
                   {/if}
                 </div>
               </div>
@@ -800,13 +805,16 @@
     border-radius: 4px;
   }
 
-  .config-preview {
-    background: rgba(0, 0, 0, 0.3);
+  .generic-task-config {
+    background: rgba(0, 0, 0, 0.2);
     padding: 1rem;
     border-radius: 4px;
-    overflow-x: auto;
     font-size: 0.875rem;
     color: rgba(242, 243, 255, 0.8);
+  }
+
+  .generic-task-config p {
+    margin: 0.5rem 0;
   }
 
   .modal-actions {

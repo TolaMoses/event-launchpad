@@ -120,6 +120,7 @@ export const ASSETS = {
 			notification: '/icons/notification.svg',
 			nextDotted: '/icons/next-dotted.svg',
 			nextArrow: '/icons/arrow-right.svg',
+			back: '/icons/back.svg',
 			info: '/icons/info.svg',
 			quickEvent: '/icons/quick-event.svg',
 			community: '/icons/community.svg',
