@@ -22,8 +22,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const taskId = typeof body.taskId === 'string' ? body.taskId : '';
   const eventId = typeof body.eventId === 'string' ? body.eventId : '';
   const prediction = body.prediction as Record<string, any>;
+  const referrerId = typeof body.referrerId === 'string' ? body.referrerId : null;
 
-  console.log('Received prediction request:', { taskId, eventId, prediction, userId: locals.user?.id });
+  console.log('Received prediction request:', { taskId, eventId, prediction, referrerId, userId: locals.user?.id });
 
   if (!taskId || !eventId || !prediction) {
     console.error('Missing required fields:', { taskId, eventId, prediction });
@@ -89,14 +90,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   } else {
     // Insert new submission
     console.log('Inserting new submission');
+    const insertData: any = {
+      event_id: eventId,
+      user_id: locals.user.id,
+      submission: submissionData,
+      verified: false // Will be verified after match ends
+    };
+
+    // Include referrer if provided and different from user
+    if (referrerId && referrerId !== locals.user.id) {
+      insertData.referrer_id = referrerId;
+    }
+
     const result = await supabaseAdmin
       .from('task_submissions')
-      .insert({
-        event_id: eventId,
-        user_id: locals.user.id,
-        submission: submissionData,
-        verified: false // Will be verified after match ends
-      })
+      .insert(insertData)
       .select('id')
       .single();
     

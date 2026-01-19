@@ -3,15 +3,17 @@
 	import { supabase } from '$lib/supabaseClient';
 
 	export let config: {
-		action: 'join' | 'verify';
-		channelName?: string;
-		channelUrl?: string;
-		description?: string;
+		telegram?: {
+			joinChannel?: boolean;
+			joinGroup?: boolean;
+			channelLink?: string;
+			groupLink?: string;
+		};
 	};
 	export let readonly = false;
 	export let onComplete: (() => Promise<void>) | undefined = undefined;
 
-	let verifying = false;
+	let confirming = false;
 	let error = '';
 	let isConnected = false;
 	let loading = true;
@@ -36,7 +38,6 @@
 	}
 
 	function connectTelegram() {
-		// Telegram uses widget-based auth, redirect to a page with the widget
 		const currentUrl = window.location.href;
 		window.location.href = `/auth/telegram?returnTo=${encodeURIComponent(currentUrl)}`;
 	}
@@ -44,43 +45,48 @@
 	async function handleConfirm() {
 		if (readonly || !onComplete) return;
 
-		verifying = true;
+		confirming = true;
 		error = '';
 
 		try {
 			await onComplete();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Verification failed';
+			error = err instanceof Error ? err.message : 'Confirmation failed';
 		} finally {
-			verifying = false;
+			confirming = false;
 		}
 	}
 
-	function getActionText(): string {
-		if (config.action === 'join' && config.channelName) {
-			return `Join ${config.channelName} Telegram channel`;
-		}
-		return 'Join Telegram channel';
+	function getInviteUrl(): string {
+		if (config.telegram?.channelLink) return config.telegram.channelLink;
+		if (config.telegram?.groupLink) return config.telegram.groupLink;
+		return '';
 	}
 
-	function getTelegramUrl(): string {
-		return config.channelUrl || 'https://telegram.org';
+	function getTaskType(): string {
+		if (config.telegram?.joinChannel) return 'channel';
+		if (config.telegram?.joinGroup) return 'group';
+		return 'channel/group';
 	}
 </script>
 
 <div class="telegram-task">
-	<div class="task-icon">✈️</div>
-	<div class="task-content">
-		<h4>{getActionText()}</h4>
-		{#if config.description}
-			<p class="task-description">{config.description}</p>
-		{/if}
-		<a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" class="social-link">
-			Open Telegram →
-		</a>
+	<div class="task-header">
+		<div class="task-icon">✈️</div>
+		<div>
+			<h4>Telegram</h4>
+			<p class="task-instructions">Join the Telegram {getTaskType()}</p>
+		</div>
 	</div>
-	{#if !readonly}
-		<div class="task-action">
+
+	<div class="task-body">
+		{#if getInviteUrl()}
+			<a href={getInviteUrl()} target="_blank" rel="noopener noreferrer" class="invite-link">
+				🔗 Join Telegram {getTaskType() === 'channel' ? 'Channel' : getTaskType() === 'group' ? 'Group' : ''}
+			</a>
+		{/if}
+
+		{#if !readonly}
 			{#if loading}
 				<button class="confirm-btn" disabled>Loading...</button>
 			{:else if !isConnected}
@@ -88,26 +94,35 @@
 					Connect Telegram
 				</button>
 			{:else}
-				<button class="confirm-btn" on:click={handleConfirm} disabled={verifying}>
-					{verifying ? 'Verifying...' : 'Confirm'}
+				<button class="confirm-btn" on:click={handleConfirm} disabled={confirming}>
+					{confirming ? 'Confirming...' : 'Confirm I Joined'}
 				</button>
 			{/if}
-		</div>
-	{/if}
-	{#if error}
-		<p class="error-message">{error}</p>
-	{/if}
+		{:else}
+			<p class="completed-text">Task completed</p>
+		{/if}
+
+		{#if error}
+			<p class="error-message">{error}</p>
+		{/if}
+	</div>
 </div>
 
 <style>
 	.telegram-task {
 		display: flex;
-		align-items: flex-start;
+		flex-direction: column;
 		gap: 1rem;
-		padding: 1rem;
+		padding: 1.5rem;
 		background: rgba(0, 136, 204, 0.05);
 		border: 1px solid rgba(0, 136, 204, 0.2);
-		border-radius: 8px;
+		border-radius: 12px;
+	}
+
+	.task-header {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
 	}
 
 	.task-icon {
@@ -115,38 +130,42 @@
 		flex-shrink: 0;
 	}
 
-	.task-content {
-		flex: 1;
-	}
-
-	.task-content h4 {
-		font-size: 1rem;
+	.task-header h4 {
+		font-size: 1.125rem;
 		font-weight: 600;
 		color: #f2f3ff;
-		margin: 0 0 0.5rem;
+		margin: 0;
 	}
 
-	.task-description {
-		font-size: 0.9rem;
+	.task-instructions {
+		font-size: 0.875rem;
 		color: rgba(242, 243, 255, 0.7);
-		margin: 0 0 0.75rem;
+		margin: 0.25rem 0 0;
 	}
 
-	.social-link {
+	.task-body {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.invite-link {
 		display: inline-block;
 		color: #0088cc;
 		text-decoration: none;
 		font-weight: 600;
 		font-size: 0.9rem;
-		transition: color 0.2s ease;
+		padding: 0.75rem 1rem;
+		background: rgba(0, 136, 204, 0.1);
+		border: 1px solid rgba(0, 136, 204, 0.3);
+		border-radius: 8px;
+		transition: all 0.2s ease;
+		width: fit-content;
 	}
 
-	.social-link:hover {
-		color: #006699;
-	}
-
-	.task-action {
-		flex-shrink: 0;
+	.invite-link:hover {
+		background: rgba(0, 136, 204, 0.2);
+		transform: translateY(-2px);
 	}
 
 	.confirm-btn {
@@ -154,11 +173,12 @@
 		color: white;
 		border: none;
 		border-radius: 8px;
-		padding: 0.65rem 1.5rem;
+		padding: 0.75rem 1.5rem;
 		font-size: 0.9rem;
 		font-weight: 600;
 		cursor: pointer;
 		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		width: fit-content;
 	}
 
 	.confirm-btn:hover:not(:disabled) {
@@ -167,7 +187,7 @@
 	}
 
 	.confirm-btn:disabled {
-		opacity: 0.6;
+		opacity: 0.5;
 		cursor: not-allowed;
 	}
 
@@ -176,11 +196,12 @@
 		color: white;
 		border: none;
 		border-radius: 8px;
-		padding: 0.65rem 1.5rem;
+		padding: 0.75rem 1.5rem;
 		font-size: 0.9rem;
 		font-weight: 600;
 		cursor: pointer;
 		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		width: fit-content;
 	}
 
 	.connect-btn:hover {
@@ -188,10 +209,15 @@
 		box-shadow: 0 4px 12px rgba(111, 160, 255, 0.4);
 	}
 
+	.completed-text {
+		color: #10b981;
+		font-weight: 600;
+		margin: 0;
+	}
+
 	.error-message {
 		color: #ff6b6b;
 		font-size: 0.85rem;
-		margin: 0.5rem 0 0;
-		width: 100%;
+		margin: 0;
 	}
 </style>

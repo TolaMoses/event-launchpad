@@ -3,10 +3,14 @@
 import TwitterTask from './components/TwitterTask.svelte';
 import DiscordTask from './components/DiscordTask.svelte';
 import TelegramTask from './components/TelegramTask.svelte';
+import QuizTask from './components/QuizTask.svelte';
+import PuzzleTask from './components/PuzzleTask.svelte';
+import ContentSubmissionTask from './components/ContentSubmissionTask.svelte';
+import ReferralTask from './components/ReferralTask.svelte';
 
 export const taskRegistry = {
 	twitter: {
-		label: 'Twitter',
+		label: 'Social Task',
 		component: TwitterTask,
 		icon: '🐦'
 	},
@@ -21,29 +25,34 @@ export const taskRegistry = {
 		icon: '✈️'
 	},
 	quiz: {
-		label: 'Quiz',
-		component: null,
+		label: 'Quiz/Trivia',
+		component: QuizTask,
 		icon: '❓'
 	},
-	game: {
-		label: 'Game',
-		component: null,
-		icon: '🎮'
-	},
 	puzzle: {
-		label: 'Puzzle',
-		component: null,
+		label: 'Puzzle/Riddle',
+		component: PuzzleTask,
 		icon: '🧩'
 	},
-	treasure_hunt: {
-		label: 'Treasure Hunt',
-		component: null,
-		icon: '🗺️'
+	content_submission: {
+		label: 'Content Creation',
+		component: ContentSubmissionTask,
+		icon: '📝'
 	},
-	irl: {
-		label: 'IRL Event',
+	scoreline_prediction: {
+		label: 'Scoreline Prediction',
+		component: null, // Already handled separately
+		icon: '⚽'
+	},
+	code_entry: {
+		label: 'Code Entry',
 		component: null,
-		icon: '📍'
+		icon: '🔑'
+	},
+	referral: {
+		label: 'Referral',
+		component: ReferralTask,
+		icon: '🔗'
 	}
 } as const;
 

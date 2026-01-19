@@ -35,10 +35,26 @@
 	let editingTask: string | null = null; // Track which task is being edited
 	let showVideo = false;
 	let showLoginPrompt = false;
+	let referrerId: string | null = null;
 
 	$: eventId = $page.params.id;
 
 	onMount(async () => {
+		// Check for referral parameter
+		const urlParams = new URLSearchParams(window.location.search);
+		const refParam = urlParams.get('ref');
+		if (refParam) {
+			referrerId = refParam;
+			// Store in sessionStorage for later use when user completes a task
+			sessionStorage.setItem(`event_${eventId}_referrer`, refParam);
+		} else {
+			// Check if we have a stored referrer for this event
+			const storedReferrer = sessionStorage.getItem(`event_${eventId}_referrer`);
+			if (storedReferrer) {
+				referrerId = storedReferrer;
+			}
+		}
+
 		const { data: { user } } = await supabase.auth.getUser();
 		
 		if (user) {
@@ -161,18 +177,29 @@
 		}
 
 		// If verified, submit to database
+		const submissionData: any = {
+			task_id: taskId,
+			user_id: userId,
+			event_id: event.id,
+			submission: { completed: true, verified_at: new Date().toISOString() },
+			verified: true
+		};
+
+		// Include referrer if this user came from a referral link
+		if (referrerId && referrerId !== userId) {
+			submissionData.referrer_id = referrerId;
+		}
+
 		const { error } = await supabase
 			.from('task_submissions')
-			.insert({
-				task_id: taskId,
-				user_id: userId,
-				submission: { completed: true, verified_at: new Date().toISOString() },
-				verified: true
-			});
+			.insert(submissionData);
 
 		if (error) {
 			throw new Error('Failed to save submission');
 		}
+
+		// Clear referrer from session after first successful submission
+		sessionStorage.removeItem(`event_${eventId}_referrer`);
 
 		// Add user to event participants if this is their first task completion
 		if (!hasJoined) {
@@ -224,12 +251,11 @@
 			discord: 'Social',
 			telegram: 'Social',
 			quiz: 'Quiz & Games',
-			game: 'Quiz & Games',
 			puzzle: 'Quiz & Games',
-			scoreline: 'Predictions',
+			scoreline_prediction: 'Predictions',
 			content_submission: 'Content',
-			treasure_hunt: 'Challenges',
-			irl: 'IRL Events'
+			code_entry: 'Challenges',
+			referral: 'Referral'
 		};
 		return categories[taskType] || 'Other';
 	}
@@ -293,18 +319,25 @@
 		try {
 			console.log('Submitting prediction:', { taskId, eventId: event.id, homeScore, awayScore });
 			
+			const requestBody: any = {
+				taskId,
+				eventId: event.id,
+				prediction: {
+					home_score: homeScore,
+					away_score: awayScore
+				}
+			};
+
+			// Include referrer if this user came from a referral link
+			if (referrerId && referrerId !== userId) {
+				requestBody.referrerId = referrerId;
+			}
+			
 			const response = await fetch('/api/predictions', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include',
-				body: JSON.stringify({
-					taskId,
-					eventId: event.id,
-					prediction: {
-						home_score: homeScore,
-						away_score: awayScore
-					}
-				})
+				body: JSON.stringify(requestBody)
 			});
 
 			console.log('Response status:', response.status);
