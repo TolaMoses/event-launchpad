@@ -10,9 +10,14 @@ import ReferralTask from './components/ReferralTask.svelte';
 
 export const taskRegistry = {
 	twitter: {
-		label: 'Social Task',
+		label: 'Twitter',
 		component: TwitterTask,
 		icon: '🐦'
+	},
+	social: {
+		label: 'Social Task',
+		component: TwitterTask,
+		icon: '👥'
 	},
 	discord: {
 		label: 'Discord',

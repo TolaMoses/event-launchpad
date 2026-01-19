@@ -68,34 +68,42 @@
 			</div>
 		{:else if submitted && !eventEnded}
 			<p class="submitted-text">Quiz submitted! Score will be revealed when the event ends.</p>
+		{:else if !config.questions || config.questions.length === 0}
+			<p class="error-message">No questions configured for this quiz.</p>
 		{:else}
 			{#each config.questions || [] as question, idx}
 				<div class="question-block">
-					<p class="question-text"><strong>Q{idx + 1}.</strong> {question.question}</p>
-					
-					{#if question.type === 'multiple_choice' && question.options}
-						<div class="options-list">
-							{#each question.options as option}
-								<label class="option-label">
-									<input 
-										type="radio" 
-										name="question-{idx}"
-										value={option}
-										bind:group={answers[idx]}
-										disabled={readonly || submitted}
-									/>
-									<span>{option}</span>
-								</label>
-							{/each}
-						</div>
+					{#if typeof question === 'object' && question.question}
+						<p class="question-text"><strong>Q{idx + 1}.</strong> {String(question.question)}</p>
+						
+						{#if question.type === 'multiple_choice' && Array.isArray(question.options)}
+							<div class="options-list">
+								{#each question.options as option}
+									<label class="option-label">
+										<input 
+											type="radio" 
+											name="question-{idx}"
+											value={typeof option === 'string' ? option : (option.text || option.value || String(option))}
+											bind:group={answers[idx]}
+											disabled={readonly || submitted}
+										/>
+										<span>{typeof option === 'string' ? option : (option.text || option.value || String(option))}</span>
+									</label>
+								{/each}
+							</div>
+						{:else if question.type === 'short_answer' || !question.type}
+							<input 
+								type="text"
+								class="short-answer"
+								placeholder="Your answer..."
+								bind:value={answers[idx]}
+								disabled={readonly || submitted}
+							/>
+						{:else}
+							<p class="error-message">Invalid question type: {question.type}</p>
+						{/if}
 					{:else}
-						<input 
-							type="text"
-							class="short-answer"
-							placeholder="Your answer..."
-							bind:value={answers[idx]}
-							disabled={readonly || submitted}
-						/>
+						<p class="error-message">Question {idx + 1} is not properly configured</p>
 					{/if}
 				</div>
 			{/each}

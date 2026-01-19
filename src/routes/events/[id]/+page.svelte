@@ -610,6 +610,9 @@
 												config={task.config}
 												readonly={isCompleted || !userId}
 												onComplete={userId ? async () => await verifyAndSubmitTask(task.id, task.type, task.config) : undefined}
+												userId={userId}
+												eventId={eventId}
+												eventEnded={event ? new Date(event.end_time) < new Date() : false}
 											/>
 										{:else}
 											<div class="generic-task-info">
