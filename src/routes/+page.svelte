@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { supabase } from '$lib/supabaseClient';
-	import { goto } from '$app/navigation';
+	import { onMount } from "svelte";
+	import { supabase } from "$lib/supabaseClient";
+	import { goto } from "$app/navigation";
 	import { ASSETS } from "$lib/config/assets";
 
 	type Event = {
@@ -37,14 +37,25 @@
 
 	// Group events by category
 	// Active events are approved events that have started
-	$: activeEvents = events.filter(e => e.status === 'approved' && new Date(e.start_time) <= new Date() && new Date(e.end_time) > new Date());
+	$: activeEvents = events.filter(
+		(e) =>
+			e.status === "approved" &&
+			new Date(e.start_time) <= new Date() &&
+			new Date(e.end_time) > new Date(),
+	);
 	// Upcoming events are approved events that haven't started yet
-	$: upcomingEvents = events.filter(e => e.status === 'approved' && new Date(e.start_time) > new Date());
+	$: upcomingEvents = events.filter(
+		(e) => e.status === "approved" && new Date(e.start_time) > new Date(),
+	);
 	// Ended events are approved events that have passed their end time
-	$: endedEvents = events.filter(e => e.status === 'approved' && new Date(e.end_time) <= new Date());
+	$: endedEvents = events.filter(
+		(e) => e.status === "approved" && new Date(e.end_time) <= new Date(),
+	);
 
 	onMount(async () => {
-		const { data: { user } } = await supabase.auth.getUser();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
 		if (user) {
 			userId = user.id;
 			if (user.user_metadata?.wallet_address) {
@@ -54,35 +65,41 @@
 
 		// Fetch events with creator usernames
 		const { data, error } = await supabase
-		.from('events')
-		.select(`
+			.from("events")
+			.select(
+				`
 			*,
 			creator:created_by (
 				username,
 				wallet_address
 			)
-		`)
-		.order('created_at', { ascending: false });
+		`,
+			)
+			.order("created_at", { ascending: false });
 
 		if (error) {
-			console.error('Error fetching events:', error);
+			console.error("Error fetching events:", error);
 		}
 
 		if (data) {
 			// Filter to only show approved/active events on client side
-			events = data.filter(e => e.status === 'approved' || e.status === 'draft');
+			events = data.filter(
+				(e) => e.status === "approved" || e.status === "draft",
+			);
 		}
 
 		// Fetch user's task submissions to determine which events they've completed tasks for
 		if (userId) {
 			const { data: submissions } = await supabase
-				.from('task_submissions')
-				.select('event_id')
-				.eq('user_id', userId);
+				.from("task_submissions")
+				.select("event_id")
+				.eq("user_id", userId);
 
 			if (submissions) {
 				// Get unique event IDs where user has submitted tasks
-				completedEventIds = new Set(submissions.map(s => s.event_id).filter(Boolean));
+				completedEventIds = new Set(
+					submissions.map((s) => s.event_id).filter(Boolean),
+				);
 			}
 		}
 
@@ -90,12 +107,12 @@
 	});
 
 	function getRewardIcon(prizeType: string): string {
-		if (prizeType === 'Token' || prizeType === 'ETH') {
-			return '/icons/dollar-bag.svg';
-		} else if (prizeType === 'Voucher') {
-			return '/icons/voucher.svg';
+		if (prizeType === "Token" || prizeType === "ETH") {
+			return "/icons/dollar-bag.svg";
+		} else if (prizeType === "Voucher") {
+			return "/icons/voucher.svg";
 		} else {
-			return '/icons/gift.svg';
+			return "/icons/gift.svg";
 		}
 	}
 
@@ -104,28 +121,30 @@
 		const end = new Date(endTime);
 		const diff = end.getTime() - now.getTime();
 
-		if (diff < 0) return 'Ended';
+		if (diff < 0) return "Ended";
 
 		const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-		const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+		const hours = Math.floor(
+			(diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+		);
 		const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-		if (days > 0) return `Ends in ${days} day${days > 1 ? 's' : ''}`;
-		if (hours > 0) return `Ends in ${hours} hr${hours > 1 ? 's' : ''}`;
-		return `Ends in ${minutes} min${minutes > 1 ? 's' : ''}`;
+		if (days > 0) return `Ends in ${days} day${days > 1 ? "s" : ""}`;
+		if (hours > 0) return `Ends in ${hours} hr${hours > 1 ? "s" : ""}`;
+		return `Ends in ${minutes} min${minutes > 1 ? "s" : ""}`;
 	}
 
 	function getTaskLabel(taskType: string): string {
 		const labels: Record<string, string> = {
-			twitter: 'Twitter',
-			discord: 'Discord',
-			telegram: 'Telegram',
-			quiz: 'Quiz',
-			game: 'Game',
-			puzzle: 'Puzzle',
-			treasure_hunt: 'Treasure Hunt',
-			scoreline: 'Scoreline',
-			irl: 'IRL'
+			twitter: "Twitter",
+			discord: "Discord",
+			telegram: "Telegram",
+			quiz: "Quiz",
+			game: "Game",
+			puzzle: "Puzzle",
+			treasure_hunt: "Treasure Hunt",
+			scoreline: "Scoreline",
+			irl: "IRL",
 		};
 		return labels[taskType] || taskType;
 	}
@@ -145,13 +164,13 @@
 			participation: ASSETS.icons.tasks.irl,
 			referral: ASSETS.icons.tasks.irl,
 			scoreline: ASSETS.icons.tasks.scoreline,
-			irl: ASSETS.icons.tasks.irl
+			irl: ASSETS.icons.tasks.irl,
 		};
 		return icons[taskType] || ASSETS.icons.tasks.placeholder;
 	}
 
 	function getUniqueTaskTypes(tasks: Array<{ type: string }>): string[] {
-		const types = tasks.map(t => t.type);
+		const types = tasks.map((t) => t.type);
 		return [...new Set(types)];
 	}
 
@@ -169,7 +188,11 @@
 	<section class="hero-section">
 		<div class="hero-content">
 			<h1 class="hero-title">Create. Play. Reward. All in one place.</h1>
-			<img src="/images/poker-banner.jpg" alt="Event Banner" class="hero-banner" />
+			<img
+				src="/images/poker-banner.jpg"
+				alt="Event Banner"
+				class="hero-banner"
+			/>
 		</div>
 	</section>
 
@@ -180,31 +203,52 @@
 			<section class="events-section">
 				<div class="section-header">
 					<h2>Active Events</h2>
-					<button class="view-all-btn" on:click={() => goto('/events?filter=active')}>
+					<button
+						class="view-all-btn"
+						on:click={() => goto("/events?filter=active")}
+					>
 						Show all ({activeEvents.length})
 					</button>
 				</div>
 				<div class="events-scroll">
 					{#each activeEvents as event (event.id)}
-						<div class="event-card" on:click={() => goto(`/events/${event.id}`)} role="button" tabindex="0">
+						<div
+							class="event-card"
+							on:click={() => goto(`/events/${event.id}`)}
+							role="button"
+							tabindex="0"
+						>
 							<div class="event-main">
-								
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
-										<span class="creator">by {getCreatorName(event)}</span>
-							
-										<span class="time">{getTimeRemaining(event.end_time)}</span>
+										<span class="creator"
+											>by {getCreatorName(event)}</span
+										>
+
+										<span class="time"
+											>{getTimeRemaining(
+												event.end_time,
+											)}</span
+										>
 									</p>
 								</div>
 								<div class="event-logo">
-									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
+									<img
+										src={event.logo_url ||
+											"/icons/event-logo.svg"}
+										alt={event.title}
+									/>
 								</div>
 							</div>
 							<div class="flex space-between">
 								<div class="event-task-icons">
 									{#each getUniqueTaskTypes(event.tasks) as taskType}
-										<img src={getTaskIcon(taskType)} alt={taskType} class="task-icon"/>
+										<img
+											src={getTaskIcon(taskType)}
+											alt={taskType}
+											class="task-icon"
+										/>
 									{/each}
 								</div>
 								{#if completedEventIds.has(event.id)}
@@ -221,75 +265,115 @@
 			<section class="events-section">
 				<div class="section-header">
 					<h2>Upcoming Events</h2>
-					<button class="view-all-btn" on:click={() => goto('/events?filter=upcoming')}>
+					<button
+						class="view-all-btn"
+						on:click={() => goto("/events?filter=upcoming")}
+					>
 						Show all ({upcomingEvents.length})
 					</button>
 				</div>
 				<div class="events-scroll">
 					{#each upcomingEvents as event (event.id)}
-						<div class="event-card" on:click={() => goto(`/events/${event.id}`)} role="button" tabindex="0">
+						<div
+							class="event-card"
+							on:click={() => goto(`/events/${event.id}`)}
+							role="button"
+							tabindex="0"
+						>
 							<div class="event-main">
-								
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
-										<span class="creator">by {getCreatorName(event)}</span>
-										<span class="time">Starts {new Date(event.start_time).toLocaleDateString()}</span>
+										<span class="creator"
+											>by {getCreatorName(event)}</span
+										>
+										<span class="time"
+											>Starts {new Date(
+												event.start_time,
+											).toLocaleDateString()}</span
+										>
 									</p>
 								</div>
 								<div class="event-logo">
-									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
+									<img
+										src={event.logo_url ||
+											"/icons/event-logo.svg"}
+										alt={event.title}
+									/>
 								</div>
 							</div>
 							<div class="flex space-between">
 								<div class="event-task-icons">
-								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<img src={getTaskIcon(taskType)} alt={taskType} class="task-icon"/>
-								{/each}
-							</div>
-							{#if completedEventIds.has(event.id)}
-								<p class="completed-badge">Completed</p>
-							{/if}
+									{#each getUniqueTaskTypes(event.tasks) as taskType}
+										<img
+											src={getTaskIcon(taskType)}
+											alt={taskType}
+											class="task-icon"
+										/>
+									{/each}
+								</div>
+								{#if completedEventIds.has(event.id)}
+									<p class="completed-badge">Completed</p>
+								{/if}
 							</div>
 						</div>
 					{/each}
 				</div>
 			</section>
 		{/if}
-		
+
 		{#if endedEvents.length > 0}
 			<section class="events-section">
 				<div class="section-header">
 					<h2>Past Events</h2>
-					<button class="view-all-btn" on:click={() => goto('/events?filter=ended')}>
+					<button
+						class="view-all-btn"
+						on:click={() => goto("/events?filter=ended")}
+					>
 						Show all ({endedEvents.length})
 					</button>
 				</div>
 				<div class="events-scroll">
 					{#each endedEvents as event (event.id)}
-						<div class="event-card ended" on:click={() => goto(`/events/${event.id}`)} role="button" tabindex="0">
+						<div
+							class="event-card ended"
+							on:click={() => goto(`/events/${event.id}`)}
+							role="button"
+							tabindex="0"
+						>
 							<div class="event-main">
-								
 								<div class="event-info">
 									<h3 class="event-title">{event.title}</h3>
 									<p class="event-meta">
-										<span class="creator">by {getCreatorName(event)}</span>
-										<span class="time ended-text">Ended</span>
+										<span class="creator"
+											>by {getCreatorName(event)}</span
+										>
+										<span class="time ended-text"
+											>Ended</span
+										>
 									</p>
 								</div>
 								<div class="event-logo">
-									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
+									<img
+										src={event.logo_url ||
+											"/icons/event-logo.svg"}
+										alt={event.title}
+									/>
 								</div>
 							</div>
 							<div class="flex space-between">
 								<div class="event-task-icons">
-								{#each getUniqueTaskTypes(event.tasks) as taskType}
-									<img src={getTaskIcon(taskType)} alt={taskType} class="task-icon"/>
-								{/each}
-							</div>
-							{#if completedEventIds.has(event.id)}
-								<p class="completed-badge">Completed</p>
-							{/if}
+									{#each getUniqueTaskTypes(event.tasks) as taskType}
+										<img
+											src={getTaskIcon(taskType)}
+											alt={taskType}
+											class="task-icon"
+										/>
+									{/each}
+								</div>
+								{#if completedEventIds.has(event.id)}
+									<p class="completed-badge">Completed</p>
+								{/if}
 							</div>
 						</div>
 					{/each}
@@ -301,7 +385,10 @@
 			<div class="empty-state">
 				<h3>No events yet</h3>
 				<p>Be the first to create an event!</p>
-				<button class="primary-btn" on:click={() => goto('/projects/create-event')}>
+				<button
+					class="primary-btn"
+					on:click={() => goto("/create-event")}
+				>
 					Create Event
 				</button>
 			</div>
@@ -410,7 +497,10 @@
 		border-radius: 12px;
 		padding: 1.25rem;
 		cursor: pointer;
-		transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			border-color 0.2s ease,
+			box-shadow 0.2s ease;
 	}
 
 	.event-card:hover {
@@ -561,7 +651,9 @@
 		font-size: 1.1rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 	}
 
 	.primary-btn:hover {

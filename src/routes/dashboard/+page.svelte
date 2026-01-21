@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { supabase } from '$lib/supabaseClient';
-	import { goto } from '$app/navigation';
+	import { onMount } from "svelte";
+	import { supabase } from "$lib/supabaseClient";
+	import { goto } from "$app/navigation";
 
 	type Event = {
 		id: string;
-		event_type: 'quick_event';
+		event_type: "quick_event";
 		title: string;
 		description: string;
 		logo_url: string | null;
@@ -38,10 +38,12 @@
 	let participantCounts: Record<string, number> = {};
 
 	onMount(async () => {
-		const { data: { user } } = await supabase.auth.getUser();
-		
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
 		if (!user) {
-			goto('/');
+			goto("/");
 			return;
 		}
 
@@ -49,24 +51,26 @@
 
 		// Fetch events created by user
 		const { data: createdEvents } = await supabase
-			.from('events')
-			.select('*')
-			.eq('created_by', user.id)
-			.order('created_at', { ascending: false });
+			.from("events")
+			.select("*")
+			.eq("created_by", user.id)
+			.order("created_at", { ascending: false });
 
 		if (createdEvents) {
 			myEvents = createdEvents;
-			
+
 			// Fetch participant counts for each event
 			for (const event of createdEvents) {
 				const { data: submissions } = await supabase
-					.from('task_submissions')
-					.select('user_id')
-					.eq('event_id', event.id);
-				
+					.from("task_submissions")
+					.select("user_id")
+					.eq("event_id", event.id);
+
 				if (submissions) {
 					// Count unique participants
-					const uniqueParticipants = new Set(submissions.map(s => s.user_id));
+					const uniqueParticipants = new Set(
+						submissions.map((s) => s.user_id),
+					);
 					participantCounts[event.id] = uniqueParticipants.size;
 				} else {
 					participantCounts[event.id] = 0;
@@ -76,17 +80,17 @@
 
 		// Fetch events user has participated in
 		const { data: participations } = await supabase
-			.from('event_participants')
-			.select('event_id')
-			.eq('user_id', user.id);
+			.from("event_participants")
+			.select("event_id")
+			.eq("user_id", user.id);
 
 		if (participations && participations.length > 0) {
-			const eventIds = participations.map(p => p.event_id);
+			const eventIds = participations.map((p) => p.event_id);
 			const { data: joinedEvents } = await supabase
-				.from('events')
-				.select('*')
-				.in('id', eventIds)
-				.order('created_at', { ascending: false });
+				.from("events")
+				.select("*")
+				.in("id", eventIds)
+				.order("created_at", { ascending: false });
 
 			if (joinedEvents) {
 				participatedEvents = joinedEvents;
@@ -97,12 +101,12 @@
 	});
 
 	function getRewardIcon(prizeType: string): string {
-		if (prizeType === 'Token' || prizeType === 'ETH') {
-			return '/icons/dollar-bag.svg';
-		} else if (prizeType === 'Voucher') {
-			return '/icons/voucher.svg';
+		if (prizeType === "Token" || prizeType === "ETH") {
+			return "/icons/dollar-bag.svg";
+		} else if (prizeType === "Voucher") {
+			return "/icons/voucher.svg";
 		} else {
-			return '/icons/gift.svg';
+			return "/icons/gift.svg";
 		}
 	}
 
@@ -111,10 +115,12 @@
 		const end = new Date(endTime);
 		const diff = end.getTime() - now.getTime();
 
-		if (diff < 0) return 'Ended';
+		if (diff < 0) return "Ended";
 
 		const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-		const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+		const hours = Math.floor(
+			(diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+		);
 
 		if (days > 0) return `${days}d left`;
 		if (hours > 0) return `${hours}h left`;
@@ -122,16 +128,16 @@
 
 	function getStatusBadge(status: string): { text: string; color: string } {
 		const badges: Record<string, { text: string; color: string }> = {
-			draft: { text: 'Draft', color: '#6c757d' },
-			submitted: { text: 'Submitted', color: '#ffc107' },
-			review: { text: 'In Review', color: '#ffa500' },
-			approved: { text: 'Approved', color: '#28a745' },
-			rejected: { text: 'Rejected', color: '#dc3545' },
-			active: { text: 'Active', color: '#28a745' },
-			ended: { text: 'Ended', color: '#dc3545' },
-			cancelled: { text: 'Cancelled', color: '#6c757d' }
+			draft: { text: "Draft", color: "#6c757d" },
+			submitted: { text: "Submitted", color: "#ffc107" },
+			review: { text: "In Review", color: "#ffa500" },
+			approved: { text: "Approved", color: "#28a745" },
+			rejected: { text: "Rejected", color: "#dc3545" },
+			active: { text: "Active", color: "#28a745" },
+			ended: { text: "Ended", color: "#dc3545" },
+			cancelled: { text: "Cancelled", color: "#6c757d" },
 		};
-		return badges[status] || { text: status, color: '#6c757d' };
+		return badges[status] || { text: status, color: "#6c757d" };
 	}
 
 	// All events are complete on creation now
@@ -151,7 +157,7 @@
 <div class="dashboard-container">
 	<div class="dashboard-header">
 		<h1>Dashboard</h1>
-		<button class="primary-btn" on:click={() => goto('/projects/create-event')}>
+		<button class="primary-btn" on:click={() => goto("/create-event")}>
 			+ Create Event
 		</button>
 	</div>
@@ -165,10 +171,19 @@
 			{#if myEvents.length > 0}
 				<div class="events-grid">
 					{#each myEvents as event (event.id)}
-						<div class="event-card" on:click={() => viewEventStats(event.id)} role="button" tabindex="0">
+						<div
+							class="event-card"
+							on:click={() => viewEventStats(event.id)}
+							role="button"
+							tabindex="0"
+						>
 							<div class="event-header">
 								<div class="event-logo">
-									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
+									<img
+										src={event.logo_url ||
+											"/icons/event-logo.svg"}
+										alt={event.title}
+									/>
 								</div>
 								<div class="event-header-info">
 									<h3>{event.title}</h3>
@@ -176,7 +191,12 @@
 										<span class="type-badge">
 											⚡ Event
 										</span>
-										<span class="status-badge" style="background-color: {getStatusBadge(event.status).color};">
+										<span
+											class="status-badge"
+											style="background-color: {getStatusBadge(
+												event.status,
+											).color};"
+										>
 											{getStatusBadge(event.status).text}
 										</span>
 									</div>
@@ -185,26 +205,47 @@
 							<div class="event-meta">
 								<div class="event-stats">
 									<div class="stat">
-										<span class="stat-label">Participants</span>
-										<span class="stat-value">{participantCounts[event.id] || 0}</span>
+										<span class="stat-label"
+											>Participants</span
+										>
+										<span class="stat-value"
+											>{participantCounts[event.id] ||
+												0}</span
+										>
 									</div>
 									<div class="stat">
 										<span class="stat-label">Tasks</span>
-										<span class="stat-value">{event.tasks?.length || 0}</span>
+										<span class="stat-value"
+											>{event.tasks?.length || 0}</span
+										>
 									</div>
 									<div class="stat">
 										<span class="stat-label">Ends</span>
-										<span class="stat-value">{new Date(event.end_time).toLocaleDateString()}</span>
+										<span class="stat-value"
+											>{new Date(
+												event.end_time,
+											).toLocaleDateString()}</span
+										>
 									</div>
 								</div>
 							</div>
 							<div class="event-actions">
 								{#if getSetupProgress(event) < 100}
-									<button class="primary-btn small" on:click|stopPropagation={() => goto(`/projects/setup-event/${event.id}`)}>
+									<button
+										class="primary-btn small"
+										on:click|stopPropagation={() =>
+											goto(
+												`/projects/setup-event/${event.id}`,
+											)}
+									>
 										Continue Setup
 									</button>
 								{:else}
-									<button class="secondary-btn small" on:click|stopPropagation={() => viewEventStats(event.id)}>
+									<button
+										class="secondary-btn small"
+										on:click|stopPropagation={() =>
+											viewEventStats(event.id)}
+									>
 										View Stats
 									</button>
 								{/if}
@@ -215,7 +256,10 @@
 			{:else}
 				<div class="empty-section">
 					<p>You haven't created any events yet.</p>
-					<button class="primary-btn" on:click={() => goto('/projects/create-event')}>
+					<button
+						class="primary-btn"
+						on:click={() => goto("/create-event")}
+					>
 						Create Your First Event
 					</button>
 				</div>
@@ -228,14 +272,28 @@
 			{#if participatedEvents.length > 0}
 				<div class="events-grid">
 					{#each participatedEvents as event (event.id)}
-						<div class="event-card" on:click={() => viewEventDetails(event.id)} role="button" tabindex="0">
+						<div
+							class="event-card"
+							on:click={() => viewEventDetails(event.id)}
+							role="button"
+							tabindex="0"
+						>
 							<div class="event-header">
 								<div class="event-logo">
-									<img src={event.logo_url || '/icons/event-logo.svg'} alt={event.title} />
+									<img
+										src={event.logo_url ||
+											"/icons/event-logo.svg"}
+										alt={event.title}
+									/>
 								</div>
 								<div class="event-header-info">
 									<h3>{event.title}</h3>
-									<span class="status-badge" style="background-color: {getStatusBadge(event.status).color};">
+									<span
+										class="status-badge"
+										style="background-color: {getStatusBadge(
+											event.status,
+										).color};"
+									>
 										{getStatusBadge(event.status).text}
 									</span>
 								</div>
@@ -245,8 +303,17 @@
 									<span class="meta-label">Prize:</span>
 									<div class="meta-value">
 										{#if event.prize_details}
-											<img src={getRewardIcon(event.prize_details.type)} alt="Reward" class="reward-icon-small" />
-											<span>{event.prize_details.type}</span>
+											<img
+												src={getRewardIcon(
+													event.prize_details.type,
+												)}
+												alt="Reward"
+												class="reward-icon-small"
+											/>
+											<span
+												>{event.prize_details
+													.type}</span
+											>
 										{:else}
 											<span class="not-set">Not set</span>
 										{/if}
@@ -254,11 +321,19 @@
 								</div>
 								<div class="meta-item">
 									<span class="meta-label">Time:</span>
-									<span class="meta-value">{getTimeRemaining(event.end_time)}</span>
+									<span class="meta-value"
+										>{getTimeRemaining(
+											event.end_time,
+										)}</span
+									>
 								</div>
 							</div>
 							<div class="event-actions">
-								<button class="secondary-btn small" on:click|stopPropagation={() => viewEventDetails(event.id)}>
+								<button
+									class="secondary-btn small"
+									on:click|stopPropagation={() =>
+										viewEventDetails(event.id)}
+								>
 									View Details
 								</button>
 							</div>
@@ -268,7 +343,7 @@
 			{:else}
 				<div class="empty-section">
 					<p>You haven't joined any events yet.</p>
-					<button class="primary-btn" on:click={() => goto('/')}>
+					<button class="primary-btn" on:click={() => goto("/")}>
 						Browse Events
 					</button>
 				</div>
@@ -328,7 +403,10 @@
 		border-radius: 12px;
 		padding: 1.5rem;
 		cursor: pointer;
-		transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			border-color 0.2s ease,
+			box-shadow 0.2s ease;
 	}
 
 	.event-card:hover {
@@ -434,7 +512,9 @@
 		font-size: 1rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 	}
 
 	.primary-btn:hover {
@@ -451,7 +531,9 @@
 		font-size: 0.95rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: background 0.2s ease, border-color 0.2s ease;
+		transition:
+			background 0.2s ease,
+			border-color 0.2s ease;
 		flex: 1;
 	}
 
