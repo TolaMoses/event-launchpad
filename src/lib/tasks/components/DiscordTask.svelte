@@ -1,35 +1,42 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { supabase } from '$lib/supabaseClient';
+	import { onMount } from "svelte";
+	import { supabase } from "$lib/supabaseClient";
 
 	export let config: {
 		discord?: {
 			joinServer?: boolean;
 			inviteLink?: string;
+			serverId?: string;
+			serverName?: string;
 		};
+		description?: string;
+		title?: string;
 	};
 	export let readonly = false;
 	export let onComplete: (() => Promise<void>) | undefined = undefined;
 
 	let confirming = false;
-	let error = '';
+	let error = "";
 	let isConnected = false;
 	let loading = true;
 
 	onMount(async () => {
+		console.log("Discord task config:", config);
 		await checkConnection();
 		loading = false;
 	});
 
 	async function checkConnection() {
-		const { data: { user } } = await supabase.auth.getUser();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
 		if (!user) return;
 
 		const { data } = await supabase
-			.from('social_connections')
-			.select('id')
-			.eq('user_id', user.id)
-			.eq('platform', 'discord')
+			.from("social_connections")
+			.select("id")
+			.eq("user_id", user.id)
+			.eq("platform", "discord")
 			.single();
 
 		isConnected = !!data;
@@ -44,19 +51,27 @@
 		if (readonly || !onComplete) return;
 
 		confirming = true;
-		error = '';
+		error = "";
 
 		try {
 			await onComplete();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Confirmation failed';
+			error = err instanceof Error ? err.message : "Confirmation failed";
 		} finally {
 			confirming = false;
 		}
 	}
 
 	function getInviteUrl(): string {
-		return config.discord?.inviteLink || '';
+		return config?.discord?.inviteLink || "";
+	}
+
+	function getServerName(): string {
+		return config?.discord?.serverName || "Discord Server";
+	}
+
+	function getDescription(): string {
+		return config?.description || "Join the Discord server";
 	}
 </script>
 
@@ -64,14 +79,22 @@
 	<div class="task-header">
 		<div class="task-icon">💬</div>
 		<div>
-			<h4>Discord</h4>
-			<p class="task-instructions">Join the Discord server</p>
+			<h4>
+				Discord{#if getServerName() !== "Discord Server"}
+					- {getServerName()}{/if}
+			</h4>
+			<p class="task-instructions">{getDescription()}</p>
 		</div>
 	</div>
 
 	<div class="task-body">
 		{#if getInviteUrl()}
-			<a href={getInviteUrl()} target="_blank" rel="noopener noreferrer" class="invite-link">
+			<a
+				href={getInviteUrl()}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="invite-link"
+			>
 				🔗 Join Discord Server
 			</a>
 		{/if}
@@ -84,8 +107,12 @@
 					Connect Discord
 				</button>
 			{:else}
-				<button class="confirm-btn" on:click={handleConfirm} disabled={confirming}>
-					{confirming ? 'Confirming...' : 'Confirm I Joined'}
+				<button
+					class="confirm-btn"
+					on:click={handleConfirm}
+					disabled={confirming}
+				>
+					{confirming ? "Confirming..." : "Confirm I Joined"}
 				</button>
 			{/if}
 		{:else}
@@ -167,7 +194,9 @@
 		font-size: 0.9rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 		width: fit-content;
 	}
 
@@ -190,7 +219,9 @@
 		font-size: 0.9rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 		width: fit-content;
 	}
 

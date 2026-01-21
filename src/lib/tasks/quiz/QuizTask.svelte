@@ -73,7 +73,30 @@
   function handleSave() {
     errors = validateQuizTaskConfig(config);
     if (errors.length === 0) {
-      onSave(structuredClone(config));
+      // Transform the config to match the display component's expected format
+      const transformedConfig = {
+        ...config,
+        questions: config.questions.map(q => {
+          if (q.type === 'multiple_choice') {
+            // Find the correct answer
+            const correctOption = q.options.find(opt => opt.isCorrect);
+            return {
+              question: q.prompt,
+              type: 'multiple_choice',
+              options: q.options.map(opt => opt.label),
+              correctAnswer: correctOption?.label || q.options[0]?.label || ''
+            };
+          } else {
+            // Short answer
+            return {
+              question: q.prompt,
+              type: 'short_answer',
+              correctAnswer: q.correctAnswerText || ''
+            };
+          }
+        })
+      };
+      onSave(structuredClone(transformedConfig));
     }
   }
 </script>

@@ -15,6 +15,7 @@ import QuizTask from './components/QuizTask.svelte';
 import PuzzleTask from './components/PuzzleTask.svelte';
 import ContentSubmissionTask from './components/ContentSubmissionTask.svelte';
 import ReferralTask from './components/ReferralTask.svelte';
+import DiscordConfigTask from './discord/DiscordTask.svelte';
 
 // Import legacy components
 import SocialTask from './social/SocialTask.svelte';
@@ -47,35 +48,31 @@ export const taskRegistry: TaskRegistry = {
 		label: 'Twitter',
 		component: TwitterTask
 	},
-	social: {
-		label: 'Social Tasks',
-		component: SocialTask  // Legacy component, consider migrating to TwitterTask
-	},
-	
+
 	// Discord
 	discord: {
 		label: 'Discord',
-		component: DiscordTask
+		component: DiscordConfigTask
 	},
-	
+
 	// Telegram
 	telegram: {
 		label: 'Telegram',
 		component: TelegramTask
 	},
-	
+
 	// Quiz/Trivia
 	quiz: {
 		label: 'Quiz / Trivia',
 		component: QuizTask
 	},
-	
+
 	// Puzzle/Riddle
 	puzzle: {
 		label: 'Puzzle / Riddle',
 		component: PuzzleTask
 	},
-	
+
 	// Content creation
 	content_submission: {
 		label: 'Content Creation',
@@ -85,7 +82,7 @@ export const taskRegistry: TaskRegistry = {
 		label: 'Content Creation',
 		component: ContentTask  // Legacy component
 	},
-	
+
 	// Scoreline prediction
 	scoreline_prediction: {
 		label: 'Scoreline Prediction',
@@ -95,31 +92,31 @@ export const taskRegistry: TaskRegistry = {
 		label: 'Scoreline Prediction',
 		component: ScorelinePrediction
 	},
-	
+
 	// Code entry
 	code_entry: {
 		label: 'Code Entry',
 		component: null  // To be implemented
 	},
-	
+
 	// Referral
 	referral: {
 		label: 'Referral Tasks',
 		component: ReferralTask
 	},
-	
+
 	// Participation
 	participation: {
 		label: 'Participation Tasks',
 		component: ParticipationTask
 	},
-	
+
 	// Game/Challenges
 	game: {
 		label: 'Game / Challenges',
 		component: GameTask
 	},
-	
+
 	// IRL Tasks
 	irl: {
 		label: 'IRL Tasks',

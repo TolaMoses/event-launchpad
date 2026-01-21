@@ -31,6 +31,21 @@
 		} else if (config.quiz?.questions) {
 			questions = config.quiz.questions;
 		}
+		
+		// Transform old format (prompt) to new format (question) if needed
+		questions = questions.map(q => {
+			if (q && typeof q === 'object') {
+				return {
+					...q,
+					question: q.question || q.prompt || '',
+					correctAnswer: q.correctAnswer || q.correctAnswerText || '',
+					type: q.type || 'short_answer',
+					options: Array.isArray(q.options) ? q.options : []
+				};
+			}
+			return q;
+		});
+		
 		console.log('Parsed questions:', questions);
 	});
 

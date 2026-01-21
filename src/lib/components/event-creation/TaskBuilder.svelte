@@ -10,21 +10,32 @@
   export let onSave: (task: TaskInstance) => void = () => {};
   export let onCancel: () => void = () => {};
 
-  let selectedTaskType: TaskTypeKey | '' = '';
+  let selectedTaskTypes: Set<TaskTypeKey> = new Set();
   let creatingTaskType: TaskTypeKey | null = null;
   let taskBuilderState: Record<string, unknown> | null = null;
+  let pendingTaskTypes: TaskTypeKey[] = [];
 
   const taskOptions = getTaskOptions();
 
   // If editing, set the task type
   $: if (editingTask) {
-    selectedTaskType = editingTask.type as TaskTypeKey;
     creatingTaskType = editingTask.type as TaskTypeKey;
   }
 
-  function startCreateTask() {
-    if (!selectedTaskType) return;
-    creatingTaskType = selectedTaskType;
+  function toggleTaskType(taskType: TaskTypeKey) {
+    if (selectedTaskTypes.has(taskType)) {
+      selectedTaskTypes.delete(taskType);
+    } else {
+      selectedTaskTypes.add(taskType);
+    }
+    selectedTaskTypes = new Set(selectedTaskTypes); // Trigger reactivity
+  }
+
+  function startCreateTasks() {
+    if (selectedTaskTypes.size === 0) return;
+    
+    pendingTaskTypes = Array.from(selectedTaskTypes);
+    creatingTaskType = pendingTaskTypes[0];
   }
 
   function handleTaskSave(event: CustomEvent) {
@@ -37,14 +48,22 @@
         }
       : {
           id: generateId(),
-          type: creatingTaskType || selectedTaskType,
+          type: creatingTaskType || pendingTaskTypes[0],
           title: config.title || 'Untitled Task',
           points: config.points || 0,
           config: clone(config)
         };
 
     onSave(task);
-    resetBuilder();
+    
+    // If we have more pending tasks, move to the next one
+    if (!editingTask && pendingTaskTypes.length > 1) {
+      pendingTaskTypes = pendingTaskTypes.slice(1);
+      creatingTaskType = pendingTaskTypes[0];
+      taskBuilderState = null;
+    } else {
+      resetBuilder();
+    }
   }
 
   function handleTaskCancel() {
@@ -54,7 +73,8 @@
 
   function resetBuilder() {
     if (!editingTask) {
-      selectedTaskType = '';
+      selectedTaskTypes = new Set();
+      pendingTaskTypes = [];
     }
     creatingTaskType = null;
     taskBuilderState = null;
@@ -65,28 +85,33 @@
   {#if !creatingTaskType}
     <!-- Task Type Selector -->
     <div class="task-selector">
-      <label for="task-type">Select Task Type</label>
-      <div class="selector-row">
-        <select 
-          id="task-type" 
-          bind:value={selectedTaskType}
-          disabled={editingTask !== null}
-        >
-          <option value="" disabled>Choose task category...</option>
-          {#each taskOptions as option}
-            <option value={option.value}>{option.label}</option>
-          {/each}
-        </select>
-        <button
-          type="button"
-          class="add-task-button"
-          class:active={selectedTaskType && !creatingTaskType}
-          on:click={startCreateTask}
-          disabled={!selectedTaskType}
-        >
-          {editingTask ? 'Edit Task' : 'Add Task'}
-        </button>
+      <label>Select Task Types</label>
+      <p class="helper-text">Select one or more task types to add to your event</p>
+      
+      <div class="checkbox-grid">
+        {#each taskOptions as option}
+          <label class="checkbox-option">
+            <input 
+              type="checkbox" 
+              value={option.value}
+              checked={selectedTaskTypes.has(option.value as TaskTypeKey)}
+              on:change={() => toggleTaskType(option.value as TaskTypeKey)}
+              disabled={editingTask !== null}
+            />
+            <span class="checkbox-label">{option.label}</span>
+          </label>
+        {/each}
       </div>
+
+      <button
+        type="button"
+        class="add-tasks-button"
+        class:active={selectedTaskTypes.size > 0 && !creatingTaskType}
+        on:click={startCreateTasks}
+        disabled={selectedTaskTypes.size === 0}
+      >
+        {editingTask ? 'Edit Task' : selectedTaskTypes.size > 0 ? `Add ${selectedTaskTypes.size} Task${selectedTaskTypes.size > 1 ? 's' : ''}` : 'Add Tasks'}
+      </button>
     </div>
   {:else}
     <!-- Task Builder (renders specific task component) -->
@@ -95,6 +120,9 @@
         <h3>
           {editingTask ? 'Edit' : 'Configure'} 
           {taskRegistry[creatingTaskType]?.label || 'Task'}
+          {#if !editingTask && pendingTaskTypes.length > 1}
+            <span class="progress-indicator">({pendingTaskTypes.length - pendingTaskTypes.indexOf(creatingTaskType)} of {pendingTaskTypes.length})</span>
+          {/if}
         </h3>
         <button
           type="button"
@@ -130,43 +158,57 @@
     display: block;
     color: #fff;
     font-weight: 500;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
 
-  .selector-row {
+  .helper-text {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 1rem;
+  }
+
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .checkbox-option {
     display: flex;
-    gap: 1rem;
-  }
-
-  select {
-    flex: 1;
+    align-items: center;
+    gap: 0.5rem;
     padding: 0.75rem;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    color: #fff;
-    font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
   }
 
-  select:focus {
-    outline: none;
-    border-color: #8b5cf6;
+  .checkbox-option:hover {
     background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 
-  select:disabled {
+  .checkbox-option input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: #8b5cf6;
+  }
+
+  .checkbox-option input[type="checkbox"]:disabled {
     cursor: not-allowed;
-    opacity: 0.5;
   }
 
-  select option {
-    background: #1a1a1a;
+  .checkbox-label {
     color: #fff;
+    font-size: 0.9rem;
+    user-select: none;
   }
 
-  .add-task-button {
+  .add-tasks-button {
     padding: 0.75rem 1.5rem;
     background: rgba(139, 92, 246, 0.2);
     border: 1px solid rgba(139, 92, 246, 0.3);
@@ -176,21 +218,22 @@
     cursor: not-allowed;
     transition: all 0.3s ease;
     white-space: nowrap;
+    width: 100%;
   }
 
-  .add-task-button.active {
+  .add-tasks-button.active {
     background: #8b5cf6;
     border-color: #8b5cf6;
     color: #fff;
     cursor: pointer;
   }
 
-  .add-task-button.active:hover {
+  .add-tasks-button.active:hover {
     background: #7c3aed;
     transform: translateY(-1px);
   }
 
-  .add-task-button:disabled {
+  .add-tasks-button:disabled {
     cursor: not-allowed;
   }
 
@@ -224,6 +267,12 @@
     margin: 0;
   }
 
+  .progress-indicator {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+  }
+
   .cancel-button {
     padding: 0.5rem 1rem;
     background: rgba(255, 255, 255, 0.05);
@@ -244,11 +293,13 @@
     /* Task component will render here */
   }
 
-  @media (max-width: 640px) {
-    .selector-row {
-      flex-direction: column;
+  @media (max-width: 768px) {
+    .checkbox-grid {
+      grid-template-columns: 1fr;
     }
+  }
 
+  @media (max-width: 640px) {
     .builder-header {
       flex-direction: column;
       align-items: flex-start;

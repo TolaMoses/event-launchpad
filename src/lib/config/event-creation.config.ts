@@ -32,12 +32,12 @@ export const COMMUNITY_EVENT_PRIZE_OPTIONS: PrizeOption[] = [
 // Get task options from registry
 export function getTaskOptions() {
   const registryEntries = Object.entries(taskRegistry) as [TaskTypeKey, TaskRegistryEntry][];
-  
+
   return registryEntries
-    .filter(([key]) => key !== 'irl') // Exclude IRL tasks
-    .map(([value, entry]) => ({ 
-      value, 
-      label: entry.label 
+    .filter(([key]) => !['irl', 'social'].includes(key)) // Exclude IRL and legacy social tasks
+    .map(([value, entry]) => ({
+      value,
+      label: entry.label
     }));
 }
 
