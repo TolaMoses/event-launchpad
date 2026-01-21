@@ -12,7 +12,7 @@
     walletAddress,
     chainId,
     chainName,
-    hydrateWalletFromSession
+    hydrateWalletFromSession,
   } from "$lib/wallet";
   import { CONTRACTS } from "$lib/contracts";
   import { ASSETS } from "$lib/config/assets";
@@ -20,19 +20,22 @@
 
   type ContractConfig = { name: string; raffle: string; rewardVault: string };
 
-  const contractEntries = Object.entries(CONTRACTS) as [string, ContractConfig][];
+  const contractEntries = Object.entries(CONTRACTS) as [
+    string,
+    ContractConfig,
+  ][];
 
   const chainSymbols: Record<number, string> = {
     84532: "ETH",
     11155111: "ETH",
     42000: "ETH",
-    11155931: "RISE"
+    11155931: "RISE",
   };
 
   const chains = contractEntries.map(([id, config]) => ({
     id: Number(id),
     name: config.name,
-    nativeCurrency: { symbol: chainSymbols[Number(id)] ?? "ETH" }
+    nativeCurrency: { symbol: chainSymbols[Number(id)] ?? "ETH" },
   }));
 
   type WalletView = {
@@ -69,7 +72,14 @@
 
   const walletStore = derived(
     [walletAddress, chainId, chainName, connecting, walletError, username],
-    ([$walletAddress, $chainId, $chainName, $connecting, $error, $username]): WalletView => ({
+    ([
+      $walletAddress,
+      $chainId,
+      $chainName,
+      $connecting,
+      $error,
+      $username,
+    ]): WalletView => ({
       address: $walletAddress,
       chainId: $chainId,
       chainName: $chainName ?? "Select chain",
@@ -78,12 +88,12 @@
         : "",
       connecting: $connecting,
       connected: Boolean($walletAddress),
-      error: $error
-    })
+      error: $error,
+    }),
   );
 
   export let data;
-  
+
   // Reactively hydrate wallet store from server session on each navigation
   $: hydrateWalletFromSession(data?.me ?? null);
 
@@ -95,7 +105,7 @@
     truncatedAddress: "",
     connecting: false,
     connected: false,
-    error: null
+    error: null,
   };
   let derivedUser: DerivedUserInfo = null;
   let isLoggedIn = false;
@@ -104,7 +114,8 @@
   $: walletState = $walletStore;
   $: derivedUser = sessionUser
     ? {
-        username: sessionUser.username ??
+        username:
+          sessionUser.username ??
           sessionUser.user_metadata?.username ??
           (walletState.truncatedAddress || $username),
         wallet_address:
@@ -114,15 +125,15 @@
         profile_picture:
           sessionUser.profile_picture ??
           sessionUser.user_metadata?.profile_picture ??
-          null
+          null,
       }
     : walletState.connected
-    ? {
-        username: walletState.truncatedAddress || $username,
-        wallet_address: walletState.address,
-        profile_picture: null
-      }
-    : null;
+      ? {
+          username: walletState.truncatedAddress || $username,
+          wallet_address: walletState.address,
+          profile_picture: null,
+        }
+      : null;
   $: isLoggedIn = Boolean(derivedUser);
 
   let selectedChainId = "";
@@ -195,10 +206,10 @@
   function handleCreateEventClick(event: Event) {
     event.preventDefault();
     if (!isLoggedIn) {
-      alert('Please log in first to create an event');
+      alert("Please log in first to create an event");
       return;
     }
-    goto('/projects/create-event');
+    goto("/create-event");
   }
 
   function applyChainConfig(id: number) {
@@ -215,12 +226,14 @@
 
     if (typeof window === "undefined") return;
 
-    const { ethereum } = window as typeof window & { ethereum?: { request: Function } };
+    const { ethereum } = window as typeof window & {
+      ethereum?: { request: Function };
+    };
     if (ethereum && get(walletAddress)) {
       try {
         await ethereum.request({
           method: "wallet_switchEthereumChain",
-          params: [{ chainId: `0x${id.toString(16)}` }]
+          params: [{ chainId: `0x${id.toString(16)}` }],
         });
         walletError.set(null);
       } catch (error: any) {
@@ -252,7 +265,8 @@
 
     const storedChainId = get(chainId);
     const initialId =
-      storedChainId ?? (contractEntries[0] ? Number(contractEntries[0][0]) : null);
+      storedChainId ??
+      (contractEntries[0] ? Number(contractEntries[0][0]) : null);
     if (initialId != null) {
       applyChainConfig(initialId);
     }
@@ -278,116 +292,133 @@
 </svelte:head>
 
 <nav>
-	<input
-		id="mobile-menu-toggle"
-		class="mobile-menu-toggle"
-		type="checkbox"
-		bind:checked={mobileMenuOpen}
-		aria-hidden="true"
-	/>
-	<div class="nav-container">
-		<div class="logo-and-socials">
-			<a href="/" aria-label="MoonFlux home" class="logo-link">
-				<img src={logo} alt="logo" />
-			</a>
-			<div class="top-nav-socials desktop-top-socials">
-				<img src={xLogo} alt="Twitter X logo" />
-				<img src={discordLogo} alt="Discord logo" />
-				<img src={telegramLogo} alt="Telegram logo" />
-			</div>
-		</div>
-		<div class="primary-links">
-			<button class="btn btn-submit" on:click={handleCreateEventClick}>Create Event</button>
-			<a class="home-link nav-link" href="/">Home</a>
-			{#if isLoggedIn}
-				<a class="dashboard-link nav-link" href="/dashboard">Dashboard</a>
-			{/if}
-			<div class="wallet-area">
-				<LoginDropdown 
-					user={derivedUser}
-					isLoggedIn={isLoggedIn}
-					on:connectWallet={handleConnect}
-					on:logout={handleDisconnect}
-				/>
-			</div>
-			<label
-				class="hamburger-button"
-				for="mobile-menu-toggle"
-				aria-label="Toggle navigation menu"
-			>
-				<span></span>
-				<span></span>
-				<span></span>
-			</label>
-		</div>
-	</div>
-	<div
-		class="mobile-menu-overlay"
-		tabindex="0"
-		role="button"
-		aria-label="Close navigation menu"
-		on:click={closeMobileMenu}
-		on:keydown={handleOverlayKey}
-	>
-		<div class="mobile-menu-content" on:click|stopPropagation>
-			<div class="mobile-menu-header">
-				<a href="/" aria-label="MoonFlux home" class="mobile-logo" on:click={closeMobileMenu}>
-					<img src={logo} alt="MoonFlux.fun's logo" />
-				</a>
-				<button
-					type="button"
-					class="close-button"
-					on:click|stopPropagation={closeMobileMenu}
-					aria-label="Close navigation menu"
-				>
-					×
-				</button>
-			</div>
-			<div class="mobile-menu-links" role="menu">
-				<div class="mobile-login-wrapper">
-					<LoginDropdown 
-						user={derivedUser}
-						isLoggedIn={isLoggedIn}
-						on:connectWallet={handleConnect}
-						on:logout={handleDisconnect}
-					/>
-				</div>
-				<a class="mobile-menu-link" on:click={closeMobileMenu} href="/">Home</a>
-				{#if isLoggedIn}
-					<a class="mobile-menu-link" on:click={closeMobileMenu} href="/dashboard">Dashboard</a>
-				{/if}
-				<button class="mobile-menu-link" on:click={(e) => { closeMobileMenu(); handleCreateEventClick(e); }}>Create Event</button>
-				<div class="mobile-socials top-nav-socials">
-					<img src={xLogo} alt="Twitter X logo" />
-					<img src={discordLogo} alt="Discord logo" />
-					<img src={telegramLogo} alt="Telegram logo" />
-				</div>
-			</div>
-		</div>
-	</div>
-	{#if $walletStore.error && !$walletStore.connecting}
-		<p class="wallet-error" role="alert">{$walletStore.error}</p>
-	{/if}
+  <input
+    id="mobile-menu-toggle"
+    class="mobile-menu-toggle"
+    type="checkbox"
+    bind:checked={mobileMenuOpen}
+    aria-hidden="true"
+  />
+  <div class="nav-container">
+    <div class="logo-and-socials">
+      <a href="/" aria-label="MoonFlux home" class="logo-link">
+        <img src={logo} alt="logo" />
+      </a>
+      <div class="top-nav-socials desktop-top-socials">
+        <img src={xLogo} alt="Twitter X logo" />
+        <img src={discordLogo} alt="Discord logo" />
+        <img src={telegramLogo} alt="Telegram logo" />
+      </div>
+    </div>
+    <div class="primary-links">
+      <button class="btn btn-submit" on:click={handleCreateEventClick}
+        >Create Event</button
+      >
+      <a class="home-link nav-link" href="/">Home</a>
+      {#if isLoggedIn}
+        <a class="dashboard-link nav-link" href="/dashboard">Dashboard</a>
+      {/if}
+      <div class="wallet-area">
+        <LoginDropdown
+          user={derivedUser}
+          {isLoggedIn}
+          on:connectWallet={handleConnect}
+          on:logout={handleDisconnect}
+        />
+      </div>
+      <label
+        class="hamburger-button"
+        for="mobile-menu-toggle"
+        aria-label="Toggle navigation menu"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </label>
+    </div>
+  </div>
+  <div
+    class="mobile-menu-overlay"
+    tabindex="0"
+    role="button"
+    aria-label="Close navigation menu"
+    on:click={closeMobileMenu}
+    on:keydown={handleOverlayKey}
+  >
+    <div class="mobile-menu-content" on:click|stopPropagation>
+      <div class="mobile-menu-header">
+        <a
+          href="/"
+          aria-label="MoonFlux home"
+          class="mobile-logo"
+          on:click={closeMobileMenu}
+        >
+          <img src={logo} alt="MoonFlux.fun's logo" />
+        </a>
+        <button
+          type="button"
+          class="close-button"
+          on:click|stopPropagation={closeMobileMenu}
+          aria-label="Close navigation menu"
+        >
+          ×
+        </button>
+      </div>
+      <div class="mobile-menu-links" role="menu">
+        <div class="mobile-login-wrapper">
+          <LoginDropdown
+            user={derivedUser}
+            {isLoggedIn}
+            on:connectWallet={handleConnect}
+            on:logout={handleDisconnect}
+          />
+        </div>
+        <a class="mobile-menu-link" on:click={closeMobileMenu} href="/">Home</a>
+        {#if isLoggedIn}
+          <a
+            class="mobile-menu-link"
+            on:click={closeMobileMenu}
+            href="/dashboard">Dashboard</a
+          >
+        {/if}
+        <button
+          class="mobile-menu-link"
+          on:click={(e) => {
+            closeMobileMenu();
+            handleCreateEventClick(e);
+          }}>Create Event</button
+        >
+        <div class="mobile-socials top-nav-socials">
+          <img src={xLogo} alt="Twitter X logo" />
+          <img src={discordLogo} alt="Discord logo" />
+          <img src={telegramLogo} alt="Telegram logo" />
+        </div>
+      </div>
+    </div>
+  </div>
+  {#if $walletStore.error && !$walletStore.connecting}
+    <p class="wallet-error" role="alert">{$walletStore.error}</p>
+  {/if}
 </nav>
 <hr />
 <main class="page-shell"><slot /></main>
 
 <style>
-	/* Layout-specific overrides - most styles now in layout.css */
-	nav {
-		position: relative;
-	}
-	.mobile-menu-toggle {
-		position: absolute;
-		opacity: 0;
-		pointer-events: none;
-	}
-	.nav-container {
-		margin: 1rem 2rem;
-		padding: 0;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 1.5rem;
-	}
+  /* Layout-specific overrides - most styles now in layout.css */
+  nav {
+    position: relative;
+  }
+  .mobile-menu-toggle {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .nav-container {
+    margin: 1rem 2rem;
+    padding: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+  }
 </style>
