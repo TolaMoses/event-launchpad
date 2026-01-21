@@ -8,6 +8,9 @@
 			options?: string[];
 			correctAnswer: string;
 		}>;
+		quiz?: {
+			questions?: Array<any>;
+		};
 	};
 	export let readonly = false;
 	export let onComplete: (() => Promise<void>) | undefined = undefined;
@@ -18,11 +21,23 @@
 	let error = '';
 	let score: number | null = null;
 	let submitted = false;
+	let questions: any[] = [];
+
+	onMount(() => {
+		console.log('QuizTask config:', JSON.stringify(config, null, 2));
+		// Handle different possible config structures
+		if (config.questions) {
+			questions = config.questions;
+		} else if (config.quiz?.questions) {
+			questions = config.quiz.questions;
+		}
+		console.log('Parsed questions:', questions);
+	});
 
 	async function handleSubmit() {
 		if (readonly || !onComplete) return;
 
-		const allAnswered = config.questions?.every((_, idx) => answers[idx]?.trim());
+		const allAnswered = questions?.every((_, idx) => answers[idx]?.trim());
 		if (!allAnswered) {
 			error = 'Please answer all questions';
 			return;
@@ -34,12 +49,12 @@
 		try {
 			// Calculate score
 			let correct = 0;
-			config.questions?.forEach((q, idx) => {
-				if (answers[idx]?.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim()) {
+			questions?.forEach((q, idx) => {
+				if (answers[idx]?.toLowerCase().trim() === q.correctAnswer?.toLowerCase().trim()) {
 					correct++;
 				}
 			});
-			score = Math.round((correct / (config.questions?.length || 1)) * 100);
+			score = Math.round((correct / (questions?.length || 1)) * 100);
 			
 			await onComplete();
 			submitted = true;
@@ -56,7 +71,7 @@
 		<div class="task-icon">❓</div>
 		<div>
 			<h4>Quiz/Trivia</h4>
-			<p class="task-instructions">{config.questions?.length || 0} question{config.questions?.length !== 1 ? 's' : ''}</p>
+			<p class="task-instructions">{questions?.length || 0} question{questions?.length !== 1 ? 's' : ''}</p>
 		</div>
 	</div>
 
@@ -68,10 +83,10 @@
 			</div>
 		{:else if submitted && !eventEnded}
 			<p class="submitted-text">Quiz submitted! Score will be revealed when the event ends.</p>
-		{:else if !config.questions || config.questions.length === 0}
+		{:else if !questions || questions.length === 0}
 			<p class="error-message">No questions configured for this quiz.</p>
 		{:else}
-			{#each config.questions || [] as question, idx}
+			{#each questions as question, idx}
 				<div class="question-block">
 					{#if typeof question === 'object' && question.question}
 						<p class="question-text"><strong>Q{idx + 1}.</strong> {String(question.question)}</p>

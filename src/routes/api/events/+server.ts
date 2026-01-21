@@ -1,82 +1,64 @@
-import { json, error } from '@sveltejs/kit';
+/**
+ * Event Creation API
+ * 
+ * Updated with simplified architecture:
+ * - Rate limiting (5 events per hour)
+ * - Zod validation
+ * - Uses reward_types (not rewards)
+ */
+
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabaseAdmin } from '$lib/server/supabaseAdmin';
-
-function ensureString(value: unknown, field: string): string {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw error(400, `Missing or invalid ${field}`);
-  }
-  return value.trim();
-}
+import { rateLimiter, RATE_LIMITS } from '$lib/infrastructure/redis/rateLimiter';
+import { validateBody } from '$lib/server/middleware/validation';
+import { eventCreateSchema } from '$lib/shared/validation/schemas/event.schema';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
+  // 1. Authentication check
   if (!locals.user) {
-    throw error(401, 'Unauthorized');
+    return json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch (err) {
-    throw error(400, 'Invalid JSON payload');
-  }
+  // 2. Rate limiting (5 events per hour to prevent spam)
+  await rateLimiter.check(
+    `create-event:${locals.user.id}`,
+    RATE_LIMITS.creation
+  );
 
-  const title = ensureString(body.title, 'title');
-  const description = ensureString(body.description, 'description');
-  const videoUrl = typeof body.video_url === 'string' ? body.video_url.trim() : null;
-  const startTime = ensureString(body.start_time, 'start_time');
-  const endTime = ensureString(body.end_time, 'end_time');
+  // 3. Validate input with Zod
+  const validated = await validateBody(request, eventCreateSchema);
 
-  const numWinners =
-    body.num_winners === null || body.num_winners === undefined
-      ? null
-      : Number(body.num_winners);
-
-  if (numWinners !== null && (!Number.isInteger(numWinners) || numWinners <= 0)) {
-    throw error(400, 'num_winners must be a positive integer or null');
-  }
-
-  const assets = (body.assets as Record<string, any>) ?? {};
-  const banner = assets.banner ?? null;
-  const logo = assets.logo ?? null;
-
-  if (!logo || typeof logo.path !== 'string' || typeof logo.publicUrl !== 'string') {
-    throw error(400, 'Logo asset is required');
-  }
-
-  const rewards = Array.isArray(body.rewards) ? body.rewards : [];
-  // Rewards are required
-  if (rewards.length === 0) {
-    throw error(400, 'At least one reward is required');
-  }
-
-  const tasks = Array.isArray(body.tasks) ? body.tasks : [];
-  // Tasks are required
-  if (tasks.length === 0) {
-    throw error(400, 'At least one task is required');
-  }
-
-  // All events go to 'review' status
-  const initialStatus = 'review';
-
-  const insertPayload = {
-    title,
-    description,
-    video_url: videoUrl,
-    start_time: startTime,
-    end_time: endTime,
-    num_winners: numWinners,
-    banner_path: banner?.path ?? null,
-    banner_url: banner?.publicUrl ?? null,
-    logo_path: logo.path,
-    logo_url: logo.publicUrl,
-    prize_details: rewards.length > 0 ? rewards[0] : null, // Legacy single reward for backwards compatibility
-    reward_types: rewards, // New multi-reward system
-    tasks: tasks,
+  // 4. Prepare insert payload
+  const insertPayload: any = {
+    title: validated.title,
+    description: validated.description,
+    video_url: validated.video_url || null,
+    start_time: validated.start_time,
+    end_time: validated.end_time,
+    num_winners: validated.num_winners || null,
+    banner_path: validated.assets?.banner?.path || null,
+    banner_url: validated.assets?.banner?.publicUrl || null,
+    logo_path: validated.assets?.logo.path,
+    logo_url: validated.assets?.logo.publicUrl,
+    // Use reward_types (new system)
+    reward_types: validated.reward_types,
+    // Keep prize_details for backwards compatibility (first reward)
+    prize_details: validated.reward_types[0] || null,
+    tasks: validated.tasks,
     created_by: locals.user.id,
-    status: initialStatus
+    status: 'review' // All events start in review status
   };
 
+  // Include optional fields if provided
+  if (validated.point_system) {
+    insertPayload.point_system = validated.point_system;
+  }
+  if (validated.roles_permissions) {
+    insertPayload.roles_permissions = validated.roles_permissions;
+  }
+
+  // 5. Insert event
   const { data, error: insertError } = await supabaseAdmin
     .from('events')
     .insert(insertPayload)
@@ -84,9 +66,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     .single();
 
   if (insertError) {
-    console.error('Failed to insert event', insertError);
-    throw error(500, 'Failed to save event');
+    console.error('Failed to insert event:', insertError);
+    return json(
+      { error: 'Failed to create event. Please try again.' },
+      { status: 500 }
+    );
   }
 
-  return json({ id: data.id }, { status: 201 });
+  return json(
+    { success: true, id: data.id },
+    { status: 201 }
+  );
 };

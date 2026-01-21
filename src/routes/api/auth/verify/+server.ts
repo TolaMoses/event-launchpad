@@ -1,8 +1,21 @@
+/**
+ * Wallet Verification API
+ * 
+ * Updated with simplified architecture:
+ * - Redis NonceStore (atomic consume)
+ * - Rate limiting (prevent brute force)
+ * - Better error handling
+ */
+
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { ethers } from 'ethers';
 import { env as publicEnv } from '$env/dynamic/public';
 import { env as privateEnv } from '$env/dynamic/private';
-import { consumeNonce } from '$lib/server/nonceStore';
+import { nonceStore } from '$lib/infrastructure/redis/nonces';
+import { rateLimiter, RATE_LIMITS } from '$lib/infrastructure/redis/rateLimiter';
+import { validateBody } from '$lib/server/middleware/validation';
+import { walletSignatureSchema } from '$lib/shared/validation/schemas/user.schema';
 
 const ACCESS_TOKEN_COOKIE = 'sb-access-token';
 const REFRESH_TOKEN_COOKIE = 'sb-refresh-token';
@@ -12,43 +25,48 @@ const COOKIE_OPTIONS = {
   sameSite: 'lax' as const
 };
 
-const WALLET_EMAIL_DOMAIN = 'wallet.phaeton';
-
-function buildEmail(address: string) {
-  return `${address}@${WALLET_EMAIL_DOMAIN}`;
-}
-
-function buildPassword(address: string) {
-  return `wallet:${address}`;
-}
-
 export const POST: RequestHandler = async ({ request, cookies, url }) => {
   try {
-    const { address, signature } = await request.json();
+    // 1. Validate input
+    const validated = await validateBody(request, walletSignatureSchema);
+    const normalizedAddress = validated.walletAddress.toLowerCase();
 
-    if (!address || typeof address !== 'string' || !signature || typeof signature !== 'string') {
-      return new Response('Invalid payload', { status: 400 });
-    }
+    // 2. Rate limiting (prevent brute force attacks)
+    await rateLimiter.check(
+      `wallet-auth:${normalizedAddress}`,
+      RATE_LIMITS.auth
+    );
 
-    const normalizedAddress = address.toLowerCase();
-    const nonceEntry = consumeNonce(normalizedAddress);
+    // 3. Get and consume nonce (atomic operation, one-time use)
+    const nonceEntry = await nonceStore.consume(normalizedAddress);
 
     if (!nonceEntry) {
-      return new Response('Nonce expired or not found', { status: 401 });
+      return json(
+        { error: 'Nonce expired or not found. Please request a new nonce.' },
+        { status: 401 }
+      );
     }
 
+    // 4. Verify signature
     let recovered: string;
     try {
-      recovered = ethers.verifyMessage(nonceEntry.message, signature).toLowerCase();
+      recovered = ethers.verifyMessage(nonceEntry.message, validated.signature).toLowerCase();
     } catch (error) {
-      console.error('Signature verification failed', error);
-      return new Response('Invalid signature', { status: 401 });
+      console.error('Signature verification failed:', error);
+      return json(
+        { error: 'Invalid signature format' },
+        { status: 401 }
+      );
     }
 
     if (recovered !== normalizedAddress) {
-      return new Response('Signature address mismatch', { status: 401 });
+      return json(
+        { error: 'Signature does not match wallet address' },
+        { status: 401 }
+      );
     }
 
+    // 5. Create session via Supabase Edge Function
     const edgeUrl =
       privateEnv.SUPABASE_WALLET_LOGIN_FUNCTION_URL ??
       `${publicEnv.PUBLIC_SUPABASE_URL ?? ''}/functions/v1/wallet-login`;
@@ -57,7 +75,10 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 
     if (!edgeUrl || !supabaseAnonKey) {
       console.error('Missing Supabase configuration for wallet login');
-      return new Response('Auth configuration error', { status: 500 });
+      return json(
+        { error: 'Authentication configuration error' },
+        { status: 500 }
+      );
     }
 
     const edgeResponse = await fetch(edgeUrl, {
@@ -69,23 +90,30 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
       body: JSON.stringify({
         address: normalizedAddress,
         message: nonceEntry.message,
-        signature
+        signature: validated.signature
       })
     });
 
     if (!edgeResponse.ok) {
       const errorText = await edgeResponse.text();
-      console.error('Edge function wallet-login failed', edgeResponse.status, errorText);
-      return new Response('Auth error', { status: edgeResponse.status });
+      console.error('Edge function wallet-login failed:', edgeResponse.status, errorText);
+      return json(
+        { error: 'Failed to create session' },
+        { status: edgeResponse.status }
+      );
     }
 
     const { session, user } = await edgeResponse.json();
 
     if (!session || !session.access_token) {
       console.error('Edge function response missing session');
-      return new Response('Auth error', { status: 500 });
+      return json(
+        { error: 'Failed to create session' },
+        { status: 500 }
+      );
     }
 
+    // 6. Set session cookies
     cookies.set(ACCESS_TOKEN_COOKIE, session.access_token, {
       ...COOKIE_OPTIONS,
       secure: url.protocol === 'https:',
@@ -100,20 +128,25 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
       });
     }
 
-    return new Response(
-      JSON.stringify({
-        walletAddress: normalizedAddress,
-        userId: user?.id ?? null
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
+    return json({
+      success: true,
+      walletAddress: normalizedAddress,
+      userId: user?.id ?? null
+    });
+  } catch (error: any) {
+    console.error('Wallet verification failed:', error);
+    
+    // Return appropriate error for validation failures
+    if (error?.status === 422) {
+      return json(
+        { error: 'Invalid request data' },
+        { status: 422 }
+      );
+    }
+    
+    return json(
+      { error: 'Authentication failed. Please try again.' },
+      { status: 500 }
     );
-  } catch (error) {
-    console.error('Wallet verification failed', error);
-    return new Response('Auth error', { status: 500 });
   }
 };

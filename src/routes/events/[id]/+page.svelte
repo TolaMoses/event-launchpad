@@ -248,6 +248,7 @@
 	function getTaskCategory(taskType: string): string {
 		const categories: Record<string, string> = {
 			twitter: 'Social',
+			social: 'Social',
 			discord: 'Social',
 			telegram: 'Social',
 			quiz: 'Quiz & Games',

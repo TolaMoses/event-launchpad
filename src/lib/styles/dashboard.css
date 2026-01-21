@@ -1,0 +1,210 @@
+/**
+ * Dashboard Styles
+ * 
+ * Styles specific to the dashboard page
+ */
+
+/* ============================================
+   DASHBOARD SECTIONS
+   ============================================ */
+
+.trending {
+  margin: var(--spacing-2xl) var(--spacing-xl);
+}
+
+.trending h3 {
+  color: var(--text-primary);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-lg);
+}
+
+.at-ends {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ============================================
+   MAIN DIRECTORY (Scrollable Cards)
+   ============================================ */
+
+.main-directory-1 {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  padding-bottom: var(--spacing-md);
+}
+
+.main-directory-1::-webkit-scrollbar,
+.main-directory-1::-webkit-scrollbar-button {
+  display: none;
+}
+
+.main-directory-1 .flex {
+  display: flex;
+  gap: var(--spacing-lg);
+  min-width: min-content;
+}
+
+/* ============================================
+   EVENT/RAFFLE/GAME CARDS
+   ============================================ */
+
+.main-directory-1 .card {
+  min-width: 280px;
+  max-width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  transition: var(--transition-all);
+}
+
+.main-directory-1 .card:hover {
+  border-color: var(--color-primary);
+  background: var(--bg-elevated);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-primary);
+}
+
+/* ============================================
+   CARD CONTENT
+   ============================================ */
+
+.item-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+.item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.event-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  flex: 1;
+}
+
+.event-summary .title {
+  margin: 0;
+}
+
+.event-summary .title p {
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin: 0;
+  line-height: var(--leading-tight);
+}
+
+.countdown {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.countdown .ended {
+  color: var(--color-error);
+  font-weight: var(--font-medium);
+}
+
+.reward {
+  margin-top: auto;
+}
+
+.reward p {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+/* ============================================
+   STATS & METRICS
+   ============================================ */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  text-align: center;
+  transition: var(--transition-all);
+}
+
+.stat-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.stat-value {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.stat-label {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================
+   EMPTY STATES
+   ============================================ */
+
+.trending p {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  padding: var(--spacing-xl);
+  text-align: center;
+  background: var(--bg-base);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border-color);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .trending {
+    margin: var(--spacing-xl) var(--spacing-md);
+  }
+
+  .trending h3 {
+    font-size: var(--text-xl);
+  }
+
+  .main-directory-1 .card {
+    min-width: 240px;
+    max-width: 280px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

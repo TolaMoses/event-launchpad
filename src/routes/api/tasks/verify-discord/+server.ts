@@ -1,7 +1,19 @@
-import { json, error } from '@sveltejs/kit';
+/**
+ * Discord Verification API
+ * 
+ * Updated with simplified architecture:
+ * - Redis rate limiting (10 verifications/minute)
+ * - Zod validation
+ * - Idempotency guard (prevent duplicate verifications)
+ */
+
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabaseAdmin } from '$lib/server/supabaseAdmin';
-import { checkRateLimit } from '$lib/server/rateLimit';
+import { rateLimiter, RATE_LIMITS } from '$lib/infrastructure/redis/rateLimiter';
+import { idempotencyGuard } from '$lib/infrastructure/redis/idempotency';
+import { validateBody } from '$lib/server/middleware/validation';
+import { discordVerificationSchema } from '$lib/shared/validation/schemas/task.schema';
 
 // Retry helper with exponential backoff
 async function retryWithBackoff<T>(
@@ -27,75 +39,99 @@ async function retryWithBackoff<T>(
 }
 
 export const POST: RequestHandler = async ({ request, locals, fetch }) => {
+	// 1. Authentication check
 	if (!locals.user) {
-		throw error(401, 'Unauthorized');
+		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
-	// Rate limiting: 10 verifications per minute per user
-	const rateLimitKey = `discord_verify:${locals.user.id}`;
-	const rateLimit = checkRateLimit(rateLimitKey, { maxRequests: 10, windowMs: 60000 });
+	// 2. Rate limiting (10 verifications per minute)
+	await rateLimiter.check(
+		`discord-verify:${locals.user.id}`,
+		RATE_LIMITS.verification
+	);
 
-	if (!rateLimit.allowed) {
-		throw error(429, `Rate limit exceeded. Try again in ${Math.ceil((rateLimit.resetAt - Date.now()) / 1000)} seconds.`);
-	}
+	// 3. Validate input
+	const validated = await validateBody(request, discordVerificationSchema);
+	const { taskId, eventId, serverId } = validated;
 
-	const body = await request.json();
-	const { serverId, guildId } = body;
-	
-	// Support both serverId and guildId for compatibility
-	const targetGuildId = serverId || guildId;
+	// 4. Idempotency guard (prevent duplicate verification within 1 minute)
+	const idempotencyKey = `discord-verify:${taskId}:${locals.user.id}`;
 
-	if (!targetGuildId) {
-		throw error(400, 'Server ID is required');
+	const isFirstAttempt = await idempotencyGuard.checkAndSet(idempotencyKey, 60);
+	if (!isFirstAttempt) {
+		return json(
+			{ error: 'Verification already in progress. Please wait a moment.' },
+			{ status: 409 }
+		);
 	}
 
 	try {
-		// Get user's Discord connection
-		const { data: connection } = await supabaseAdmin
+		// 5. Get user's Discord connection
+		const { data: connection, error: connectionError } = await supabaseAdmin
 			.from('social_connections')
 			.select('*')
 			.eq('user_id', locals.user.id)
 			.eq('platform', 'discord')
 			.single();
 
-		if (!connection) {
-			throw error(400, 'Discord account not connected');
+		if (connectionError || !connection) {
+			await idempotencyGuard.remove(idempotencyKey);
+			return json(
+				{ error: 'Discord account not connected. Please connect your account first.' },
+				{ status: 400 }
+			);
 		}
 
 		// Check if token is expired
 		if (connection.token_expires_at && new Date(connection.token_expires_at) < new Date()) {
-			throw error(401, 'Discord token expired. Please reconnect your account.');
+			await idempotencyGuard.remove(idempotencyKey);
+			return json(
+				{ error: 'Discord token expired. Please reconnect your account.' },
+				{ status: 401 }
+			);
 		}
 
 		const discordUserId = connection.platform_user_id;
 		const botToken = process.env.DISCORD_BOT_TOKEN;
 
 		if (!botToken) {
-			throw error(500, 'Discord bot not configured');
+			await idempotencyGuard.remove(idempotencyKey);
+			return json(
+				{ error: 'Discord bot not configured' },
+				{ status: 500 }
+			);
 		}
 
-		// Verify membership with retry logic
+		// 6. Verify membership with retry logic
 		const isMember = await retryWithBackoff(async () => {
-			return await verifyGuildMembership(botToken, targetGuildId, discordUserId);
+			return await verifyGuildMembership(botToken, serverId, discordUserId);
 		});
 
 		if (!isMember) {
-			throw error(400, 'You are not a member of this Discord server. Please join the server and try again.');
+			await idempotencyGuard.remove(idempotencyKey);
+			return json(
+				{ error: 'You are not a member of this Discord server. Please join the server and try again.' },
+				{ status: 400 }
+			);
 		}
+
+		// 7. Mark idempotency as complete
+		await idempotencyGuard.markComplete(idempotencyKey);
 
 		return json({
 			verified: true,
-			message: 'Discord membership verified successfully',
-			remaining: rateLimit.remaining
+			message: 'Discord membership verified successfully'
 		});
 	} catch (err: any) {
 		console.error('Discord verification error:', err);
 		
-		if (err.status) {
-			throw err; // Re-throw SvelteKit errors
-		}
+		// Remove idempotency key on error to allow retry
+		await idempotencyGuard.remove(idempotencyKey);
 		
-		throw error(500, 'Failed to verify Discord membership');
+		return json(
+			{ error: 'Failed to verify Discord membership. Please try again.' },
+			{ status: 500 }
+		);
 	}
 };
 

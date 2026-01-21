@@ -22,6 +22,7 @@
 	},
 	"dependencies": {
 		"@supabase/supabase-js": "^2.57.0",
+		"@upstash/redis": "^1.36.1",
 		"carbon-components-svelte": "^0.89.7",
 		"ethers": "^6.15.0",
 		"sveltekit-superforms": "^2.27.1",

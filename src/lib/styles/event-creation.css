@@ -1,0 +1,536 @@
+/**
+ * Event Creation Styles
+ * 
+ * Centralized stylesheet for all event creation components
+ * Organized by sections for easy modification
+ * 
+ * NOTE: Now uses theme.css variables for consistency
+ */
+
+/* ============================================
+   VARIABLE ALIASES (for backward compatibility)
+   ============================================ */
+:root {
+  --ec-primary: var(--color-primary);
+  --ec-primary-dark: var(--color-primary-dark);
+  --ec-primary-light: var(--color-primary-light);
+  --ec-success: var(--color-success);
+  --ec-success-light: var(--color-success-light);
+  --ec-error: var(--color-error);
+  --ec-error-light: var(--color-error-light);
+  --ec-warning: var(--color-warning);
+  --ec-info: var(--color-info);
+  
+  --ec-bg-base: var(--bg-base);
+  --ec-bg-elevated: var(--bg-elevated);
+  --ec-bg-hover: var(--bg-hover);
+  
+  --ec-border: var(--border-color);
+  --ec-border-focus: var(--border-color-focus);
+  
+  --ec-text-primary: var(--text-primary);
+  --ec-text-secondary: var(--text-secondary);
+  --ec-text-tertiary: var(--text-tertiary);
+  --ec-text-disabled: var(--text-disabled);
+  
+  --ec-radius-sm: var(--radius-sm);
+  --ec-radius-md: var(--radius-md);
+  --ec-radius-lg: var(--radius-lg);
+  --ec-radius-xl: var(--radius-xl);
+  
+  --ec-shadow-sm: var(--shadow-sm);
+  --ec-shadow-md: var(--shadow-md);
+  --ec-shadow-lg: var(--shadow-primary);
+  
+  --ec-transition: var(--transition-all);
+}
+
+/* ============================================
+   LAYOUT & CONTAINERS
+   ============================================ */
+.event-creation-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.event-creation-section {
+  background: var(--ec-bg-base);
+  border-radius: var(--ec-radius-lg);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.section-header {
+  margin-bottom: 2rem;
+}
+
+.section-header h2 {
+  color: var(--ec-text-primary);
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.section-description {
+  color: var(--ec-text-tertiary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* ============================================
+   FORM ELEMENTS
+   ============================================ */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  color: var(--ec-text-primary);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  font-size: 0.9375rem;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--ec-bg-base);
+  border: 1px solid var(--ec-border);
+  border-radius: var(--ec-radius-md);
+  color: var(--ec-text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: var(--ec-transition);
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--ec-border-focus);
+  background: var(--ec-bg-elevated);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--ec-text-disabled);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.field-hint {
+  color: var(--ec-text-tertiary);
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+}
+
+.error-hint {
+  color: var(--ec-error);
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--ec-radius-md);
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--ec-transition);
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background: var(--ec-primary);
+  color: var(--ec-text-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--ec-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--ec-shadow-lg);
+}
+
+.btn-secondary {
+  background: var(--ec-bg-base);
+  color: var(--ec-text-secondary);
+  border: 1px solid var(--ec-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--ec-bg-hover);
+  color: var(--ec-text-primary);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--ec-error);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--ec-error);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+.card {
+  background: var(--ec-bg-base);
+  border: 1px solid var(--ec-border);
+  border-radius: var(--ec-radius-lg);
+  padding: 1.5rem;
+  transition: var(--ec-transition);
+}
+
+.card:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  background: var(--ec-bg-elevated);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--ec-border);
+}
+
+.card-title {
+  color: var(--ec-text-primary);
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.card-subtitle {
+  color: var(--ec-text-tertiary);
+  font-size: 0.875rem;
+  margin: 0.25rem 0 0 0;
+}
+
+/* ============================================
+   BADGES & TAGS
+   ============================================ */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--ec-radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-primary {
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--ec-primary-light);
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--ec-success);
+}
+
+.badge-error {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--ec-error-light);
+}
+
+.badge-warning {
+  background: rgba(251, 191, 36, 0.2);
+  color: var(--ec-warning);
+}
+
+/* ============================================
+   EMPTY STATES
+   ============================================ */
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed var(--ec-border);
+  border-radius: var(--ec-radius-lg);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  color: var(--ec-text-secondary);
+  font-size: 1.125rem;
+  margin-bottom: 0.5rem;
+}
+
+.empty-hint {
+  color: var(--ec-text-disabled);
+  font-size: 0.875rem;
+}
+
+/* ============================================
+   ALERTS & BANNERS
+   ============================================ */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: var(--ec-radius-lg);
+  margin-bottom: 1.5rem;
+}
+
+.alert-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-content strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.alert-content p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.alert-info {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--ec-info);
+}
+
+.alert-success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--ec-success);
+}
+
+.alert-warning {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: var(--ec-warning);
+}
+
+.alert-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--ec-error);
+}
+
+/* ============================================
+   LISTS
+   ============================================ */
+.item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--ec-bg-base);
+  border-radius: var(--ec-radius-md);
+  transition: var(--ec-transition);
+}
+
+.list-item:hover {
+  background: var(--ec-bg-elevated);
+}
+
+.list-item-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--ec-primary);
+  border-radius: 50%;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.list-item-content {
+  flex: 1;
+}
+
+.list-item-title {
+  color: var(--ec-text-primary);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.list-item-subtitle {
+  color: var(--ec-text-tertiary);
+  font-size: 0.875rem;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+.slide-down {
+  animation: slideDown 0.3s ease;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .event-creation-container {
+    padding: 1rem;
+  }
+
+  .event-creation-section {
+    padding: 1.5rem;
+  }
+
+  .section-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+/* ============================================
+   UTILITIES
+   ============================================ */
+.text-center {
+  text-align: center;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-1 {
+  gap: 0.5rem;
+}
+
+.gap-2 {
+  gap: 1rem;
+}
+
+.gap-4 {
+  gap: 2rem;
+}
+
+.mb-1 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-2 {
+  margin-bottom: 1rem;
+}
+
+.mb-4 {
+  margin-bottom: 2rem;
+}
+
+.mt-1 {
+  margin-top: 0.5rem;
+}
+
+.mt-2 {
+  margin-top: 1rem;
+}
+
+.mt-4 {
+  margin-top: 2rem;
+}
