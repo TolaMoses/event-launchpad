@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { taskRegistry } from '$lib/tasks';
-  import { getTaskOptions } from '$lib/config/event-creation.config';
-  import { clone, generateId } from '$lib/utils/event-creation.utils';
-  import type { TaskTypeKey, TaskInstance } from '$lib/tasks/TaskTypes';
-  import type { EventType } from '$lib/shared/types/event-creation.types';
+  import { taskRegistry } from "$lib/tasks";
+  import { getTaskOptions } from "$lib/config/event-creation.config";
+  import { clone, generateId } from "$lib/utils/event-creation.utils";
+  import type { TaskTypeKey, TaskInstance } from "$lib/tasks/TaskTypes";
 
-  export let eventType: EventType = '';
   export let editingTask: TaskInstance | null = null;
   export let onSave: (task: TaskInstance) => void = () => {};
   export let onCancel: () => void = () => {};
@@ -33,29 +31,29 @@
 
   function startCreateTasks() {
     if (selectedTaskTypes.size === 0) return;
-    
+
     pendingTaskTypes = Array.from(selectedTaskTypes);
     creatingTaskType = pendingTaskTypes[0];
   }
 
   function handleTaskSave(event: CustomEvent) {
     const config = event.detail;
-    
+
     const task: TaskInstance = editingTask
       ? {
           ...editingTask,
-          config: clone(config)
+          config: clone(config),
         }
       : {
           id: generateId(),
           type: creatingTaskType || pendingTaskTypes[0],
-          title: config.title || 'Untitled Task',
+          title: config.title || "Untitled Task",
           points: config.points || 0,
-          config: clone(config)
+          config: clone(config),
         };
 
     onSave(task);
-    
+
     // If we have more pending tasks, move to the next one
     if (!editingTask && pendingTaskTypes.length > 1) {
       pendingTaskTypes = pendingTaskTypes.slice(1);
@@ -86,13 +84,15 @@
     <!-- Task Type Selector -->
     <div class="task-selector">
       <label>Select Task Types</label>
-      <p class="helper-text">Select one or more task types to add to your event</p>
-      
+      <p class="helper-text">
+        Select one or more task types to add to your event
+      </p>
+
       <div class="checkbox-grid">
         {#each taskOptions as option}
           <label class="checkbox-option">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               value={option.value}
               checked={selectedTaskTypes.has(option.value as TaskTypeKey)}
               on:change={() => toggleTaskType(option.value as TaskTypeKey)}
@@ -110,7 +110,11 @@
         on:click={startCreateTasks}
         disabled={selectedTaskTypes.size === 0}
       >
-        {editingTask ? 'Edit Task' : selectedTaskTypes.size > 0 ? `Add ${selectedTaskTypes.size} Task${selectedTaskTypes.size > 1 ? 's' : ''}` : 'Add Tasks'}
+        {editingTask
+          ? "Edit Task"
+          : selectedTaskTypes.size > 0
+            ? `Add ${selectedTaskTypes.size} Task${selectedTaskTypes.size > 1 ? "s" : ""}`
+            : "Add Tasks"}
       </button>
     </div>
   {:else}
@@ -118,17 +122,16 @@
     <div class="task-builder-container">
       <div class="builder-header">
         <h3>
-          {editingTask ? 'Edit' : 'Configure'} 
-          {taskRegistry[creatingTaskType]?.label || 'Task'}
+          {editingTask ? "Edit" : "Configure"}
+          {taskRegistry[creatingTaskType]?.label || "Task"}
           {#if !editingTask && pendingTaskTypes.length > 1}
-            <span class="progress-indicator">({pendingTaskTypes.length - pendingTaskTypes.indexOf(creatingTaskType)} of {pendingTaskTypes.length})</span>
+            <span class="progress-indicator"
+              >({pendingTaskTypes.length -
+                pendingTaskTypes.indexOf(creatingTaskType)} of {pendingTaskTypes.length})</span
+            >
           {/if}
         </h3>
-        <button
-          type="button"
-          class="cancel-button"
-          on:click={handleTaskCancel}
-        >
+        <button type="button" class="cancel-button" on:click={handleTaskCancel}>
           Cancel
         </button>
       </div>
@@ -137,7 +140,6 @@
         <svelte:component
           this={taskRegistry[creatingTaskType].component}
           initialConfig={editingTask ? clone(editingTask.config) : null}
-          {eventType}
           onSave={handleTaskSave}
           onCancel={handleTaskCancel}
         />

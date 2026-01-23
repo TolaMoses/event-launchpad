@@ -28,7 +28,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
   // Fetch the event to verify ownership
   const { data: event, error: fetchError } = await supabaseAdmin
     .from('events')
-    .select('id, event_type, created_by, status, setup_progress')
+    .select('id, created_by, status, setup_progress')
     .eq('id', eventId)
     .single();
 
@@ -39,11 +39,6 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
   // Verify user is the creator
   if (event.created_by !== locals.user.id) {
     throw error(403, 'Only the event creator can add tasks');
-  }
-
-  // Only community events in draft status can add tasks this way
-  if (event.event_type !== 'community') {
-    throw error(400, 'Only community events can add tasks after creation');
   }
 
   if (event.status !== 'draft') {
@@ -69,8 +64,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     throw error(500, 'Failed to add tasks');
   }
 
-  return json({ 
-    success: true, 
+  return json({
+    success: true,
     message: 'Tasks added successfully',
     setupProgress
   });

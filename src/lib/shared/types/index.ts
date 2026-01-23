@@ -150,24 +150,24 @@ export interface EventFilters {
 
 // ==================== TASK TYPES ====================
 
-export type TaskType = 
-  | 'twitter' 
+export type TaskType =
+  | 'twitter'
   | 'social'
-  | 'discord' 
-  | 'telegram' 
-  | 'quiz' 
+  | 'discord'
+  | 'telegram'
+  | 'quiz'
   | 'puzzle'
   | 'content_submission'
   | 'referral'
   | 'scoreline_prediction'
   | 'code_entry';
 
-export type TaskCategory = 
-  | 'Social' 
-  | 'Quiz & Games' 
-  | 'Predictions' 
-  | 'Content' 
-  | 'Challenges' 
+export type TaskCategory =
+  | 'Social'
+  | 'Quiz & Games'
+  | 'Predictions'
+  | 'Content'
+  | 'Challenges'
   | 'Referral';
 
 export interface Task {
@@ -192,14 +192,14 @@ export interface TaskConfig {
     profileLink?: string;
     postLink?: string;
   };
-  
+
   // Discord
   discord?: {
     joinServer?: boolean;
     inviteLink?: string;
     serverId?: string;
   };
-  
+
   // Telegram
   telegram?: {
     joinChannel?: boolean;
@@ -209,24 +209,24 @@ export interface TaskConfig {
     channelLink?: string;
     groupLink?: string;
   };
-  
+
   // Quiz
   questions?: QuizQuestion[];
   quiz?: {
     questions?: QuizQuestion[];
   };
-  
+
   // Puzzle
   puzzle?: {
     question?: string;
     answer?: string;
     hint?: string;
   };
-  
+
   // Content Submission
   contentType?: string;
   submissionType?: 'link' | 'text' | 'file';
-  
+
   // Scoreline Prediction
   home_team?: {
     name: string;
@@ -238,10 +238,10 @@ export interface TaskConfig {
   };
   match_date?: string;
   league?: string;
-  
+
   // Code Entry
   validCodes?: string[];
-  
+
   // Generic
   description?: string;
   instructions?: string;
@@ -268,13 +268,13 @@ export interface TaskSubmission {
 
 // ==================== REWARD TYPES ====================
 
-export type RewardType = 
-  | 'Token' 
-  | 'ETH' 
-  | 'NFT' 
-  | 'MintableNFT' 
-  | 'Gift' 
-  | 'Voucher' 
+export type RewardType =
+  | 'Token'
+  | 'ETH'
+  | 'NFT'
+  | 'MintableNFT'
+  | 'Gift'
+  | 'Voucher'
   | 'CustomPoints';
 
 export type DistributionType = 'even' | 'custom' | 'random';
@@ -393,7 +393,6 @@ export interface SocialConnection {
 export interface CreateEventDto {
   title: string;
   description: string;
-  event_type: EventType;
   start_time: string;
   end_time: string;
   banner_url?: string;

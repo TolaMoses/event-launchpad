@@ -70,8 +70,6 @@ export type UploadedAsset = {
   publicUrl: string;
 };
 
-export type EventType = "quick_event" | "community" | "";
-
 export type Task = {
   id: string;
   type: string;

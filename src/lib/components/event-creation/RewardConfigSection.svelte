@@ -1,84 +1,85 @@
 <script lang="ts">
-  import RewardBuilder from '$lib/components/RewardBuilder.svelte';
-  import type { RewardConfig, EventType, PrizeOption } from '$lib/shared/types/event-creation.types';
-  import { QUICK_EVENT_PRIZE_OPTIONS, COMMUNITY_EVENT_PRIZE_OPTIONS } from '$lib/config/event-creation.config';
-  import { generateId } from '$lib/utils/event-creation.utils';
+  import RewardBuilder from "$lib/components/RewardBuilder.svelte";
+  import type {
+    RewardConfig,
+    PrizeOption,
+  } from "$lib/shared/types/event-creation.types";
+  import { PRIZE_OPTIONS } from "$lib/config/event-creation.config";
+  import { generateId } from "$lib/utils/event-creation.utils";
 
-  export let eventType: EventType = '';
   export let rewards: RewardConfig[] = [];
-  export let numWinners: string = '';
-  export let chainId: string = '';
+  export let numWinners: string = "";
+  export let chainId: string = "";
   export let onUpdate: (rewards: RewardConfig[]) => void = () => {};
 
-  let selectedRewardType = '';
+  let selectedRewardType = "";
 
-  $: prizeOptions = eventType === 'community' 
-    ? COMMUNITY_EVENT_PRIZE_OPTIONS 
-    : QUICK_EVENT_PRIZE_OPTIONS;
+  // All prize options are now available for all events
+  const prizeOptions = PRIZE_OPTIONS;
 
-  $: hasCustomPoints = rewards.some(r => r.type === 'CustomPoints');
+  $: hasCustomPoints = rewards.some((r) => r.type === "CustomPoints");
 
   function addReward() {
     if (!selectedRewardType) return;
 
     const newReward: RewardConfig = {
       id: generateId(),
-      type: selectedRewardType
+      type: selectedRewardType,
     };
 
     rewards = [...rewards, newReward];
-    selectedRewardType = '';
+    selectedRewardType = "";
     onUpdate(rewards);
   }
 
   function removeReward(id: string) {
-    if (confirm('Are you sure you want to remove this reward?')) {
-      rewards = rewards.filter(r => r.id !== id);
+    if (confirm("Are you sure you want to remove this reward?")) {
+      rewards = rewards.filter((r) => r.id !== id);
       onUpdate(rewards);
     }
   }
 
   function handleRewardUpdate(id: string, updated: RewardConfig) {
-    rewards = rewards.map(r => r.id === id ? updated : r);
+    rewards = rewards.map((r) => (r.id === id ? updated : r));
     onUpdate(rewards);
   }
 
   function getRewardLabel(reward: RewardConfig): string {
     const labels: Record<string, string> = {
-      Token: 'Token Reward',
-      ETH: 'Native Coin Reward',
-      NFT: 'NFT Reward',
-      MintableNFT: 'Mintable NFT',
-      Gift: 'Physical Gift/Merch',
-      Voucher: 'Digital Voucher/Code',
-      CustomPoints: 'Custom Points System'
+      Token: "Token Reward",
+      ETH: "Native Coin Reward",
+      NFT: "NFT Reward",
+      MintableNFT: "Mintable NFT",
+      Gift: "Physical Gift/Merch",
+      Voucher: "Digital Voucher/Code",
+      CustomPoints: "Custom Points System",
     };
     return labels[reward.type] || reward.type;
   }
 
   function getRewardSummary(reward: RewardConfig): string {
-    if (reward.type === 'Token' && reward.customTokenSymbol) {
-      return `${reward.prizePool || '0'} ${reward.customTokenSymbol}`;
+    if (reward.type === "Token" && reward.customTokenSymbol) {
+      return `${reward.prizePool || "0"} ${reward.customTokenSymbol}`;
     }
-    if (reward.type === 'ETH' && reward.prizePool) {
+    if (reward.type === "ETH" && reward.prizePool) {
       return `${reward.prizePool} ETH`;
     }
-    if (reward.type === 'NFT' && reward.nfts) {
-      return `${reward.nfts.length} NFT${reward.nfts.length !== 1 ? 's' : ''}`;
+    if (reward.type === "NFT" && reward.nfts) {
+      return `${reward.nfts.length} NFT${reward.nfts.length !== 1 ? "s" : ""}`;
     }
-    if (reward.type === 'MintableNFT' && reward.mintableNfts) {
-      return `${reward.mintableNfts.length} variant${reward.mintableNfts.length !== 1 ? 's' : ''}`;
+    if (reward.type === "MintableNFT" && reward.mintableNfts) {
+      return `${reward.mintableNfts.length} variant${reward.mintableNfts.length !== 1 ? "s" : ""}`;
     }
-    if (reward.type === 'Gift' && reward.giftDescription) {
-      return reward.giftDescription.substring(0, 50) + '...';
+    if (reward.type === "Gift" && reward.giftDescription) {
+      return reward.giftDescription.substring(0, 50) + "...";
     }
-    if (reward.type === 'Voucher' && reward.voucherCodes) {
-      return `${reward.voucherCodes.length} code${reward.voucherCodes.length !== 1 ? 's' : ''}`;
+    if (reward.type === "Voucher" && reward.voucherCodes) {
+      return `${reward.voucherCodes.length} code${reward.voucherCodes.length !== 1 ? "s" : ""}`;
     }
-    if (reward.type === 'CustomPoints' && reward.customPointName) {
+    if (reward.type === "CustomPoints" && reward.customPointName) {
       return reward.customPointName;
     }
-    return 'Configure reward details';
+    return "Configure reward details";
   }
 </script>
 
@@ -93,7 +94,10 @@
       <span class="banner-icon">💡</span>
       <div class="banner-content">
         <strong>Custom Points System Active</strong>
-        <p>Assign point values to tasks. Participants earn points by completing them.</p>
+        <p>
+          Assign point values to tasks. Participants earn points by completing
+          them.
+        </p>
       </div>
     </div>
   {/if}

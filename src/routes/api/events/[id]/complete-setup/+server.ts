@@ -16,7 +16,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
   // Fetch the event to verify ownership and type
   const { data: event, error: fetchError } = await supabaseAdmin
     .from('events')
-    .select('id, event_type, created_by, status, setup_progress, tasks, reward_types')
+    .select('id, created_by, status, setup_progress, tasks, reward_types')
     .eq('id', eventId)
     .single();
 
@@ -27,11 +27,6 @@ export const POST: RequestHandler = async ({ params, locals }) => {
   // Verify user is the creator
   if (event.created_by !== locals.user.id) {
     throw error(403, 'Only the event creator can complete setup');
-  }
-
-  // Only community events can use this endpoint
-  if (event.event_type !== 'community') {
-    throw error(400, 'Only community events need setup completion');
   }
 
   // Verify event is in draft status
@@ -61,8 +56,8 @@ export const POST: RequestHandler = async ({ params, locals }) => {
     throw error(500, 'Failed to submit event for review');
   }
 
-  return json({ 
-    success: true, 
+  return json({
+    success: true,
     message: 'Event submitted for review successfully',
     status: 'review'
   });

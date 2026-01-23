@@ -5,7 +5,6 @@
 
 	type Event = {
 		id: string;
-		event_type: "quick_event";
 		title: string;
 		description: string;
 		logo_url: string | null;

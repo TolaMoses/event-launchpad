@@ -48,7 +48,6 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     id: eventData.id,
     title: eventData.title,
     description: eventData.description,
-    event_type: eventData.event_type,
     start_time: eventData.start_time,
     end_time: eventData.end_time,
     num_winners: eventData.num_winners,

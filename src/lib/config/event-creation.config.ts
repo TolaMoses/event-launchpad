@@ -14,18 +14,14 @@ import type { PrizeOption, ChainOption } from '$lib/shared/types/event-creation.
 export const MAX_BANNER_SIZE = 500 * 1024; // 500KB
 export const MAX_LOGO_SIZE = 150 * 1024;    // 150KB
 
-// Quick Event Prize Options
-export const QUICK_EVENT_PRIZE_OPTIONS: PrizeOption[] = [
+// Unified Prize Options - All reward types available for all events
+export const PRIZE_OPTIONS: PrizeOption[] = [
   { value: 'Token', label: 'Token' },
   { value: 'ETH', label: 'Native coin' },
   { value: 'NFT', label: 'Existing NFT' },
   { value: 'MintableNFT', label: 'Mintable NFT (participants mint after tasks)' },
   { value: 'Gift', label: 'Gift/Merch (physical items shipped to winners)' },
-  { value: 'Voucher', label: 'Voucher/Code (digital codes sent to winners)' }
-];
-
-// Community Event Prize Options
-export const COMMUNITY_EVENT_PRIZE_OPTIONS: PrizeOption[] = [
+  { value: 'Voucher', label: 'Voucher/Code (digital codes sent to winners)' },
   { value: 'CustomPoints', label: 'Custom Points (point-based reward system)' }
 ];
 
