@@ -287,122 +287,117 @@
       showWinners={true}
     />
 
-      <!-- Step 3: Schedule -->
-      <EventScheduleForm
-        bind:startDate
-        bind:startTime
-        bind:endDate
-        bind:endTime
-        bind:startISO
-        bind:endISO
-        bind:error={scheduleError}
-      />
+    <!-- Step 3: Schedule -->
+    <EventScheduleForm
+      bind:startDate
+      bind:startTime
+      bind:endDate
+      bind:endTime
+      bind:startISO
+      bind:endISO
+      bind:error={scheduleError}
+    />
 
-      <!-- Step 4: Visual Assets -->
-      <div class="event-creation-section">
-        <div class="section-header">
-          <h2>Visual Assets</h2>
-          <p class="section-description">
-            Upload banner and logo for your event
-          </p>
-        </div>
-
-        <AssetUploader
-          kind="banner"
-          bind:file={bannerFile}
-          bind:preview={bannerPreview}
-          bind:error={bannerError}
-          maxSize={MAX_BANNER_SIZE}
-          onFileSelect={(file, preview) => {
-            bannerFile = file;
-            bannerPreview = preview;
-          }}
-          onClear={() => {
-            bannerFile = null;
-            bannerPreview = "";
-          }}
-        />
-
-        <AssetUploader
-          kind="logo"
-          bind:file={logoFile}
-          bind:preview={logoPreview}
-          bind:error={logoError}
-          maxSize={MAX_LOGO_SIZE}
-          onFileSelect={(file, preview) => {
-            logoFile = file;
-            logoPreview = preview;
-          }}
-          onClear={() => {
-            logoFile = null;
-            logoPreview = "";
-          }}
-        />
+    <!-- Step 4: Visual Assets -->
+    <div class="event-creation-section">
+      <div class="section-header">
+        <h2>Visual Assets</h2>
+        <p class="section-description">Upload banner and logo for your event</p>
       </div>
 
-      <!-- Step 2: Tasks -->
-      <div class="event-creation-section">
-        <div class="section-header">
-          <h2>Event Tasks</h2>
-          <p class="section-description">
-            Add tasks for participants to complete
-          </p>
-        </div>
-
-        <TaskBuilder
-          editingTask={editingTaskIndex !== null
-            ? tasks[editingTaskIndex]
-            : null}
-          onSave={handleTaskSave}
-          onCancel={() => {
-            editingTaskIndex = null;
-          }}
-        />
-
-        <TaskList
-          {tasks}
-          onEdit={handleTaskEdit}
-          onDelete={handleTaskDelete}
-          onMoveUp={handleTaskMoveUp}
-          onMoveDown={handleTaskMoveDown}
-        />
-      </div>
-
-      <!-- Step 3: Rewards -->
-      <RewardConfigSection
-        bind:rewards
-        {numWinners}
-        chainId={$chainId?.toString() || ""}
-        onUpdate={(updated) => {
-          rewards = updated;
+      <AssetUploader
+        kind="banner"
+        bind:file={bannerFile}
+        bind:preview={bannerPreview}
+        bind:error={bannerError}
+        maxSize={MAX_BANNER_SIZE}
+        onFileSelect={(file, preview) => {
+          bannerFile = file;
+          bannerPreview = preview;
+        }}
+        onClear={() => {
+          bannerFile = null;
+          bannerPreview = "";
         }}
       />
 
-      <!-- Step 7: Preview -->
-      {#if isValid}
-        <EventPreview
-          {title}
-          {description}
-          startISO={startISO || ""}
-          endISO={endISO || ""}
-          {tasks}
-          {rewards}
-          {bannerPreview}
-          {logoPreview}
-          {videoUrl}
-          {numWinners}
-        />
-      {/if}
-
-      <!-- Step 8: Submit -->
-      <SubmitEventButton
-        {isValid}
-        isSubmitting={isSaving}
-        {validationErrors}
-        onSubmit={handleSubmit}
-        buttonText="Create Event"
+      <AssetUploader
+        kind="logo"
+        bind:file={logoFile}
+        bind:preview={logoPreview}
+        bind:error={logoError}
+        maxSize={MAX_LOGO_SIZE}
+        onFileSelect={(file, preview) => {
+          logoFile = file;
+          logoPreview = preview;
+        }}
+        onClear={() => {
+          logoFile = null;
+          logoPreview = "";
+        }}
       />
     </div>
+
+    <!-- Step 2: Tasks -->
+    <div class="event-creation-section">
+      <div class="section-header">
+        <h2>Event Tasks</h2>
+        <p class="section-description">
+          Add tasks for participants to complete
+        </p>
+      </div>
+
+      <TaskBuilder
+        editingTask={editingTaskIndex !== null ? tasks[editingTaskIndex] : null}
+        onSave={handleTaskSave}
+        onCancel={() => {
+          editingTaskIndex = null;
+        }}
+      />
+
+      <TaskList
+        {tasks}
+        onEdit={handleTaskEdit}
+        onDelete={handleTaskDelete}
+        onMoveUp={handleTaskMoveUp}
+        onMoveDown={handleTaskMoveDown}
+      />
+    </div>
+
+    <!-- Step 3: Rewards -->
+    <RewardConfigSection
+      bind:rewards
+      {numWinners}
+      chainId={$chainId?.toString() || ""}
+      onUpdate={(updated) => {
+        rewards = updated;
+      }}
+    />
+
+    <!-- Step 7: Preview -->
+    {#if isValid}
+      <EventPreview
+        {title}
+        {description}
+        startISO={startISO || ""}
+        endISO={endISO || ""}
+        {tasks}
+        {rewards}
+        {bannerPreview}
+        {logoPreview}
+        {videoUrl}
+        {numWinners}
+      />
+    {/if}
+
+    <!-- Step 8: Submit -->
+    <SubmitEventButton
+      {isValid}
+      isSubmitting={isSaving}
+      {validationErrors}
+      onSubmit={handleSubmit}
+      buttonText="Create Event"
+    />
   </div>
 </div>
 
