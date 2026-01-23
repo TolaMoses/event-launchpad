@@ -3,7 +3,7 @@
     validateDateTime,
     validateSchedule,
   } from "$lib/utils/event-creation.utils";
-  import assets from "$lib/config/assets";
+  import { ASSETS } from "$lib/config/assets";
 
   export let startDate: string = "";
   export let startTime: string = "";
@@ -121,7 +121,7 @@
         </p>
       </div>
       <span class="success-icon"
-        ><img src={assets.icons.successIcon} alt="Success" /></span
+        ><img src={ASSETS.icons.successIcon} alt="Success" /></span
       >
     </div>
   {/if}
