@@ -7,15 +7,15 @@
 
 import type { TaskRegistry } from './TaskTypes';
 
-// Import all task components
-import TwitterTask from './components/TwitterTask.svelte';
-import DiscordTask from './components/DiscordTask.svelte';
-import TelegramTask from './components/TelegramTask.svelte';
-import QuizTask from './components/QuizTask.svelte';
-import PuzzleTask from './components/PuzzleTask.svelte';
-import ContentSubmissionTask from './components/ContentSubmissionTask.svelte';
-import ReferralTask from './components/ReferralTask.svelte';
+// Import task configuration components
+import TwitterConfigTask from './twitter/TwitterTask.svelte';
 import DiscordConfigTask from './discord/DiscordTask.svelte';
+import TelegramConfigTask from './telegram/TelegramTask.svelte';
+import QuizTask from './quiz/QuizTask.svelte';
+import PuzzleTask from './puzzle/PuzzleTask.svelte';
+import ContentSubmissionConfigTask from './content_submission/ContentSubmissionTask.svelte';
+import ReferralConfigTask from './referral/ReferralConfigTask.svelte';
+import ScorelineConfigTask from './scoreline/ScorelineConfigTask.svelte';
 
 // Import legacy components
 import SocialTask from './social/SocialTask.svelte';
@@ -45,7 +45,7 @@ export const taskRegistry: TaskRegistry = {
 	// Social/Twitter tasks
 	twitter: {
 		label: 'Twitter',
-		component: TwitterTask
+		component: TwitterConfigTask
 	},
 
 	// Discord
@@ -57,7 +57,7 @@ export const taskRegistry: TaskRegistry = {
 	// Telegram
 	telegram: {
 		label: 'Telegram',
-		component: TelegramTask
+		component: TelegramConfigTask
 	},
 
 	// Quiz/Trivia
@@ -75,17 +75,17 @@ export const taskRegistry: TaskRegistry = {
 	// Content creation
 	content_submission: {
 		label: 'Content Creation',
-		component: ContentSubmissionTask
+		component: ContentSubmissionConfigTask
 	},
 
 	// Scoreline prediction
 	scoreline_prediction: {
 		label: 'Scoreline Prediction',
-		component: ScorelinePrediction
+		component: ScorelineConfigTask
 	},
 	scoreline: {
 		label: 'Scoreline Prediction',
-		component: ScorelinePrediction
+		component: ScorelineConfigTask
 	},
 
 
@@ -93,7 +93,7 @@ export const taskRegistry: TaskRegistry = {
 	// Referral
 	referral: {
 		label: 'Referral Tasks',
-		component: ReferralTask
+		component: ReferralConfigTask
 	},
 
 	// Participation
