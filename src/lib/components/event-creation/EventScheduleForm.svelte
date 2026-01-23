@@ -121,7 +121,7 @@
         </p>
       </div>
       <span class="success-icon"
-        ><img src={ASSETS.icons.successIcon} alt="Success" /></span
+        ><img src={ASSETS.icons.ui.successIcon} alt="Success" /></span
       >
     </div>
   {/if}
