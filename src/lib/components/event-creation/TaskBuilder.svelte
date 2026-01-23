@@ -74,6 +74,7 @@
       selectedTaskTypes = new Set();
       pendingTaskTypes = [];
     }
+    // Always reset creatingTaskType to return to task selection
     creatingTaskType = null;
     taskBuilderState = null;
   }

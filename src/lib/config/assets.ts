@@ -103,7 +103,7 @@ export const ASSETS = {
 			quiz: '/icons/quiz.svg',
 			game: '/icons/game.svg',
 			puzzle: '/icons/quiz.svg',
-			content_submission: '/icons/content-submission.svg',	
+			content_submission: '/icons/content-submission.svg',
 			treasure_hunt: '/icons/treasure-hunt.svg',
 			irl: '/icons/irl.svg',
 			scoreline: '/icons/scoreline.svg',
@@ -124,7 +124,8 @@ export const ASSETS = {
 			info: '/icons/info.svg',
 			quickEvent: '/icons/quick-event.svg',
 			community: '/icons/community.svg',
-			uploadImage: '/icons/upload-image.svg'
+			uploadImage: '/icons/upload-image.svg',
+			successIcon: '/icons/success-icon.svg'
 		}
 	},
 

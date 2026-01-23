@@ -1,13 +1,17 @@
 <script lang="ts">
-  import { validateDateTime, validateSchedule } from '$lib/utils/event-creation.utils';
+  import {
+    validateDateTime,
+    validateSchedule,
+  } from "$lib/utils/event-creation.utils";
+  import assets from "$lib/config/assets";
 
-  export let startDate: string = '';
-  export let startTime: string = '';
-  export let endDate: string = '';
-  export let endTime: string = '';
+  export let startDate: string = "";
+  export let startTime: string = "";
+  export let endDate: string = "";
+  export let endTime: string = "";
   export let startISO: string | null = null;
   export let endISO: string | null = null;
-  export let error: string = '';
+  export let error: string = "";
 
   // Reactive validation
   $: if (startDate && startTime) {
@@ -16,7 +20,7 @@
       startISO = result.isoString;
       validateCompleteSchedule();
     } else {
-      error = result.error || 'Invalid start date/time';
+      error = result.error || "Invalid start date/time";
       startISO = null;
     }
   } else {
@@ -29,7 +33,7 @@
       endISO = result.isoString;
       validateCompleteSchedule();
     } else {
-      error = result.error || 'Invalid end date/time';
+      error = result.error || "Invalid end date/time";
       endISO = null;
     }
   } else {
@@ -40,15 +44,15 @@
     if (startISO && endISO) {
       const result = validateSchedule(startISO, endISO);
       if (!result.valid) {
-        error = result.error || 'Invalid schedule';
+        error = result.error || "Invalid schedule";
       } else {
-        error = '';
+        error = "";
       }
     }
   }
 
   // Set minimum date to today
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
 </script>
 
 <div class="schedule-form">
@@ -71,11 +75,7 @@
         </div>
         <div class="form-group">
           <label for="start-time">Time (UTC)</label>
-          <input
-            id="start-time"
-            type="time"
-            bind:value={startTime}
-          />
+          <input id="start-time" type="time" bind:value={startTime} />
         </div>
       </div>
     </div>
@@ -95,11 +95,7 @@
         </div>
         <div class="form-group">
           <label for="end-time">Time (UTC)</label>
-          <input
-            id="end-time"
-            type="time"
-            bind:value={endTime}
-          />
+          <input id="end-time" type="time" bind:value={endTime} />
         </div>
       </div>
     </div>
@@ -116,15 +112,17 @@
   <!-- Success Preview -->
   {#if startISO && endISO && !error}
     <div class="schedule-preview">
-      <span class="success-icon">✓</span>
       <div class="preview-content">
         <strong>Event Duration:</strong>
         <p>
-          {new Date(startISO).toLocaleString()} 
-          → 
+          {new Date(startISO).toLocaleString()}
+          →
           {new Date(endISO).toLocaleString()}
         </p>
       </div>
+      <span class="success-icon"
+        ><img src={assets.icons.successIcon} alt="Success" /></span
+      >
     </div>
   {/if}
 </div>
@@ -196,8 +194,8 @@
   }
 
   /* Color scheme for date/time inputs */
-  input[type='date']::-webkit-calendar-picker-indicator,
-  input[type='time']::-webkit-calendar-picker-indicator {
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
     cursor: pointer;
   }
@@ -220,7 +218,8 @@
 
   .schedule-preview {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: space-between;
     gap: 0.75rem;
     padding: 1rem;
     background: rgba(16, 185, 129, 0.1);
@@ -233,6 +232,11 @@
     color: #10b981;
     font-size: 1.25rem;
     font-weight: bold;
+  }
+
+  .success-icon img {
+    width: 1rem;
+    height: 1rem;
   }
 
   .preview-content {

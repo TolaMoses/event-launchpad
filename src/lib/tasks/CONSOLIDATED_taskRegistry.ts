@@ -29,14 +29,13 @@ import ScorelinePrediction from './scoreline/ScorelinePrediction.svelte';
  * Main task registry - maps task type to component and metadata
  * 
  * Task types:
- * - twitter/social: Twitter/X social tasks (follow, like, retweet, etc.)
+ * - twitter: Twitter/X social tasks (follow, like, retweet, etc.)
  * - discord: Discord server/role verification
  * - telegram: Telegram group/channel verification
  * - quiz: Quiz/trivia challenges
  * - puzzle: Puzzle/riddle challenges
- * - content_submission/content: Content creation tasks
+ * - content_submission: Content creation tasks
  * - scoreline_prediction/scoreline: Sports score predictions
- * - code_entry: Code/password entry
  * - referral: Referral/invite tasks
  * - participation: General participation tasks
  * - game: Game/challenge tasks
@@ -78,10 +77,6 @@ export const taskRegistry: TaskRegistry = {
 		label: 'Content Creation',
 		component: ContentSubmissionTask
 	},
-	content: {
-		label: 'Content Creation',
-		component: ContentTask  // Legacy component
-	},
 
 	// Scoreline prediction
 	scoreline_prediction: {
@@ -93,11 +88,7 @@ export const taskRegistry: TaskRegistry = {
 		component: ScorelinePrediction
 	},
 
-	// Code entry
-	code_entry: {
-		label: 'Code Entry',
-		component: null  // To be implemented
-	},
+
 
 	// Referral
 	referral: {
