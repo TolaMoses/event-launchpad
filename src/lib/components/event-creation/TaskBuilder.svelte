@@ -36,9 +36,7 @@
     creatingTaskType = pendingTaskTypes[0];
   }
 
-  function handleTaskSave(event: CustomEvent) {
-    const config = event.detail;
-
+  function handleTaskSave(config: Record<string, unknown>) {
     const task: TaskInstance = editingTask
       ? {
           ...editingTask,
@@ -47,8 +45,8 @@
       : {
           id: generateId(),
           type: creatingTaskType || pendingTaskTypes[0],
-          title: config.title || "Untitled Task",
-          points: config.points || 0,
+          title: (config.title as string) || "Untitled Task",
+          points: (config.points as number) || 0,
           config: clone(config),
         };
 

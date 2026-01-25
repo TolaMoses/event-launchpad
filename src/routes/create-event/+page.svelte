@@ -173,7 +173,7 @@
   // ============================================
 
   async function handleSubmit() {
-    if (!isValid || isSaving) return;
+    if (!isStep5Valid || isSaving) return;
 
     isSaving = true;
 
@@ -397,7 +397,7 @@
 
     <svelte:fragment slot="submit-button">
       <SubmitEventButton
-        isValid={validateStep(5)}
+        isValid={isStep5Valid}
         isSubmitting={isSaving}
         {validationErrors}
         onSubmit={handleSubmit}
