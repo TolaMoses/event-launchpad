@@ -76,28 +76,35 @@
   let currentStep = 1;
 
   // Reactive step validation - updates when form fields change
-  $: isStep1Valid = !!(title.trim() && description.trim());
-  $: isStep2Valid = !!(startISO && endISO && !scheduleError);
-  $: isStep3Valid = !!(logoPreview || uploadedLogo);
+  $: isStep1Valid = Boolean(title?.trim() && description?.trim());
+  $: isStep2Valid = Boolean(startISO && endISO && !scheduleError);
+  $: isStep3Valid = Boolean(logoPreview || uploadedLogo);
   $: isStep4Valid = tasks.length > 0;
   $: isStep5Valid = rewards.length > 0;
 
+  // Debug logging
+  $: console.log("Step 1 validation:", { title, description, isStep1Valid });
+
   // Step validation function
   function validateStep(step: number): boolean {
-    switch (step) {
-      case 1:
-        return isStep1Valid;
-      case 2:
-        return isStep2Valid;
-      case 3:
-        return isStep3Valid;
-      case 4:
-        return isStep4Valid;
-      case 5:
-        return isStep5Valid;
-      default:
-        return false;
-    }
+    const result = (() => {
+      switch (step) {
+        case 1:
+          return isStep1Valid;
+        case 2:
+          return isStep2Valid;
+        case 3:
+          return isStep3Valid;
+        case 4:
+          return isStep4Valid;
+        case 5:
+          return isStep5Valid;
+        default:
+          return false;
+      }
+    })();
+    console.log(`Validating step ${step}:`, result);
+    return result;
   }
 
   // ============================================
@@ -276,7 +283,7 @@
       <!-- Step 1: Basic Information -->
       {#if currentStep === 1}
         <div class="step-section">
-          <h2 class="step-title">📝 Basic Information</h2>
+          <h2 class="step-title">Basic Details</h2>
           <EventBasicInfoForm
             bind:title
             bind:description
@@ -290,7 +297,7 @@
       <!-- Step 2: Schedule -->
       {#if currentStep === 2}
         <div class="step-section">
-          <h2 class="step-title">📅 Event Schedule</h2>
+          <h2 class="step-title">Event Schedule</h2>
           <EventScheduleForm
             bind:startDate
             bind:startTime
@@ -306,7 +313,7 @@
       <!-- Step 3: Visual Assets -->
       {#if currentStep === 3}
         <div class="step-section">
-          <h2 class="step-title">🎨 Visual Assets</h2>
+          <h2 class="step-title">Visual Assets</h2>
           <div class="event-creation-section">
             <div class="section-header">
               <h3>Upload banner and logo for your event</h3>
@@ -382,7 +389,7 @@
       <!-- Step 5: Rewards -->
       {#if currentStep === 5}
         <div class="step-section">
-          <h2 class="step-title">🎁 Rewards</h2>
+          <h2 class="step-title">Rewards</h2>
           <RewardConfigSection
             bind:rewards
             {numWinners}

@@ -11,7 +11,15 @@
     let isStepValid = false;
 
     // Check current step validity - reactive to currentStep changes
-    $: isStepValid = validateStep(currentStep);
+    $: {
+        isStepValid = validateStep(currentStep);
+        console.log(
+            "SteppedFormWrapper - currentStep:",
+            currentStep,
+            "isStepValid:",
+            isStepValid,
+        );
+    }
     $: canGoNext = isStepValid && currentStep < totalSteps;
     $: canGoBack = currentStep > 1;
 
