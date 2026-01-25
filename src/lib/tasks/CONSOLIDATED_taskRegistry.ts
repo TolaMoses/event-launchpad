@@ -83,10 +83,6 @@ export const taskRegistry: TaskRegistry = {
 		label: 'Scoreline Prediction',
 		component: ScorelineConfigTask
 	},
-	scoreline: {
-		label: 'Scoreline Prediction',
-		component: ScorelineConfigTask
-	},
 
 
 

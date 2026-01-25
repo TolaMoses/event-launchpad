@@ -4,6 +4,7 @@
     validateSchedule,
   } from "$lib/utils/event-creation.utils";
   import { ASSETS } from "$lib/config/assets";
+  import Icon from "$lib/components/Icon.svelte";
 
   export let startDate: string = "";
   export let startTime: string = "";
@@ -120,9 +121,9 @@
           {new Date(endISO).toLocaleString()}
         </p>
       </div>
-      <span class="success-icon"
-        ><img src={ASSETS.icons.ui.successIcon} alt="Success" /></span
-      >
+      <span class="success-icon">
+        <Icon src={ASSETS.icons.ui.successIcon} alt="Success" size="md" />
+      </span>
     </div>
   {/if}
 </div>
@@ -232,11 +233,6 @@
     color: #10b981;
     font-size: 1.25rem;
     font-weight: bold;
-  }
-
-  .success-icon img {
-    width: 1rem;
-    height: 1rem;
   }
 
   .preview-content {

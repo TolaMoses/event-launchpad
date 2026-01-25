@@ -22,6 +22,7 @@
   import { clone } from "$lib/utils/event-creation.utils";
 
   // Import components
+  import SteppedFormWrapper from "$lib/components/event-creation/SteppedFormWrapper.svelte";
   import EventBasicInfoForm from "$lib/components/event-creation/EventBasicInfoForm.svelte";
   import EventScheduleForm from "$lib/components/event-creation/EventScheduleForm.svelte";
   import AssetUploader from "$lib/components/event-creation/AssetUploader.svelte";
@@ -70,6 +71,39 @@
   // Submission
   let isSaving = false;
   let validationErrors: string[] = [];
+
+  // Stepped form
+  let currentStep = 1;
+  let formData = {
+    title,
+    description,
+    videoUrl,
+    numWinners,
+    startDate,
+    startTime,
+    endDate,
+    endTime,
+    tasks,
+    rewards,
+  };
+
+  // Step validation
+  function validateStep(step: number): boolean {
+    switch (step) {
+      case 1: // Basic Info
+        return !!(title.trim() && description.trim());
+      case 2: // Schedule
+        return !!(startISO && endISO && !scheduleError);
+      case 3: // Visual Assets
+        return !!(logoPreview || uploadedLogo);
+      case 4: // Tasks
+        return tasks.length > 0;
+      case 5: // Rewards
+        return rewards.length > 0;
+      default:
+        return false;
+    }
+  }
 
   // ============================================
   // VALIDATION
@@ -277,128 +311,150 @@
     <p>Build engaging events with custom tasks and rewards</p>
   </header>
 
-  <div class="creation-form slide-down">
-    <!-- Step 1: Basic Information -->
-    <EventBasicInfoForm
-      bind:title
-      bind:description
-      bind:videoUrl
-      bind:numWinners
-      showWinners={true}
-    />
+  <SteppedFormWrapper
+    bind:currentStep
+    bind:formData
+    {validateStep}
+    totalSteps={5}
+    storageKey="event-creation-progress"
+    let:currentStep
+  >
+    <form
+      class="creation-form slide-down"
+      on:submit|preventDefault={handleSubmit}
+    >
+      <!-- Step 1: Basic Information -->
+      {#if currentStep === 1}
+        <div class="step-section">
+          <h2 class="step-title">📝 Basic Information</h2>
+          <EventBasicInfoForm
+            bind:title
+            bind:description
+            bind:videoUrl
+            bind:numWinners
+            showWinners={true}
+          />
+        </div>
+      {/if}
 
-    <!-- Step 3: Schedule -->
-    <EventScheduleForm
-      bind:startDate
-      bind:startTime
-      bind:endDate
-      bind:endTime
-      bind:startISO
-      bind:endISO
-      bind:error={scheduleError}
-    />
+      <!-- Step 2: Schedule -->
+      {#if currentStep === 2}
+        <div class="step-section">
+          <h2 class="step-title">📅 Event Schedule</h2>
+          <EventScheduleForm
+            bind:startDate
+            bind:startTime
+            bind:endDate
+            bind:endTime
+            bind:startISO
+            bind:endISO
+            bind:error={scheduleError}
+          />
+        </div>
+      {/if}
 
-    <!-- Step 4: Visual Assets -->
-    <div class="event-creation-section">
-      <div class="section-header">
-        <h2>Visual Assets</h2>
-        <p class="section-description">Upload banner and logo for your event</p>
-      </div>
+      <!-- Step 3: Visual Assets -->
+      {#if currentStep === 3}
+        <div class="step-section">
+          <h2 class="step-title">🎨 Visual Assets</h2>
+          <div class="event-creation-section">
+            <div class="section-header">
+              <h3>Upload banner and logo for your event</h3>
+            </div>
 
-      <AssetUploader
-        kind="banner"
-        bind:file={bannerFile}
-        bind:preview={bannerPreview}
-        bind:error={bannerError}
-        maxSize={MAX_BANNER_SIZE}
-        onFileSelect={(file, preview) => {
-          bannerFile = file;
-          bannerPreview = preview;
-        }}
-        onClear={() => {
-          bannerFile = null;
-          bannerPreview = "";
-        }}
+            <AssetUploader
+              kind="banner"
+              bind:file={bannerFile}
+              bind:preview={bannerPreview}
+              bind:error={bannerError}
+              maxSize={MAX_BANNER_SIZE}
+              onFileSelect={(file, preview) => {
+                bannerFile = file;
+                bannerPreview = preview;
+              }}
+              onClear={() => {
+                bannerFile = null;
+                bannerPreview = "";
+              }}
+            />
+
+            <AssetUploader
+              kind="logo"
+              bind:file={logoFile}
+              bind:preview={logoPreview}
+              bind:error={logoError}
+              maxSize={MAX_LOGO_SIZE}
+              onFileSelect={(file, preview) => {
+                logoFile = file;
+                logoPreview = preview;
+              }}
+              onClear={() => {
+                logoFile = null;
+                logoPreview = "";
+              }}
+            />
+          </div>
+        </div>
+      {/if}
+
+      <!-- Step 4: Tasks -->
+      {#if currentStep === 4}
+        <div class="step-section">
+          <h2 class="step-title">✅ Event Tasks</h2>
+          <div class="event-creation-section">
+            <div class="section-header">
+              <p class="section-description">
+                Add tasks for participants to complete
+              </p>
+            </div>
+
+            <TaskBuilder
+              editingTask={editingTaskIndex !== null
+                ? tasks[editingTaskIndex]
+                : null}
+              onSave={handleTaskSave}
+              onCancel={() => {
+                editingTaskIndex = null;
+              }}
+            />
+
+            <TaskList
+              {tasks}
+              onEdit={handleTaskEdit}
+              onDelete={handleTaskDelete}
+              onMoveUp={handleTaskMoveUp}
+              onMoveDown={handleTaskMoveDown}
+            />
+          </div>
+        </div>
+      {/if}
+
+      <!-- Step 5: Rewards -->
+      {#if currentStep === 5}
+        <div class="step-section">
+          <h2 class="step-title">🎁 Rewards</h2>
+          <RewardConfigSection
+            bind:rewards
+            {numWinners}
+            chainId={$chainId?.toString() || ""}
+            onUpdate={(updated) => {
+              rewards = updated;
+            }}
+          />
+        </div>
+      {/if}
+    </form>
+
+    <svelte:fragment slot="submit-button">
+      <SubmitEventButton
+        isValid={validateStep(5)}
+        isSubmitting={isSaving}
+        {validationErrors}
+        onSubmit={handleSubmit}
+        buttonText="Create Event"
       />
-
-      <AssetUploader
-        kind="logo"
-        bind:file={logoFile}
-        bind:preview={logoPreview}
-        bind:error={logoError}
-        maxSize={MAX_LOGO_SIZE}
-        onFileSelect={(file, preview) => {
-          logoFile = file;
-          logoPreview = preview;
-        }}
-        onClear={() => {
-          logoFile = null;
-          logoPreview = "";
-        }}
-      />
-    </div>
-
-    <!-- Step 2: Tasks -->
-    <div class="event-creation-section">
-      <div class="section-header">
-        <h2>Event Tasks</h2>
-        <p class="section-description">
-          Add tasks for participants to complete
-        </p>
-      </div>
-
-      <TaskBuilder
-        editingTask={editingTaskIndex !== null ? tasks[editingTaskIndex] : null}
-        onSave={handleTaskSave}
-        onCancel={() => {
-          editingTaskIndex = null;
-        }}
-      />
-
-      <TaskList
-        {tasks}
-        onEdit={handleTaskEdit}
-        onDelete={handleTaskDelete}
-        onMoveUp={handleTaskMoveUp}
-        onMoveDown={handleTaskMoveDown}
-      />
-    </div>
-
-    <!-- Step 3: Rewards -->
-    <RewardConfigSection
-      bind:rewards
-      {numWinners}
-      chainId={$chainId?.toString() || ""}
-      onUpdate={(updated) => {
-        rewards = updated;
-      }}
-    />
-
-    <!-- Step 7: Preview -->
-    {#if isValid}
-      <EventPreview
-        {title}
-        {description}
-        startISO={startISO || ""}
-        endISO={endISO || ""}
-        {tasks}
-        {rewards}
-        {bannerPreview}
-        {logoPreview}
-        {videoUrl}
-        {numWinners}
-      />
-    {/if}
-
-    <!-- Step 8: Submit -->
-    <SubmitEventButton
-      {isValid}
-      isSubmitting={isSaving}
-      {validationErrors}
-      onSubmit={handleSubmit}
-      buttonText="Create Event"
-    />
-  </div>
+    </svelte:fragment>
+  </SteppedFormWrapper>
 </div>
 
 <style>
@@ -432,5 +488,23 @@
     .page-header p {
       font-size: 1rem;
     }
+  }
+
+  .event-creation-section h2 {
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+  }
+
+  .step-section {
+    margin-bottom: 1rem;
+  }
+
+  .step-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(139, 92, 246, 0.3);
   }
 </style>
