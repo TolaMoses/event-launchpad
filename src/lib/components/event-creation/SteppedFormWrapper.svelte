@@ -5,21 +5,9 @@
     export let totalSteps = 5;
     export let storageKey = "event-creation-progress";
 
-    // Validation function for each step
-    export let validateStep: (step: number) => boolean = () => true;
+    // Accept step validity as a reactive prop from parent
+    export let isStepValid: boolean = false;
 
-    let isStepValid = false;
-
-    // Check current step validity - reactive to currentStep changes
-    $: {
-        isStepValid = validateStep(currentStep);
-        console.log(
-            "SteppedFormWrapper - currentStep:",
-            currentStep,
-            "isStepValid:",
-            isStepValid,
-        );
-    }
     $: canGoNext = isStepValid && currentStep < totalSteps;
     $: canGoBack = currentStep > 1;
 

@@ -82,30 +82,23 @@
   $: isStep4Valid = tasks.length > 0;
   $: isStep5Valid = rewards.length > 0;
 
-  // Debug logging
-  $: console.log("Step 1 validation:", { title, description, isStep1Valid });
-
-  // Step validation function
-  function validateStep(step: number): boolean {
-    const result = (() => {
-      switch (step) {
-        case 1:
-          return isStep1Valid;
-        case 2:
-          return isStep2Valid;
-        case 3:
-          return isStep3Valid;
-        case 4:
-          return isStep4Valid;
-        case 5:
-          return isStep5Valid;
-        default:
-          return false;
-      }
-    })();
-    console.log(`Validating step ${step}:`, result);
-    return result;
-  }
+  // Current step validation - this is reactive and will update
+  $: isCurrentStepValid = (() => {
+    switch (currentStep) {
+      case 1:
+        return isStep1Valid;
+      case 2:
+        return isStep2Valid;
+      case 3:
+        return isStep3Valid;
+      case 4:
+        return isStep4Valid;
+      case 5:
+        return isStep5Valid;
+      default:
+        return false;
+    }
+  })();
 
   // ============================================
   // FILE UPLOAD
@@ -271,7 +264,7 @@
 
   <SteppedFormWrapper
     bind:currentStep
-    {validateStep}
+    isStepValid={isCurrentStepValid}
     totalSteps={5}
     storageKey="event-creation-progress"
     let:currentStep
