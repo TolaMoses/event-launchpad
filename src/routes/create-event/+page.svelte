@@ -101,50 +101,6 @@
   }
 
   // ============================================
-  // VALIDATION
-  // ============================================
-
-  function validateForm(): string[] {
-    const errors: string[] = [];
-
-    // Basic info validation
-    if (!title.trim()) {
-      errors.push("Event title is required");
-    }
-    if (!description.trim()) {
-      errors.push("Event description is required");
-    }
-
-    // Schedule validation
-    if (!startISO || !endISO) {
-      errors.push("Start and end dates are required");
-    }
-    if (scheduleError) {
-      errors.push(scheduleError);
-    }
-
-    // Assets validation
-    if (!logoPreview && !uploadedLogo) {
-      errors.push("Event logo is required");
-    }
-
-    // Tasks validation
-    if (tasks.length === 0) {
-      errors.push("At least one task is required");
-    }
-
-    // Rewards validation
-    if (rewards.length === 0) {
-      errors.push("At least one reward is required");
-    }
-
-    return errors;
-  }
-
-  $: validationErrors = validateForm();
-  $: isValid = validationErrors.length === 0;
-
-  // ============================================
   // FILE UPLOAD
   // ============================================
 
