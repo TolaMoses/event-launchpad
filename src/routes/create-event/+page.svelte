@@ -74,32 +74,27 @@
 
   // Stepped form
   let currentStep = 1;
-  let formData = {
-    title,
-    description,
-    videoUrl,
-    numWinners,
-    startDate,
-    startTime,
-    endDate,
-    endTime,
-    tasks,
-    rewards,
-  };
 
-  // Step validation
+  // Reactive step validation - updates when form fields change
+  $: isStep1Valid = !!(title.trim() && description.trim());
+  $: isStep2Valid = !!(startISO && endISO && !scheduleError);
+  $: isStep3Valid = !!(logoPreview || uploadedLogo);
+  $: isStep4Valid = tasks.length > 0;
+  $: isStep5Valid = rewards.length > 0;
+
+  // Step validation function
   function validateStep(step: number): boolean {
     switch (step) {
-      case 1: // Basic Info
-        return !!(title.trim() && description.trim());
-      case 2: // Schedule
-        return !!(startISO && endISO && !scheduleError);
-      case 3: // Visual Assets
-        return !!(logoPreview || uploadedLogo);
-      case 4: // Tasks
-        return tasks.length > 0;
-      case 5: // Rewards
-        return rewards.length > 0;
+      case 1:
+        return isStep1Valid;
+      case 2:
+        return isStep2Valid;
+      case 3:
+        return isStep3Valid;
+      case 4:
+        return isStep4Valid;
+      case 5:
+        return isStep5Valid;
       default:
         return false;
     }
@@ -313,7 +308,6 @@
 
   <SteppedFormWrapper
     bind:currentStep
-    bind:formData
     {validateStep}
     totalSteps={5}
     storageKey="event-creation-progress"

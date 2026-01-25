@@ -1,6 +1,5 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { writable } from "svelte/store";
 
     export let currentStep = 1;
     export let totalSteps = 5;
@@ -9,18 +8,15 @@
     // Validation function for each step
     export let validateStep: (step: number) => boolean = () => true;
 
-    // Form data to persist
-    export let formData: Record<string, any> = {};
-
     let isStepValid = false;
 
-    // Check current step validity
+    // Check current step validity - reactive to currentStep changes
     $: isStepValid = validateStep(currentStep);
     $: canGoNext = isStepValid && currentStep < totalSteps;
     $: canGoBack = currentStep > 1;
 
-    // Save to localStorage whenever formData changes
-    $: if (typeof window !== "undefined") {
+    // Save to localStorage whenever currentStep changes
+    $: if (typeof window !== "undefined" && currentStep) {
         saveProgress();
     }
 
@@ -30,7 +26,6 @@
                 storageKey,
                 JSON.stringify({
                     currentStep,
-                    formData,
                     savedAt: new Date().toISOString(),
                 }),
             );
@@ -43,10 +38,8 @@
         try {
             const saved = localStorage.getItem(storageKey);
             if (saved) {
-                const { currentStep: savedStep, formData: savedData } =
-                    JSON.parse(saved);
+                const { currentStep: savedStep } = JSON.parse(saved);
                 currentStep = savedStep || 1;
-                formData = savedData || {};
                 return true;
             }
         } catch (e) {
@@ -59,7 +52,6 @@
         try {
             localStorage.removeItem(storageKey);
             currentStep = 1;
-            formData = {};
         } catch (e) {
             console.error("Failed to clear progress:", e);
         }
