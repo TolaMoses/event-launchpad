@@ -2,7 +2,8 @@
   import { goto } from "$app/navigation";
   import { chainId } from "$lib/wallet";
 
-  // Import centralized styles
+  // Page data from server
+  export let data: { isAuthenticated: boolean; user: any };
   import "$lib/styles/event-creation.css";
 
   // Import types
@@ -262,139 +263,152 @@
     <p>Build engaging events with custom tasks and rewards</p>
   </header>
 
-  <SteppedFormWrapper
-    bind:currentStep
-    isStepValid={isCurrentStepValid}
-    totalSteps={5}
-    storageKey="event-creation-progress"
-    let:currentStep
-  >
-    <form
-      class="creation-form slide-down"
-      on:submit|preventDefault={handleSubmit}
+  {#if !data.isAuthenticated}
+    <!-- Login Required Prompt -->
+    <div class="auth-required-card">
+      <div class="auth-icon">🔐</div>
+      <h2>Login Required</h2>
+      <p>
+        You need to be logged in to create events. Please connect your wallet to
+        continue.
+      </p>
+      <a href="/" class="primary-btn">Go to Home</a>
+    </div>
+  {:else}
+    <SteppedFormWrapper
+      bind:currentStep
+      isStepValid={isCurrentStepValid}
+      totalSteps={5}
+      storageKey="event-creation-progress"
+      let:currentStep
     >
-      <!-- Step 1: Basic Information -->
-      <div class="step-section" hidden={currentStep !== 1}>
-        <h2 class="step-title">Basic Details</h2>
-        <EventBasicInfoForm
-          bind:title
-          bind:description
-          bind:videoUrl
-          bind:numWinners
-          showWinners={true}
-        />
-      </div>
-
-      <!-- Step 2: Schedule -->
-      <div class="step-section" hidden={currentStep !== 2}>
-        <h2 class="step-title">Event Schedule</h2>
-        <EventScheduleForm
-          bind:startDate
-          bind:startTime
-          bind:endDate
-          bind:endTime
-          bind:startISO
-          bind:endISO
-          bind:error={scheduleError}
-        />
-      </div>
-
-      <!-- Step 3: Visual Assets -->
-      <div class="step-section" hidden={currentStep !== 3}>
-        <h2 class="step-title">Visual Assets</h2>
-        <div class="event-creation-section">
-          <div class="section-header">
-            <h3>Upload banner and logo for your event</h3>
-          </div>
-
-          <AssetUploader
-            kind="banner"
-            bind:file={bannerFile}
-            bind:preview={bannerPreview}
-            bind:error={bannerError}
-            maxSize={MAX_BANNER_SIZE}
-            onFileSelect={(file, preview) => {
-              bannerFile = file;
-              bannerPreview = preview;
-            }}
-            onClear={() => {
-              bannerFile = null;
-              bannerPreview = "";
-            }}
+      <form
+        class="creation-form slide-down"
+        on:submit|preventDefault={handleSubmit}
+      >
+        <!-- Step 1: Basic Information -->
+        <div class="step-section" hidden={currentStep !== 1}>
+          <h2 class="step-title">Basic Details</h2>
+          <EventBasicInfoForm
+            bind:title
+            bind:description
+            bind:videoUrl
+            bind:numWinners
+            showWinners={true}
           />
+        </div>
 
-          <AssetUploader
-            kind="logo"
-            bind:file={logoFile}
-            bind:preview={logoPreview}
-            bind:error={logoError}
-            maxSize={MAX_LOGO_SIZE}
-            onFileSelect={(file, preview) => {
-              logoFile = file;
-              logoPreview = preview;
-            }}
-            onClear={() => {
-              logoFile = null;
-              logoPreview = "";
+        <!-- Step 2: Schedule -->
+        <div class="step-section" hidden={currentStep !== 2}>
+          <h2 class="step-title">Event Schedule</h2>
+          <EventScheduleForm
+            bind:startDate
+            bind:startTime
+            bind:endDate
+            bind:endTime
+            bind:startISO
+            bind:endISO
+            bind:error={scheduleError}
+          />
+        </div>
+
+        <!-- Step 3: Visual Assets -->
+        <div class="step-section" hidden={currentStep !== 3}>
+          <h2 class="step-title">Visual Assets</h2>
+          <div class="event-creation-section">
+            <div class="section-header">
+              <h3>Upload banner and logo for your event</h3>
+            </div>
+
+            <AssetUploader
+              kind="banner"
+              bind:file={bannerFile}
+              bind:preview={bannerPreview}
+              bind:error={bannerError}
+              maxSize={MAX_BANNER_SIZE}
+              onFileSelect={(file, preview) => {
+                bannerFile = file;
+                bannerPreview = preview;
+              }}
+              onClear={() => {
+                bannerFile = null;
+                bannerPreview = "";
+              }}
+            />
+
+            <AssetUploader
+              kind="logo"
+              bind:file={logoFile}
+              bind:preview={logoPreview}
+              bind:error={logoError}
+              maxSize={MAX_LOGO_SIZE}
+              onFileSelect={(file, preview) => {
+                logoFile = file;
+                logoPreview = preview;
+              }}
+              onClear={() => {
+                logoFile = null;
+                logoPreview = "";
+              }}
+            />
+          </div>
+        </div>
+
+        <!-- Step 4: Tasks -->
+        <div class="step-section" hidden={currentStep !== 4}>
+          <h2 class="step-title">Event Tasks</h2>
+          <div class="event-creation-section">
+            <div class="section-header">
+              <p class="section-description">
+                Add tasks for participants to complete
+              </p>
+            </div>
+
+            <TaskBuilder
+              editingTask={editingTaskIndex !== null
+                ? tasks[editingTaskIndex]
+                : null}
+              onSave={handleTaskSave}
+              onCancel={() => {
+                editingTaskIndex = null;
+              }}
+            />
+
+            <TaskList
+              {tasks}
+              onEdit={handleTaskEdit}
+              onDelete={handleTaskDelete}
+              onMoveUp={handleTaskMoveUp}
+              onMoveDown={handleTaskMoveDown}
+            />
+          </div>
+        </div>
+
+        <!-- Step 5: Rewards -->
+        <div class="step-section" hidden={currentStep !== 5}>
+          <h2 class="step-title">Rewards</h2>
+          <RewardConfigSection
+            bind:rewards
+            {numWinners}
+            chainId={$chainId?.toString() || ""}
+            onUpdate={(updated) => {
+              rewards = updated;
             }}
           />
         </div>
-      </div>
+      </form>
 
-      <!-- Step 4: Tasks -->
-      <div class="step-section" hidden={currentStep !== 4}>
-        <h2 class="step-title">Event Tasks</h2>
-        <div class="event-creation-section">
-          <div class="section-header">
-            <p class="section-description">
-              Add tasks for participants to complete
-            </p>
-          </div>
-
-          <TaskBuilder
-            editingTask={editingTaskIndex !== null
-              ? tasks[editingTaskIndex]
-              : null}
-            onSave={handleTaskSave}
-            onCancel={() => {
-              editingTaskIndex = null;
-            }}
-          />
-
-          <TaskList
-            {tasks}
-            onEdit={handleTaskEdit}
-            onDelete={handleTaskDelete}
-            onMoveUp={handleTaskMoveUp}
-            onMoveDown={handleTaskMoveDown}
-          />
-        </div>
-      </div>
-
-      <!-- Step 5: Rewards -->
-      <div class="step-section" hidden={currentStep !== 5}>
-        <h2 class="step-title">Rewards</h2>
-        <RewardConfigSection
-          bind:rewards
-          {numWinners}
-          chainId={$chainId?.toString() || ""}
-          onUpdate={(updated) => {
-            rewards = updated;
-          }}
+      <svelte:fragment slot="submit-button">
+        <SubmitEventButton
+          isValid={isStep5Valid}
+          isSubmitting={isSaving}
+          {validationErrors}
+          onSubmit={handleSubmit}
+          buttonText="Create Event"
         />
-      </div>
-    </form>
-
-    <svelte:fragment slot="submit-button">
-      <SubmitEventButton
-        isValid={isStep5Valid}
-        isSubmitting={isSaving}
-        {validationErrors}
-        onSubmit={handleSubmit}
-        buttonText="Create Event"
-      />
-    </svelte:fragment>
-  </SteppedFormWrapper>
+      </svelte:fragment>
+    </SteppedFormWrapper>
+  {/if}
 </div>
 
 <style>
@@ -450,5 +464,52 @@
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 2px solid rgba(139, 92, 246, 0.3);
+  }
+
+  .auth-required-card {
+    max-width: 500px;
+    margin: 3rem auto;
+    padding: 3rem 2rem;
+    background: rgba(18, 20, 35, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+
+  .auth-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .auth-required-card h2 {
+    font-size: 1.75rem;
+    color: #fff;
+    margin-bottom: 1rem;
+  }
+
+  .auth-required-card p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+  }
+
+  .auth-required-card .primary-btn {
+    display: inline-block;
+    padding: 0.875rem 2rem;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    transition:
+      transform 0.2s,
+      box-shadow 0.2s;
+  }
+
+  .auth-required-card .primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4);
   }
 </style>

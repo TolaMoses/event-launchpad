@@ -134,8 +134,48 @@
     }
 
     function connectDiscord() {
-        // Open Discord OAuth in current window
-        window.location.href = `/api/auth/discord/connect?returnTo=${encodeURIComponent(window.location.pathname)}`;
+        // Open Discord OAuth in new tab
+        const authUrl = `/api/auth/discord/connect?returnTo=${encodeURIComponent(window.location.pathname)}`;
+        const authWindow = window.open(
+            authUrl,
+            "_blank",
+            "width=600,height=700",
+        );
+
+        // Poll to check if connection is complete
+        const pollInterval = setInterval(async () => {
+            try {
+                // Check if window was closed
+                if (authWindow?.closed) {
+                    clearInterval(pollInterval);
+                    // Refresh Discord status
+                    await loadDiscordStatus();
+                    return;
+                }
+
+                // Check connection status
+                const response = await fetch("/api/auth/discord/guilds");
+                const data = await response.json();
+
+                if (data.connected) {
+                    clearInterval(pollInterval);
+                    // Close the auth window if still open
+                    authWindow?.close();
+                    // Refresh Discord status
+                    await loadDiscordStatus();
+                }
+            } catch (err) {
+                // Continue polling
+            }
+        }, 1500); // Poll every 1.5 seconds
+
+        // Stop polling after 5 minutes (safety timeout)
+        setTimeout(
+            () => {
+                clearInterval(pollInterval);
+            },
+            5 * 60 * 1000,
+        );
     }
 
     function handleSave() {
