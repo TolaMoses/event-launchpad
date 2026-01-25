@@ -15,9 +15,13 @@
 
   const taskOptions = getTaskOptions();
 
-  // If editing, set the task type
+  // If editing, set the task type immediately
   $: if (editingTask) {
     creatingTaskType = editingTask.type as TaskTypeKey;
+    selectedTaskTypes = new Set([editingTask.type as TaskTypeKey]);
+  } else if (!creatingTaskType) {
+    // Reset when not editing and not creating
+    selectedTaskTypes = new Set();
   }
 
   function toggleTaskType(taskType: TaskTypeKey) {

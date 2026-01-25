@@ -274,125 +274,115 @@
       on:submit|preventDefault={handleSubmit}
     >
       <!-- Step 1: Basic Information -->
-      {#if currentStep === 1}
-        <div class="step-section">
-          <h2 class="step-title">Basic Details</h2>
-          <EventBasicInfoForm
-            bind:title
-            bind:description
-            bind:videoUrl
-            bind:numWinners
-            showWinners={true}
-          />
-        </div>
-      {/if}
+      <div class="step-section" hidden={currentStep !== 1}>
+        <h2 class="step-title">Basic Details</h2>
+        <EventBasicInfoForm
+          bind:title
+          bind:description
+          bind:videoUrl
+          bind:numWinners
+          showWinners={true}
+        />
+      </div>
 
       <!-- Step 2: Schedule -->
-      {#if currentStep === 2}
-        <div class="step-section">
-          <h2 class="step-title">Event Schedule</h2>
-          <EventScheduleForm
-            bind:startDate
-            bind:startTime
-            bind:endDate
-            bind:endTime
-            bind:startISO
-            bind:endISO
-            bind:error={scheduleError}
-          />
-        </div>
-      {/if}
+      <div class="step-section" hidden={currentStep !== 2}>
+        <h2 class="step-title">Event Schedule</h2>
+        <EventScheduleForm
+          bind:startDate
+          bind:startTime
+          bind:endDate
+          bind:endTime
+          bind:startISO
+          bind:endISO
+          bind:error={scheduleError}
+        />
+      </div>
 
       <!-- Step 3: Visual Assets -->
-      {#if currentStep === 3}
-        <div class="step-section">
-          <h2 class="step-title">Visual Assets</h2>
-          <div class="event-creation-section">
-            <div class="section-header">
-              <h3>Upload banner and logo for your event</h3>
-            </div>
-
-            <AssetUploader
-              kind="banner"
-              bind:file={bannerFile}
-              bind:preview={bannerPreview}
-              bind:error={bannerError}
-              maxSize={MAX_BANNER_SIZE}
-              onFileSelect={(file, preview) => {
-                bannerFile = file;
-                bannerPreview = preview;
-              }}
-              onClear={() => {
-                bannerFile = null;
-                bannerPreview = "";
-              }}
-            />
-
-            <AssetUploader
-              kind="logo"
-              bind:file={logoFile}
-              bind:preview={logoPreview}
-              bind:error={logoError}
-              maxSize={MAX_LOGO_SIZE}
-              onFileSelect={(file, preview) => {
-                logoFile = file;
-                logoPreview = preview;
-              }}
-              onClear={() => {
-                logoFile = null;
-                logoPreview = "";
-              }}
-            />
+      <div class="step-section" hidden={currentStep !== 3}>
+        <h2 class="step-title">Visual Assets</h2>
+        <div class="event-creation-section">
+          <div class="section-header">
+            <h3>Upload banner and logo for your event</h3>
           </div>
-        </div>
-      {/if}
 
-      <!-- Step 4: Tasks -->
-      {#if currentStep === 4}
-        <div class="step-section">
-          <h2 class="step-title">✅ Event Tasks</h2>
-          <div class="event-creation-section">
-            <div class="section-header">
-              <p class="section-description">
-                Add tasks for participants to complete
-              </p>
-            </div>
+          <AssetUploader
+            kind="banner"
+            bind:file={bannerFile}
+            bind:preview={bannerPreview}
+            bind:error={bannerError}
+            maxSize={MAX_BANNER_SIZE}
+            onFileSelect={(file, preview) => {
+              bannerFile = file;
+              bannerPreview = preview;
+            }}
+            onClear={() => {
+              bannerFile = null;
+              bannerPreview = "";
+            }}
+          />
 
-            <TaskBuilder
-              editingTask={editingTaskIndex !== null
-                ? tasks[editingTaskIndex]
-                : null}
-              onSave={handleTaskSave}
-              onCancel={() => {
-                editingTaskIndex = null;
-              }}
-            />
-
-            <TaskList
-              {tasks}
-              onEdit={handleTaskEdit}
-              onDelete={handleTaskDelete}
-              onMoveUp={handleTaskMoveUp}
-              onMoveDown={handleTaskMoveDown}
-            />
-          </div>
-        </div>
-      {/if}
-
-      <!-- Step 5: Rewards -->
-      {#if currentStep === 5}
-        <div class="step-section">
-          <h2 class="step-title">Rewards</h2>
-          <RewardConfigSection
-            bind:rewards
-            {numWinners}
-            chainId={$chainId?.toString() || ""}
-            onUpdate={(updated) => {
-              rewards = updated;
+          <AssetUploader
+            kind="logo"
+            bind:file={logoFile}
+            bind:preview={logoPreview}
+            bind:error={logoError}
+            maxSize={MAX_LOGO_SIZE}
+            onFileSelect={(file, preview) => {
+              logoFile = file;
+              logoPreview = preview;
+            }}
+            onClear={() => {
+              logoFile = null;
+              logoPreview = "";
             }}
           />
         </div>
-      {/if}
+      </div>
+
+      <!-- Step 4: Tasks -->
+      <div class="step-section" hidden={currentStep !== 4}>
+        <h2 class="step-title">Event Tasks</h2>
+        <div class="event-creation-section">
+          <div class="section-header">
+            <p class="section-description">
+              Add tasks for participants to complete
+            </p>
+          </div>
+
+          <TaskBuilder
+            editingTask={editingTaskIndex !== null
+              ? tasks[editingTaskIndex]
+              : null}
+            onSave={handleTaskSave}
+            onCancel={() => {
+              editingTaskIndex = null;
+            }}
+          />
+
+          <TaskList
+            {tasks}
+            onEdit={handleTaskEdit}
+            onDelete={handleTaskDelete}
+            onMoveUp={handleTaskMoveUp}
+            onMoveDown={handleTaskMoveDown}
+          />
+        </div>
+      </div>
+
+      <!-- Step 5: Rewards -->
+      <div class="step-section" hidden={currentStep !== 5}>
+        <h2 class="step-title">Rewards</h2>
+        <RewardConfigSection
+          bind:rewards
+          {numWinners}
+          chainId={$chainId?.toString() || ""}
+          onUpdate={(updated) => {
+            rewards = updated;
+          }}
+        />
+      </div>
     </form>
 
     <svelte:fragment slot="submit-button">
@@ -447,6 +437,10 @@
 
   .step-section {
     margin-bottom: 1rem;
+  }
+
+  .step-section[hidden] {
+    display: none !important;
   }
 
   .step-title {
