@@ -50,7 +50,7 @@
           id: generateId(),
           type: creatingTaskType || pendingTaskTypes[0],
           title: (config.title as string) || "Untitled Task",
-          points: (config.points as number) || 0,
+          points: 0, // Points no longer configurable per task
           config: clone(config),
         };
 

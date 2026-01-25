@@ -4,7 +4,6 @@
     interface TwitterTaskConfig {
         title: string;
         description: string;
-        points: number;
         twitter: {
             followAccount: boolean;
             likePost: boolean;
@@ -25,7 +24,6 @@
         : {
               title: "Twitter Task",
               description: "Complete the Twitter actions",
-              points: 10,
               twitter: {
                   followAccount: false,
                   likePost: false,
@@ -43,7 +41,6 @@
         const errs: string[] = [];
         if (!config.title.trim()) errs.push("Task title is required");
         if (!config.description.trim()) errs.push("Description is required");
-        if (config.points < 0) errs.push("Points must be positive");
 
         const hasAction =
             config.twitter.followAccount ||
@@ -161,16 +158,6 @@
             />
         </div>
     {/if}
-
-    <div class="form-group">
-        <label>Points</label>
-        <input
-            type="number"
-            min="0"
-            bind:value={config.points}
-            placeholder="10"
-        />
-    </div>
 
     {#if errors.length}
         <div class="error-box">

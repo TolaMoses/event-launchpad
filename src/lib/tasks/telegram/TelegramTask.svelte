@@ -1,15 +1,17 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import type { TaskComponentProps } from "../TaskTypes";
 
     interface TelegramTaskConfig {
         title: string;
         description: string;
-        points: number;
         telegram: {
             joinChannel: boolean;
             joinGroup: boolean;
             channelLink: string;
             groupLink: string;
+            channelId: string;
+            groupId: string;
         };
     }
 
@@ -22,35 +24,134 @@
         : {
               title: "Telegram Task",
               description: "Join our Telegram community",
-              points: 10,
               telegram: {
                   joinChannel: false,
                   joinGroup: false,
                   channelLink: "",
                   groupLink: "",
+                  channelId: "",
+                  groupId: "",
               },
           };
 
     let errors: string[] = [];
 
+    // Bot info
+    let botUsername = "";
+    let loadingBot = true;
+
+    // Verification status
+    let channelBotStatus: "unknown" | "checking" | "success" | "error" =
+        "unknown";
+    let groupBotStatus: "unknown" | "checking" | "success" | "error" =
+        "unknown";
+    let channelBotError = "";
+    let groupBotError = "";
+
+    onMount(async () => {
+        await loadBotInfo();
+    });
+
+    async function loadBotInfo() {
+        loadingBot = true;
+        try {
+            const response = await fetch("/api/config/telegram-bot");
+            const data = await response.json();
+            botUsername = data.username || "@YourBot";
+        } catch (err) {
+            console.error("Failed to load bot info:", err);
+            botUsername = "@YourBot";
+        } finally {
+            loadingBot = false;
+        }
+    }
+
+    async function verifyChannelBot() {
+        if (!config.telegram.channelId.trim()) {
+            channelBotError = "Enter a channel ID first";
+            return;
+        }
+
+        channelBotStatus = "checking";
+        channelBotError = "";
+
+        try {
+            const response = await fetch("/api/auth/telegram/verify-bot", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chatId: config.telegram.channelId }),
+            });
+
+            const data = await response.json();
+
+            if (data.botInChat) {
+                channelBotStatus = "success";
+            } else {
+                channelBotStatus = "error";
+                channelBotError =
+                    data.error || "Bot cannot access this channel";
+            }
+        } catch (err) {
+            channelBotStatus = "error";
+            channelBotError = "Failed to verify bot access";
+        }
+    }
+
+    async function verifyGroupBot() {
+        if (!config.telegram.groupId.trim()) {
+            groupBotError = "Enter a group ID first";
+            return;
+        }
+
+        groupBotStatus = "checking";
+        groupBotError = "";
+
+        try {
+            const response = await fetch("/api/auth/telegram/verify-bot", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chatId: config.telegram.groupId }),
+            });
+
+            const data = await response.json();
+
+            if (data.botInChat) {
+                groupBotStatus = "success";
+            } else {
+                groupBotStatus = "error";
+                groupBotError = data.error || "Bot cannot access this group";
+            }
+        } catch (err) {
+            groupBotStatus = "error";
+            groupBotError = "Failed to verify bot access";
+        }
+    }
+
     function validateConfig(): string[] {
         const errs: string[] = [];
         if (!config.title.trim()) errs.push("Task title is required");
         if (!config.description.trim()) errs.push("Description is required");
-        if (config.points < 0) errs.push("Points must be positive");
 
         if (!config.telegram.joinChannel && !config.telegram.joinGroup) {
             errs.push("Select at least one Telegram action");
         }
 
-        if (
-            config.telegram.joinChannel &&
-            !config.telegram.channelLink.trim()
-        ) {
-            errs.push("Channel link is required");
+        if (config.telegram.joinChannel) {
+            if (!config.telegram.channelLink.trim()) {
+                errs.push("Channel link is required");
+            }
+            if (!config.telegram.channelId.trim()) {
+                errs.push("Channel ID is required for verification");
+            }
         }
-        if (config.telegram.joinGroup && !config.telegram.groupLink.trim()) {
-            errs.push("Group link is required");
+
+        if (config.telegram.joinGroup) {
+            if (!config.telegram.groupLink.trim()) {
+                errs.push("Group link is required");
+            }
+            if (!config.telegram.groupId.trim()) {
+                errs.push("Group ID is required for verification");
+            }
         }
 
         return errs;
@@ -68,9 +169,36 @@
     <h3>Telegram Task</h3>
     <p class="description">Configure a Telegram community task</p>
 
+    <!-- Bot Setup Instructions -->
+    <div class="bot-info-section">
+        <h4>Setup Instructions</h4>
+        <div class="instructions">
+            <ol>
+                <li>
+                    Add <strong>{loadingBot ? "..." : botUsername}</strong> to your
+                    channel/group as admin
+                </li>
+                <li>
+                    Get your chat ID (channel/group) - usually starts with <code
+                        >-100</code
+                    >
+                </li>
+                <li>Enter the chat ID below and verify bot access</li>
+            </ol>
+        </div>
+        <p class="hint">
+            To get chat ID: Add <a
+                href="https://t.me/userinfobot"
+                target="_blank"
+                rel="noopener">@userinfobot</a
+            > to your group temporarily, it will show the chat ID.
+        </p>
+    </div>
+
     <div class="form-group">
-        <label>Task Title</label>
+        <label for="task-title">Task Title</label>
         <input
+            id="task-title"
             type="text"
             bind:value={config.title}
             placeholder="Join our Telegram"
@@ -78,8 +206,9 @@
     </div>
 
     <div class="form-group">
-        <label>Description</label>
+        <label for="description">Description</label>
         <textarea
+            id="description"
             rows="2"
             bind:value={config.description}
             placeholder="Join our community on Telegram..."
@@ -107,36 +236,84 @@
     </div>
 
     {#if config.telegram.joinChannel}
-        <div class="form-group">
-            <label>Channel Link</label>
-            <input
-                type="url"
-                bind:value={config.telegram.channelLink}
-                placeholder="https://t.me/yourchannel"
-            />
+        <div class="channel-config">
+            <div class="form-group">
+                <label for="channel-link">Channel Link</label>
+                <input
+                    id="channel-link"
+                    type="url"
+                    bind:value={config.telegram.channelLink}
+                    placeholder="https://t.me/yourchannel"
+                />
+                <span class="hint">Public link for participants to join</span>
+            </div>
+
+            <div class="form-group">
+                <label for="channel-id">Channel ID *</label>
+                <div class="id-input-row">
+                    <input
+                        id="channel-id"
+                        type="text"
+                        bind:value={config.telegram.channelId}
+                        placeholder="-1001234567890"
+                    />
+                    <button
+                        type="button"
+                        class="verify-button"
+                        on:click={verifyChannelBot}
+                        disabled={channelBotStatus === "checking"}
+                    >
+                        {channelBotStatus === "checking" ? "..." : "Verify"}
+                    </button>
+                </div>
+                {#if channelBotStatus === "success"}
+                    <span class="status-success">✓ Bot has access</span>
+                {:else if channelBotStatus === "error"}
+                    <span class="status-error">{channelBotError}</span>
+                {/if}
+            </div>
         </div>
     {/if}
 
     {#if config.telegram.joinGroup}
-        <div class="form-group">
-            <label>Group Link</label>
-            <input
-                type="url"
-                bind:value={config.telegram.groupLink}
-                placeholder="https://t.me/yourgroup"
-            />
+        <div class="group-config">
+            <div class="form-group">
+                <label for="group-link">Group Link</label>
+                <input
+                    id="group-link"
+                    type="url"
+                    bind:value={config.telegram.groupLink}
+                    placeholder="https://t.me/yourgroup"
+                />
+                <span class="hint">Public link for participants to join</span>
+            </div>
+
+            <div class="form-group">
+                <label for="group-id">Group ID *</label>
+                <div class="id-input-row">
+                    <input
+                        id="group-id"
+                        type="text"
+                        bind:value={config.telegram.groupId}
+                        placeholder="-1001234567890"
+                    />
+                    <button
+                        type="button"
+                        class="verify-button"
+                        on:click={verifyGroupBot}
+                        disabled={groupBotStatus === "checking"}
+                    >
+                        {groupBotStatus === "checking" ? "..." : "Verify"}
+                    </button>
+                </div>
+                {#if groupBotStatus === "success"}
+                    <span class="status-success">✓ Bot has access</span>
+                {:else if groupBotStatus === "error"}
+                    <span class="status-error">{groupBotError}</span>
+                {/if}
+            </div>
         </div>
     {/if}
-
-    <div class="form-group">
-        <label>Points</label>
-        <input
-            type="number"
-            min="0"
-            bind:value={config.points}
-            placeholder="10"
-        />
-    </div>
 
     {#if errors.length}
         <div class="error-box">
@@ -177,10 +354,45 @@
         color: #f3f3fb;
     }
 
+    h4 {
+        margin: 0 0 0.75rem 0;
+        font-size: 1rem;
+        color: #f3f3fb;
+    }
+
     .description {
         margin: 0;
         color: rgba(243, 243, 251, 0.75);
         font-size: 0.9rem;
+    }
+
+    .bot-info-section {
+        padding: 1rem;
+        background: rgba(0, 136, 204, 0.1);
+        border: 1px solid rgba(0, 136, 204, 0.2);
+        border-radius: 10px;
+    }
+
+    .instructions {
+        color: rgba(243, 243, 251, 0.85);
+        font-size: 0.9rem;
+    }
+
+    .instructions ol {
+        margin: 0;
+        padding-left: 1.25rem;
+    }
+
+    .instructions li {
+        margin: 0.4rem 0;
+    }
+
+    .instructions code {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.85em;
     }
 
     .form-group {
@@ -217,6 +429,15 @@
         background: rgba(26, 28, 45, 0.95);
     }
 
+    .hint {
+        font-size: 0.8rem;
+        color: rgba(243, 243, 251, 0.5);
+    }
+
+    .hint a {
+        color: #0088cc;
+    }
+
     .checkbox-group {
         display: flex;
         flex-direction: column;
@@ -244,6 +465,57 @@
 
     .checkbox-label span {
         color: rgba(243, 243, 251, 0.9);
+    }
+
+    .channel-config,
+    .group-config {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .id-input-row {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .id-input-row input {
+        flex: 1;
+    }
+
+    .verify-button {
+        padding: 0.5rem 1rem;
+        background: #0088cc;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+        min-width: 70px;
+    }
+
+    .verify-button:hover:not(:disabled) {
+        background: #006699;
+    }
+
+    .verify-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .status-success {
+        color: #34d399;
+        font-size: 0.85rem;
+    }
+
+    .status-error {
+        color: #f87171;
+        font-size: 0.85rem;
     }
 
     .ghost-btn {

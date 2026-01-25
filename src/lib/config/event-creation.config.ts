@@ -21,8 +21,7 @@ export const PRIZE_OPTIONS: PrizeOption[] = [
   { value: 'NFT', label: 'Existing NFT' },
   { value: 'MintableNFT', label: 'Mintable NFT (participants mint after tasks)' },
   { value: 'Gift', label: 'Gift/Merch (physical items shipped to winners)' },
-  { value: 'Voucher', label: 'Voucher/Code (digital codes sent to winners)' },
-  { value: 'CustomPoints', label: 'Custom Points (point-based reward system)' }
+  { value: 'Voucher', label: 'Voucher/Code (digital codes sent to winners)' }
 ];
 
 // Get task options from registry

@@ -5,7 +5,6 @@
         title: string;
         description: string;
         minimumReferrals: number;
-        points: number;
     }
 
     export let initialConfig: ReferralTaskConfig | null = null;
@@ -18,7 +17,6 @@
               title: "Referral Task",
               description: "Invite friends to join",
               minimumReferrals: 3,
-              points: 20,
           };
 
     let errors: string[] = [];
@@ -29,7 +27,6 @@
         if (!config.description.trim()) errs.push("Description is required");
         if (config.minimumReferrals < 1)
             errs.push("Minimum referrals must be at least 1");
-        if (config.points < 0) errs.push("Points must be positive");
         return errs;
     }
 
@@ -75,16 +72,6 @@
             >Number of friends that must join through the participant's referral
             link</small
         >
-    </div>
-
-    <div class="form-group">
-        <label>Points</label>
-        <input
-            type="number"
-            min="0"
-            bind:value={config.points}
-            placeholder="20"
-        />
     </div>
 
     {#if errors.length}

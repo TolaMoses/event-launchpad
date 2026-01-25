@@ -14,7 +14,6 @@
         };
         matchDate: string;
         league: string;
-        points: number;
     }
 
     export let initialConfig: ScorelineTaskConfig | null = null;
@@ -36,7 +35,6 @@
               },
               matchDate: "",
               league: "",
-              points: 15,
           };
 
     let errors: string[] = [];
@@ -50,7 +48,6 @@
         if (!config.awayTeam.name.trim())
             errs.push("Away team name is required");
         if (!config.matchDate) errs.push("Match date is required");
-        if (config.points < 0) errs.push("Points must be positive");
         return errs;
     }
 
@@ -135,16 +132,6 @@
             type="text"
             bind:value={config.league}
             placeholder="Premier League"
-        />
-    </div>
-
-    <div class="form-group">
-        <label>Points</label>
-        <input
-            type="number"
-            min="0"
-            bind:value={config.points}
-            placeholder="15"
         />
     </div>
 

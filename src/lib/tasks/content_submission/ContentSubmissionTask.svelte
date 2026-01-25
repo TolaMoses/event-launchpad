@@ -5,8 +5,7 @@
         title: string;
         description: string;
         contentType: string;
-        submissionType: "link" | "text" | "file";
-        points: number;
+        submissionType: "link";
     }
 
     export let initialConfig: ContentSubmissionConfig | null = null;
@@ -20,7 +19,6 @@
               description: "Create and submit your content",
               contentType: "article",
               submissionType: "link",
-              points: 10,
           };
 
     let errors: string[] = [];
@@ -30,7 +28,6 @@
         if (!config.title.trim()) errs.push("Task title is required");
         if (!config.description.trim()) errs.push("Description is required");
         if (!config.contentType.trim()) errs.push("Content type is required");
-        if (config.points < 0) errs.push("Points must be positive");
         return errs;
     }
 
@@ -49,18 +46,13 @@
         { value: "code", label: "Code/Repository" },
         { value: "other", label: "Other" },
     ];
-
-    const submissionTypes = [
-        { value: "link", label: "Link (URL)" },
-        { value: "text", label: "Text" },
-        { value: "file", label: "File Upload" },
-    ];
 </script>
 
 <div class="task-config-panel">
     <h3>Content Submission Task</h3>
     <p class="description">
-        Configure a content creation task where participants submit their work
+        Configure a content creation task where participants submit a link to
+        their work
     </p>
 
     <div class="form-group">
@@ -90,24 +82,9 @@
         </select>
     </div>
 
-    <div class="form-group">
-        <label>Submission Type</label>
-        <select bind:value={config.submissionType}>
-            {#each submissionTypes as type}
-                <option value={type.value}>{type.label}</option>
-            {/each}
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label>Points</label>
-        <input
-            type="number"
-            min="0"
-            bind:value={config.points}
-            placeholder="10"
-        />
-    </div>
+    <p class="info-text">
+        Participants will submit a link (URL) to their content
+    </p>
 
     {#if errors.length}
         <div class="error-box">
@@ -152,6 +129,15 @@
         margin: 0;
         color: rgba(243, 243, 251, 0.75);
         font-size: 0.9rem;
+    }
+
+    .info-text {
+        margin: 0;
+        padding: 0.75rem;
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: 8px;
+        color: rgba(243, 243, 251, 0.8);
+        font-size: 0.85rem;
     }
 
     .form-group {
