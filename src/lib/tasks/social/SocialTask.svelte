@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount } from "svelte";
   import type { TaskComponentProps } from "../TaskTypes";
   import {
     createDefaultSocialTaskConfig,
     type SocialTaskConfig,
-    validateSocialTaskConfig
+    validateSocialTaskConfig,
   } from "./schema";
 
   export let initialConfig: SocialTaskConfig | null = null;
   export let onSave: TaskComponentProps<SocialTaskConfig>["onSave"];
   export let onCancel: TaskComponentProps["onCancel"];
-  export let eventType: 'quick_event' | 'community' | '' = '';
+  export let eventType: "quick_event" | "community" | "" = "";
 
   let config: SocialTaskConfig = initialConfig
     ? structuredClone(initialConfig)
@@ -22,20 +22,20 @@
   let discordSetup = {
     connected: false,
     guilds: [] as Array<{ id: string; name: string }>,
-    selectedGuildId: '',
-    selectedGuildName: '',
+    selectedGuildId: "",
+    selectedGuildName: "",
     botAdded: false,
     checking: false,
     disconnecting: false,
-    connecting: false
+    connecting: false,
   };
 
   // Telegram bot setup state
   let telegramSetup = {
-    botUsername: '@YourBotUsername', // Replace with actual bot username from env
+    botUsername: "@YourBotUsername", // Replace with actual bot username from env
     botAdded: false,
     checking: false,
-    channelId: ''
+    channelId: "",
   };
 
   onMount(() => {
@@ -52,35 +52,35 @@
         });
       }
     };
-    window.addEventListener('focus', handleFocus);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener("focus", handleFocus);
     };
   });
 
   async function loadBotUsername() {
     try {
-      const response = await fetch('/api/config/telegram-bot');
+      const response = await fetch("/api/config/telegram-bot");
       if (response.ok) {
         const data = await response.json();
-        telegramSetup.botUsername = data.username || '@YourBotUsername';
+        telegramSetup.botUsername = data.username || "@YourBotUsername";
       }
     } catch (err) {
-      console.error('Failed to load bot username:', err);
+      console.error("Failed to load bot username:", err);
     }
   }
 
   async function checkDiscordConnection() {
     try {
-      const response = await fetch('/api/auth/discord/status');
+      const response = await fetch("/api/auth/discord/status");
       if (response.ok) {
         const data = await response.json();
         discordSetup.connected = data.connected;
         discordSetup.guilds = data.guilds || [];
       }
     } catch (err) {
-      console.error('Failed to check Discord connection:', err);
+      console.error("Failed to check Discord connection:", err);
     }
   }
 
@@ -98,25 +98,25 @@
 
     discordSetup.disconnecting = true;
     try {
-      const response = await fetch('/api/auth/discord/disconnect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+      const response = await fetch("/api/auth/discord/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to disconnect Discord');
+        throw new Error("Failed to disconnect Discord");
       }
 
       // Reset Discord setup state
       discordSetup = {
         connected: false,
         guilds: [],
-        selectedGuildId: '',
-        selectedGuildName: '',
+        selectedGuildId: "",
+        selectedGuildName: "",
         botAdded: false,
         checking: false,
         disconnecting: false,
-        connecting: false
+        connecting: false,
       };
 
       // Clear Discord config
@@ -124,12 +124,14 @@
         ...config,
         discord: {
           joinServer: false,
-          inviteLink: ''
-        }
+          inviteLink: "",
+        },
       };
     } catch (err) {
-      console.error('Disconnect Discord failed:', err);
-      alert(err instanceof Error ? err.message : 'Failed to disconnect Discord');
+      console.error("Disconnect Discord failed:", err);
+      alert(
+        err instanceof Error ? err.message : "Failed to disconnect Discord",
+      );
     } finally {
       discordSetup.disconnecting = false;
     }
@@ -144,28 +146,28 @@
       discord: {
         ...config.discord,
         serverId: guildId,
-        serverName: guildName
-      }
+        serverName: guildName,
+      },
     };
   }
 
   async function getDiscordBotInviteUrl(): Promise<string> {
     // Fetch the bot client ID from the backend
-    const response = await fetch('/api/config/discord-bot');
+    const response = await fetch("/api/config/discord-bot");
     const data = await response.json();
-    const botClientId = data.clientId || '';
-    const permissions = '268437504'; // Read Members + Read Messages
+    const botClientId = data.clientId || "";
+    const permissions = "268437504"; // Read Members + Read Messages
     const guildId = discordSetup.selectedGuildId;
-    
+
     // Pre-select the guild to make it easier for the creator
-    return `https://discord.com/oauth2/authorize?client_id=${botClientId}&permissions=${permissions}&scope=bot${guildId ? `&guild_id=${guildId}` : ''}`;
+    return `https://discord.com/oauth2/authorize?client_id=${botClientId}&permissions=${permissions}&scope=bot${guildId ? `&guild_id=${guildId}` : ""}`;
   }
 
   async function addBotToServer() {
     if (!discordSetup.selectedGuildId) return;
-    
+
     const inviteUrl = await getDiscordBotInviteUrl();
-    window.open(inviteUrl, '_blank');
+    window.open(inviteUrl, "_blank");
   }
 
   async function verifyDiscordBot() {
@@ -173,38 +175,42 @@
 
     discordSetup.checking = true;
     try {
-      const response = await fetch('/api/auth/discord/verify-bot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guildId: discordSetup.selectedGuildId })
+      const response = await fetch("/api/auth/discord/verify-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guildId: discordSetup.selectedGuildId }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Unknown error" }));
         throw new Error(errorData.message || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
       discordSetup.botAdded = data.botInGuild;
-      
+
       if (!data.botInGuild) {
-        alert('Bot not found in server. Please make sure you added the bot and try again.');
+        alert(
+          "Bot not found in server. Please make sure you added the bot and try again.",
+        );
       } else {
-        alert('✓ Bot verified successfully!');
+        alert("✓ Bot verified successfully!");
         config = {
           ...config,
           discord: {
             ...config.discord,
             serverId: discordSetup.selectedGuildId,
-            serverName: discordSetup.selectedGuildName
-          }
+            serverName: discordSetup.selectedGuildName,
+          },
         };
       }
     } catch (err) {
-      console.error('Failed to verify bot:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Please try again';
-      if (errorMsg.includes('Unauthorized')) {
-        alert('Please log in first to verify the bot.');
+      console.error("Failed to verify bot:", err);
+      const errorMsg = err instanceof Error ? err.message : "Please try again";
+      if (errorMsg.includes("Unauthorized")) {
+        alert("Please log in first to verify the bot.");
       } else {
         alert(`Failed to verify bot: ${errorMsg}`);
       }
@@ -215,43 +221,47 @@
 
   async function verifyTelegramBot() {
     if (!telegramSetup.channelId) {
-      alert('Please enter your channel/group ID or username');
+      alert("Please enter your channel/group ID or username");
       return;
     }
 
     telegramSetup.checking = true;
     try {
-      const response = await fetch('/api/auth/telegram/verify-bot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId: telegramSetup.channelId })
+      const response = await fetch("/api/auth/telegram/verify-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatId: telegramSetup.channelId }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Unknown error" }));
         throw new Error(errorData.message || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
       telegramSetup.botAdded = data.botInChat;
-      
+
       if (!data.botInChat) {
-        alert('Bot not found in channel/group. Please make sure you added the bot as admin and try again.');
+        alert(
+          "Bot not found in channel/group. Please make sure you added the bot as admin and try again.",
+        );
       } else {
-        alert('✓ Bot verified successfully!');
+        alert("✓ Bot verified successfully!");
         config = {
           ...config,
           telegram: {
             ...config.telegram,
-            channelId: telegramSetup.channelId
-          }
+            channelId: telegramSetup.channelId,
+          },
         };
       }
     } catch (err) {
-      console.error('Failed to verify bot:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Please try again';
-      if (errorMsg.includes('Unauthorized')) {
-        alert('Please log in first to verify the bot.');
+      console.error("Failed to verify bot:", err);
+      const errorMsg = err instanceof Error ? err.message : "Please try again";
+      if (errorMsg.includes("Unauthorized")) {
+        alert("Please log in first to verify the bot.");
       } else {
         alert(`Failed to verify bot: ${errorMsg}`);
       }
@@ -260,8 +270,14 @@
     }
   }
 
-  $: discordSetupComplete = !config.discord.joinServer || (discordSetup.connected && discordSetup.selectedGuildId && discordSetup.botAdded);
-  $: telegramSetupComplete = !(config.telegram.joinChannel || config.telegram.joinGroup) || telegramSetup.botAdded;
+  $: discordSetupComplete =
+    !config.discord.joinServer ||
+    (discordSetup.connected &&
+      discordSetup.selectedGuildId &&
+      discordSetup.botAdded);
+  $: telegramSetupComplete =
+    !(config.telegram.joinChannel || config.telegram.joinGroup) ||
+    telegramSetup.botAdded;
   $: canSave = discordSetupComplete && telegramSetupComplete;
 
   function handleSave() {
@@ -276,8 +292,8 @@
       ...config,
       twitter: {
         ...config.twitter,
-        postLinks: [...config.twitter.postLinks, ""]
-      }
+        postLinks: [...config.twitter.postLinks, ""],
+      },
     };
   }
 
@@ -288,8 +304,8 @@
       ...config,
       twitter: {
         ...config.twitter,
-        postLinks: posts
-      }
+        postLinks: posts,
+      },
     };
   }
 
@@ -299,8 +315,8 @@
       ...config,
       twitter: {
         ...config.twitter,
-        postLinks: posts.length ? posts : [""]
-      }
+        postLinks: posts.length ? posts : [""],
+      },
     };
   }
 </script>
@@ -327,87 +343,43 @@
       </label>
     </div>
 
-    <!-- Point values for Telegram tasks (Community Events Only) -->
-    {#if eventType === 'community'}
-    <div class="points-grid">
-      {#if config.telegram.joinChannel}
-        <div class="point-input-group">
-          <label for="telegram-join-channel-points">Join channel points</label>
-          <input
-            id="telegram-join-channel-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.telegram.joinChannelPoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-      {#if config.telegram.joinGroup}
-        <div class="point-input-group">
-          <label for="telegram-join-group-points">Join group points</label>
-          <input
-            id="telegram-join-group-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.telegram.joinGroupPoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-      {#if config.telegram.reactPinned}
-        <div class="point-input-group">
-          <label for="telegram-react-pinned-points">React to pinned points</label>
-          <input
-            id="telegram-react-pinned-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.telegram.reactPinnedPoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-      {#if config.telegram.shareUsername}
-        <div class="point-input-group">
-          <label for="telegram-share-username-points">Share username points</label>
-          <input
-            id="telegram-share-username-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.telegram.shareUsernamePoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-    </div>
-    {/if}
-
     <div class="grid-two">
       <div class="form-group">
         <label>Channel link</label>
-        <input type="url" bind:value={config.telegram.channelLink} placeholder="https://t.me/yourchannel" />
+        <input
+          type="url"
+          bind:value={config.telegram.channelLink}
+          placeholder="https://t.me/yourchannel"
+        />
       </div>
       <div class="form-group">
         <label>Group link</label>
-        <input type="url" bind:value={config.telegram.groupLink} placeholder="https://t.me/yourgroup" />
+        <input
+          type="url"
+          bind:value={config.telegram.groupLink}
+          placeholder="https://t.me/yourgroup"
+        />
       </div>
     </div>
 
     {#if config.telegram.shareUsername}
       <div class="form-group">
         <label>Username prompt</label>
-        <input type="text" bind:value={config.telegram.usernamePrompt} placeholder="Enter your Telegram @" />
+        <input
+          type="text"
+          bind:value={config.telegram.usernamePrompt}
+          placeholder="Enter your Telegram @"
+        />
       </div>
     {/if}
 
     {#if config.telegram.joinChannel || config.telegram.joinGroup}
       <div class="bot-setup-box">
-        <h4>🤖 Bot Setup Required</h4>
+        <h4>Bot Setup Required</h4>
         <p class="setup-instruction">
-          To verify participants, add our bot <strong>{telegramSetup.botUsername}</strong> to your channel/group as an admin.
+          To verify participants, add our bot <strong
+            >{telegramSetup.botUsername}</strong
+          > to your channel/group as an admin.
         </p>
         <ol class="setup-steps">
           <li>Open your Telegram channel/group</li>
@@ -418,23 +390,29 @@
         </ol>
         <div class="form-group">
           <label>Channel/Group ID or @username</label>
-          <input 
-            type="text" 
-            bind:value={telegramSetup.channelId} 
+          <input
+            type="text"
+            bind:value={telegramSetup.channelId}
             placeholder="@yourchannel or -1001234567890"
           />
           <small>Find your ID using @userinfobot in Telegram</small>
         </div>
-        <button 
-          type="button" 
+        <button
+          type="button"
           class="primary-btn"
           on:click={verifyTelegramBot}
           disabled={telegramSetup.checking || !telegramSetup.channelId}
         >
-          {telegramSetup.checking ? 'Checking...' : telegramSetup.botAdded ? '✓ Bot Verified' : 'Verify Bot Added'}
+          {telegramSetup.checking
+            ? "Checking..."
+            : telegramSetup.botAdded
+              ? "Bot Verified"
+              : "Verify Bot Added"}
         </button>
         {#if !telegramSetup.botAdded}
-          <p class="warning-text">⚠️ You must verify the bot before saving this task</p>
+          <p class="warning-text">
+            You must verify the bot before saving this task
+          </p>
         {/if}
       </div>
     {/if}
@@ -447,28 +425,12 @@
       Join Discord server
     </label>
 
-    <!-- Point values for Discord tasks (Community Events Only) -->
-    {#if config.discord.joinServer && eventType === 'community'}
-      <div class="points-grid">
-        <div class="point-input-group">
-          <label for="discord-join-server-points">Join server points</label>
-          <input
-            id="discord-join-server-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.discord.joinServerPoints}
-            placeholder="0"
-          />
-        </div>
-      </div>
-    {/if}
-
     {#if config.discord.joinServer}
       <div class="bot-setup-box">
-        <h4>🤖 Bot Setup Required</h4>
+        <h4>Bot Setup Required</h4>
         <p class="setup-instruction">
-          To verify server membership, our bot needs to be added to your Discord server.
+          To verify server membership, our bot needs to be added to your Discord
+          server.
         </p>
 
         <!-- Step 1: Connect Discord -->
@@ -484,11 +446,11 @@
                 Connecting...
               </button>
             {:else}
-              <a 
-                href={getDiscordAuthUrl()} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                class="secondary-btn" 
+              <a
+                href={getDiscordAuthUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="secondary-btn"
                 style="display: inline-block; text-decoration: none; text-align: center;"
                 on:click={handleDiscordConnect}
               >
@@ -497,14 +459,14 @@
             {/if}
           {:else}
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <p class="success-text" style="margin: 0;">✓ Discord connected</p>
-              <button 
-                type="button" 
-                class="ghost-btn" 
+              <p class="success-text" style="margin: 0;">Discord connected</p>
+              <button
+                type="button"
+                class="ghost-btn"
                 on:click={disconnectDiscord}
                 disabled={discordSetup.disconnecting}
               >
-                {discordSetup.disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                {discordSetup.disconnecting ? "Disconnecting..." : "Disconnect"}
               </button>
             </div>
           {/if}
@@ -512,17 +474,23 @@
 
         <!-- Step 2: Select Server -->
         {#if discordSetup.connected}
-          <div class="setup-step" class:completed={discordSetup.selectedGuildId}>
+          <div
+            class="setup-step"
+            class:completed={discordSetup.selectedGuildId}
+          >
             <div class="step-header">
               <span class="step-number">2</span>
               <span>Select Your Server</span>
-              {#if discordSetup.selectedGuildId}<span class="check">✓</span>{/if}
+              {#if discordSetup.selectedGuildId}<span class="check">✓</span
+                >{/if}
             </div>
             {#if discordSetup.guilds.length > 0}
-              <select 
+              <select
                 class="guild-select"
                 on:change={(e) => {
-                  const guild = discordSetup.guilds.find(g => g.id === e.currentTarget.value);
+                  const guild = discordSetup.guilds.find(
+                    (g) => g.id === e.currentTarget.value,
+                  );
                   if (guild) selectDiscordGuild(guild.id, guild.name);
                 }}
                 value={discordSetup.selectedGuildId}
@@ -533,7 +501,9 @@
                 {/each}
               </select>
             {:else}
-              <p class="info-text">No servers found. Make sure you own or manage a Discord server.</p>
+              <p class="info-text">
+                No servers found. Make sure you own or manage a Discord server.
+              </p>
             {/if}
           </div>
         {/if}
@@ -544,7 +514,9 @@
             <div class="step-header">
               <span class="step-number">3</span>
               <span>Add Bot to {discordSetup.selectedGuildName}</span>
-              {#if discordSetup.botAdded}<span class="check">✓</span>{/if}
+              {#if discordSetup.botAdded}<span class="success-text"
+                  >Bot Added</span
+                >{/if}
             </div>
             {#if !discordSetup.botAdded}
               <button
@@ -554,27 +526,33 @@
               >
                 Add Bot to Server
               </button>
-              <p class="helper-text">After adding the bot, click verify below:</p>
-              <button 
-                type="button" 
+              <p class="helper-text">
+                After adding the bot, click verify below:
+              </p>
+              <button
+                type="button"
                 class="secondary-btn"
                 on:click={verifyDiscordBot}
                 disabled={discordSetup.checking}
               >
-                {discordSetup.checking ? 'Checking...' : 'Verify Bot Added'}
+                {discordSetup.checking ? "Checking..." : "Verify Bot Added"}
               </button>
             {/if}
           </div>
         {/if}
 
         {#if !discordSetupComplete}
-          <p class="warning-text">⚠️ Complete all steps before saving this task</p>
+          <p class="warning-text">Complete all steps before saving this task</p>
         {/if}
       </div>
 
       <div class="form-group">
         <label>Invite link (for participants)</label>
-        <input type="url" bind:value={config.discord.inviteLink} placeholder="https://discord.gg/your-server" />
+        <input
+          type="url"
+          bind:value={config.discord.inviteLink}
+          placeholder="https://discord.gg/your-server"
+        />
       </div>
     {/if}
   </div>
@@ -582,115 +560,39 @@
   <div class="task-section">
     <h3>X / Twitter Tasks</h3>
     <div class="checkbox-grid">
-      <label><input type="checkbox" bind:checked={config.twitter.followAccount} /> Follow account</label>
-      <label><input type="checkbox" bind:checked={config.twitter.likePost} /> Like post</label>
-      <label><input type="checkbox" bind:checked={config.twitter.commentPost} /> Comment</label>
-      <label><input type="checkbox" bind:checked={config.twitter.quotePost} /> Quote tweet</label>
-      <label><input type="checkbox" bind:checked={config.twitter.retweetPost} /> Retweet</label>
-      <label><input type="checkbox" bind:checked={config.twitter.bookmarkPost} /> Bookmark</label>
-      <label><input type="checkbox" bind:checked={config.twitter.tagFriends} /> Tag 2 friends</label>
+      <label
+        ><input type="checkbox" bind:checked={config.twitter.followAccount} /> Follow
+        account</label
+      >
+      <label
+        ><input type="checkbox" bind:checked={config.twitter.likePost} /> Like post</label
+      >
+      <label
+        ><input type="checkbox" bind:checked={config.twitter.commentPost} /> Comment</label
+      >
+      <label
+        ><input type="checkbox" bind:checked={config.twitter.quotePost} /> Quote
+        tweet</label
+      >
+      <label
+        ><input type="checkbox" bind:checked={config.twitter.retweetPost} /> Retweet</label
+      >
+      <label
+        ><input type="checkbox" bind:checked={config.twitter.bookmarkPost} /> Bookmark</label
+      >
+      <label
+        ><input type="checkbox" bind:checked={config.twitter.tagFriends} /> Tag 2
+        friends</label
+      >
     </div>
-
-    <!-- Point values for Twitter tasks (Community Events Only) -->
-    {#if eventType === 'community'}
-    <div class="points-grid">
-      {#if config.twitter.followAccount}
-        <div class="point-input-group">
-          <label for="twitter-follow-points">Follow account points</label>
-          <input
-            id="twitter-follow-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.twitter.followAccountPoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-      {#if config.twitter.likePost}
-        <div class="point-input-group">
-          <label for="twitter-like-points">Like post points</label>
-          <input
-            id="twitter-like-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.twitter.likePostPoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-      {#if config.twitter.commentPost}
-        <div class="point-input-group">
-          <label for="twitter-comment-points">Comment points</label>
-          <input
-            id="twitter-comment-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.twitter.commentPostPoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-      {#if config.twitter.quotePost}
-        <div class="point-input-group">
-          <label for="twitter-quote-points">Quote tweet points</label>
-          <input
-            id="twitter-quote-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.twitter.quotePostPoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-      {#if config.twitter.retweetPost}
-        <div class="point-input-group">
-          <label for="twitter-retweet-points">Retweet points</label>
-          <input
-            id="twitter-retweet-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.twitter.retweetPostPoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-      {#if config.twitter.bookmarkPost}
-        <div class="point-input-group">
-          <label for="twitter-bookmark-points">Bookmark points</label>
-          <input
-            id="twitter-bookmark-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.twitter.bookmarkPostPoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-      {#if config.twitter.tagFriends}
-        <div class="point-input-group">
-          <label for="twitter-tag-points">Tag friends points</label>
-          <input
-            id="twitter-tag-points"
-            type="number"
-            min="0"
-            step="1"
-            bind:value={config.twitter.tagFriendsPoints}
-            placeholder="0"
-          />
-        </div>
-      {/if}
-    </div>
-    {/if}
 
     <div class="form-group">
       <label>Profile link</label>
-      <input type="url" bind:value={config.twitter.profileLink} placeholder="https://x.com/yourprofile" />
+      <input
+        type="url"
+        bind:value={config.twitter.profileLink}
+        placeholder="https://x.com/yourprofile"
+      />
     </div>
 
     <div class="form-group">
@@ -701,16 +603,26 @@
             <input
               type="url"
               bind:value={config.twitter.postLinks[index]}
-              on:input={(e) => updateTwitterPostLink((e.currentTarget as HTMLInputElement).value, index)}
+              on:input={(e) =>
+                updateTwitterPostLink(
+                  (e.currentTarget as HTMLInputElement).value,
+                  index,
+                )}
               placeholder="https://x.com/yourprofile/status/123"
             />
             {#if config.twitter.postLinks.length > 1}
-              <button type="button" class="ghost-btn" on:click={() => removeTwitterPostLink(index)}>Remove</button>
+              <button
+                type="button"
+                class="ghost-btn"
+                on:click={() => removeTwitterPostLink(index)}>Remove</button
+              >
             {/if}
           </div>
         {/each}
       </div>
-      <button type="button" class="ghost-btn" on:click={addTwitterPostLink}>+ Add post</button>
+      <button type="button" class="ghost-btn" on:click={addTwitterPostLink}
+        >+ Add post</button
+      >
     </div>
   </div>
 
@@ -726,18 +638,19 @@
 
   <div class="actions">
     {#if onCancel}
-      <button type="button" class="ghost-btn" on:click={onCancel}>Cancel</button>
+      <button type="button" class="ghost-btn" on:click={onCancel}>Cancel</button
+      >
     {/if}
-    <button 
-      type="button" 
-      class="primary-btn" 
+    <button
+      type="button"
+      class="primary-btn"
       on:click={handleSave}
       disabled={!canSave}
     >
       Save Task
     </button>
   </div>
-  
+
   {#if !canSave}
     <p class="save-blocked-message">
       Complete bot setup for Discord/Telegram tasks before saving

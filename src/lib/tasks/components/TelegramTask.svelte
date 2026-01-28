@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { supabase } from '$lib/supabaseClient';
+	import { onMount } from "svelte";
+	import { supabase } from "$lib/supabaseClient";
 
 	export let config: {
 		telegram?: {
@@ -14,7 +14,7 @@
 	export let onComplete: (() => Promise<void>) | undefined = undefined;
 
 	let confirming = false;
-	let error = '';
+	let error = "";
 	let isConnected = false;
 	let loading = true;
 
@@ -24,14 +24,16 @@
 	});
 
 	async function checkConnection() {
-		const { data: { user } } = await supabase.auth.getUser();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
 		if (!user) return;
 
 		const { data } = await supabase
-			.from('social_connections')
-			.select('id')
-			.eq('user_id', user.id)
-			.eq('platform', 'telegram')
+			.from("social_connections")
+			.select("id")
+			.eq("user_id", user.id)
+			.eq("platform", "telegram")
 			.single();
 
 		isConnected = !!data;
@@ -46,12 +48,12 @@
 		if (readonly || !onComplete) return;
 
 		confirming = true;
-		error = '';
+		error = "";
 
 		try {
 			await onComplete();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Confirmation failed';
+			error = err instanceof Error ? err.message : "Confirmation failed";
 		} finally {
 			confirming = false;
 		}
@@ -60,19 +62,18 @@
 	function getInviteUrl(): string {
 		if (config.telegram?.channelLink) return config.telegram.channelLink;
 		if (config.telegram?.groupLink) return config.telegram.groupLink;
-		return '';
+		return "";
 	}
 
 	function getTaskType(): string {
-		if (config.telegram?.joinChannel) return 'channel';
-		if (config.telegram?.joinGroup) return 'group';
-		return 'channel/group';
+		if (config.telegram?.joinChannel) return "channel";
+		if (config.telegram?.joinGroup) return "group";
+		return "channel/group";
 	}
 </script>
 
 <div class="telegram-task">
 	<div class="task-header">
-		<div class="task-icon">✈️</div>
 		<div>
 			<h4>Telegram</h4>
 			<p class="task-instructions">Join the Telegram {getTaskType()}</p>
@@ -81,8 +82,17 @@
 
 	<div class="task-body">
 		{#if getInviteUrl()}
-			<a href={getInviteUrl()} target="_blank" rel="noopener noreferrer" class="invite-link">
-				🔗 Join Telegram {getTaskType() === 'channel' ? 'Channel' : getTaskType() === 'group' ? 'Group' : ''}
+			<a
+				href={getInviteUrl()}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="invite-link"
+			>
+				Join Telegram {getTaskType() === "channel"
+					? "Channel"
+					: getTaskType() === "group"
+						? "Group"
+						: ""}
 			</a>
 		{/if}
 
@@ -94,8 +104,12 @@
 					Connect Telegram
 				</button>
 			{:else}
-				<button class="confirm-btn" on:click={handleConfirm} disabled={confirming}>
-					{confirming ? 'Confirming...' : 'Confirm I Joined'}
+				<button
+					class="confirm-btn"
+					on:click={handleConfirm}
+					disabled={confirming}
+				>
+					{confirming ? "Confirming..." : "Confirm I Joined"}
 				</button>
 			{/if}
 		{:else}
@@ -177,7 +191,9 @@
 		font-size: 0.9rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 		width: fit-content;
 	}
 
@@ -200,7 +216,9 @@
 		font-size: 0.9rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 		width: fit-content;
 	}
 

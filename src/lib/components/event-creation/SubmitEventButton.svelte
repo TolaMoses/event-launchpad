@@ -3,7 +3,7 @@
   export let isSubmitting: boolean = false;
   export let validationErrors: string[] = [];
   export let onSubmit: () => Promise<void> = async () => {};
-  export let buttonText: string = 'Create Event';
+  export let buttonText: string = "Create Event";
 
   async function handleSubmit() {
     if (!isValid || isSubmitting) return;
@@ -12,20 +12,6 @@
 </script>
 
 <div class="submit-section">
-  {#if validationErrors.length > 0}
-    <div class="validation-errors">
-      <div class="error-header">
-        <span class="error-icon">⚠️</span>
-        <strong>Please fix the following issues:</strong>
-      </div>
-      <ul>
-        {#each validationErrors as error}
-          <li>{error}</li>
-        {/each}
-      </ul>
-    </div>
-  {/if}
-
   <button
     type="button"
     class="submit-button"
@@ -38,7 +24,6 @@
       <span class="spinner"></span>
       <span>Creating Event...</span>
     {:else}
-      <span class="button-icon">🚀</span>
       <span>{buttonText}</span>
     {/if}
   </button>
@@ -47,6 +32,18 @@
     <p class="hint">Complete all required fields to create your event</p>
   {/if}
 </div>
+{#if validationErrors.length > 0}
+  <div class="validation-errors">
+    <div class="error-header">
+      <strong>Please fix the following issues:</strong>
+    </div>
+    <ul>
+      {#each validationErrors as error}
+        <li>{error}</li>
+      {/each}
+    </ul>
+  </div>
+{/if}
 
 <style>
   .submit-section {
@@ -90,7 +87,7 @@
   }
 
   .validation-errors li::before {
-    content: '•';
+    content: "•";
     position: absolute;
     left: 0.5rem;
     color: #ef4444;

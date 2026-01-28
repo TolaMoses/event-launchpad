@@ -157,7 +157,7 @@
 	<div class="dashboard-header">
 		<h1>Dashboard</h1>
 		<button class="primary-btn" on:click={() => goto("/create-event")}>
-			+ Create Event
+			Create Event
 		</button>
 	</div>
 

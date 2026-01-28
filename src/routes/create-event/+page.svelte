@@ -113,7 +113,7 @@
     formData.append("file", file);
     formData.append("kind", kind);
 
-    const response = await fetch("/api/upload", {
+    const response = await fetch("/api/uploads/event-assets", {
       method: "POST",
       body: formData,
       credentials: "include",

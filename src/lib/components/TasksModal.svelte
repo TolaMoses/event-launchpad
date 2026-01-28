@@ -1,42 +1,45 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-	import { supabase } from '$lib/supabaseClient';
-	
+	import { createEventDispatcher } from "svelte";
+	import { supabase } from "$lib/supabaseClient";
+
 	export let eventId: string;
 	export let existingTasks: any[] = [];
 	export let pointSystemEnabled: boolean = false;
 
 	const dispatch = createEventDispatcher();
 
-	let tasks = existingTasks.length > 0 ? JSON.parse(JSON.stringify(existingTasks)) : [];
+	let tasks =
+		existingTasks.length > 0
+			? JSON.parse(JSON.stringify(existingTasks))
+			: [];
 	let saving = false;
-	let error = '';
-	let selectedTaskType = '';
+	let error = "";
+	let selectedTaskType = "";
 	let creatingTaskIndex: number | null = null;
 
 	// Import task components (you'll need to adjust paths based on your structure)
 	const taskOptions = [
-		{ value: 'twitter_follow', label: 'Twitter Follow' },
-		{ value: 'twitter_retweet', label: 'Twitter Retweet' },
-		{ value: 'twitter_like', label: 'Twitter Like' },
-		{ value: 'discord_join', label: 'Discord Join' },
-		{ value: 'telegram_join', label: 'Telegram Join' },
-		{ value: 'visit_website', label: 'Visit Website' },
-		{ value: 'custom', label: 'Custom Task' }
+		{ value: "twitter_follow", label: "Twitter Follow" },
+		{ value: "twitter_retweet", label: "Twitter Retweet" },
+		{ value: "twitter_like", label: "Twitter Like" },
+		{ value: "discord_join", label: "Discord Join" },
+		{ value: "telegram_join", label: "Telegram Join" },
+		{ value: "visit_website", label: "Visit Website" },
+		{ value: "custom", label: "Custom Task" },
 	];
 
 	function addTask() {
 		if (!selectedTaskType) return;
-		
+
 		const newTask = {
 			id: crypto.randomUUID(),
 			type: selectedTaskType,
 			config: {},
-			points: pointSystemEnabled ? 10 : null
+			points: pointSystemEnabled ? 10 : null,
 		};
-		
+
 		tasks = [...tasks, newTask];
-		selectedTaskType = '';
+		selectedTaskType = "";
 	}
 
 	function removeTask(index: number) {
@@ -49,11 +52,11 @@
 
 	async function saveTasks() {
 		saving = true;
-		error = '';
+		error = "";
 
 		const { error: updateError } = await supabase
-			.from('events')
-			.update({ 
+			.from("events")
+			.update({
 				tasks: tasks,
 				setup_progress: supabase.raw(`
 					jsonb_set(
@@ -61,36 +64,37 @@
 						'{tasks}',
 						'100'::jsonb
 					)
-				`)
+				`),
 			})
-			.eq('id', eventId);
+			.eq("id", eventId);
 
 		if (updateError) {
-			error = 'Failed to save tasks';
+			error = "Failed to save tasks";
 			saving = false;
 			return;
 		}
 
 		saving = false;
-		dispatch('saved', { tasks });
-		dispatch('close');
+		dispatch("saved", { tasks });
+		dispatch("close");
 	}
 
 	function close() {
-		dispatch('close');
+		dispatch("close");
 	}
 </script>
 
 <div class="modal-overlay" on:click={close}>
 	<div class="modal-content" on:click|stopPropagation>
 		<div class="modal-header">
-			<h2>📋 Event Tasks</h2>
+			<h2>Event Tasks</h2>
 			<button class="close-btn" on:click={close}>✕</button>
 		</div>
 
 		<div class="modal-body">
 			<p class="section-description">
-				Add tasks that participants need to complete. {#if pointSystemEnabled}Assign point values to each task.{/if}
+				Add tasks that participants need to complete. {#if pointSystemEnabled}Assign
+					point values to each task.{/if}
 			</p>
 
 			<!-- Add Task Section -->
@@ -102,7 +106,11 @@
 							<option value={option.value}>{option.label}</option>
 						{/each}
 					</select>
-					<button class="add-btn" on:click={addTask} disabled={!selectedTaskType}>
+					<button
+						class="add-btn"
+						on:click={addTask}
+						disabled={!selectedTaskType}
+					>
 						+ Add Task
 					</button>
 				</div>
@@ -112,31 +120,48 @@
 			<div class="tasks-list">
 				{#if tasks.length === 0}
 					<div class="empty-state">
-						<p>No tasks added yet. Select a task type above to get started.</p>
+						<p>
+							No tasks added yet. Select a task type above to get
+							started.
+						</p>
 					</div>
 				{:else}
 					{#each tasks as task, index (task.id)}
 						<div class="task-item">
 							<div class="task-header">
 								<div class="task-info">
-									<span class="task-number">#{index + 1}</span>
-									<span class="task-type">{taskOptions.find(t => t.value === task.type)?.label || task.type}</span>
+									<span class="task-number">#{index + 1}</span
+									>
+									<span class="task-type"
+										>{taskOptions.find(
+											(t) => t.value === task.type,
+										)?.label || task.type}</span
+									>
 								</div>
-								<button class="remove-btn" on:click={() => removeTask(index)}>
+								<button
+									class="remove-btn"
+									on:click={() => removeTask(index)}
+								>
 									Remove
 								</button>
 							</div>
-							
+
 							{#if pointSystemEnabled}
 								<div class="task-points">
-									<label for="points-{index}">Point Value:</label>
+									<label for="points-{index}"
+										>Point Value:</label
+									>
 									<input
 										id="points-{index}"
 										type="number"
 										min="0"
 										step="1"
 										value={task.points || 0}
-										on:input={(e) => updateTaskPoints(index, Number(e.currentTarget.value))}
+										on:input={(e) =>
+											updateTaskPoints(
+												index,
+												Number(e.currentTarget.value),
+											)}
 										placeholder="Enter points"
 									/>
 								</div>
@@ -144,7 +169,11 @@
 
 							<div class="task-config">
 								<p class="config-label">Configuration:</p>
-								<pre>{JSON.stringify(task.config, null, 2)}</pre>
+								<pre>{JSON.stringify(
+										task.config,
+										null,
+										2,
+									)}</pre>
 							</div>
 						</div>
 					{/each}
@@ -158,8 +187,12 @@
 
 		<div class="modal-footer">
 			<button class="secondary-btn" on:click={close}>Cancel</button>
-			<button class="primary-btn" on:click={saveTasks} disabled={saving || tasks.length === 0}>
-				{saving ? 'Saving...' : 'Save Tasks'}
+			<button
+				class="primary-btn"
+				on:click={saveTasks}
+				disabled={saving || tasks.length === 0}
+			>
+				{saving ? "Saving..." : "Save Tasks"}
 			</button>
 		</div>
 	</div>
@@ -179,8 +212,12 @@
 	}
 
 	@keyframes fadeIn {
-		from { opacity: 0; }
-		to { opacity: 1; }
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	.modal-content {
@@ -196,8 +233,14 @@
 	}
 
 	@keyframes slideUp {
-		from { transform: translateY(20px); opacity: 0; }
-		to { transform: translateY(0); opacity: 1; }
+		from {
+			transform: translateY(20px);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
 	}
 
 	.modal-header {

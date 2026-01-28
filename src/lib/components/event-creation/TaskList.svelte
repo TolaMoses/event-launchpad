@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getTaskLabel, summariseTask } from '$lib/utils/event-creation.utils';
-  import type { TaskInstance } from '$lib/tasks/TaskTypes';
+  import { getTaskLabel, summariseTask } from "$lib/utils/event-creation.utils";
+  import type { TaskInstance } from "$lib/tasks/TaskTypes";
 
   export let tasks: TaskInstance[] = [];
   export let onEdit: (index: number) => void = () => {};
@@ -9,7 +9,7 @@
   export let onMoveDown: (index: number) => void = () => {};
 
   function handleDelete(index: number) {
-    if (confirm('Are you sure you want to delete this task?')) {
+    if (confirm("Are you sure you want to delete this task?")) {
       onDelete(index);
     }
   }
@@ -25,7 +25,6 @@
 
   {#if tasks.length === 0}
     <div class="empty-state">
-      <div class="empty-icon">📋</div>
       <p>No tasks added yet</p>
       <span class="empty-hint">Add tasks for participants to complete</span>
     </div>
