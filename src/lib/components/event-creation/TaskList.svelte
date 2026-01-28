@@ -35,10 +35,7 @@
           <div class="task-header">
             <div class="task-info">
               <span class="task-type">{getTaskLabel(task.type)}</span>
-              <h4>{task.title}</h4>
-            </div>
-            <div class="task-points">
-              <span class="points-badge">{task.points} pts</span>
+              <h4>{task.config?.title || "Untitled Task"}</h4>
             </div>
           </div>
 

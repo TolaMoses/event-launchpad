@@ -2,6 +2,7 @@
  * Event Validation Schemas
  * 
  * Zod schemas for validating event-related requests
+ * Updated to match frontend data format
  */
 
 import { z } from 'zod';
@@ -9,89 +10,50 @@ import { z } from 'zod';
 // Event status enum
 export const eventStatusSchema = z.enum(['draft', 'review', 'active', 'ended', 'cancelled']);
 
-// Asset schema
+// Asset schema - allow both path formats
 const assetSchema = z.object({
   path: z.string().min(1),
-  publicUrl: z.string().url()
-});
+  publicUrl: z.string()
+}).nullable().optional();
 
-// Task config schema (basic, will vary by task type)
+// Task config schema (flexible - accepts any config structure)
 const taskConfigSchema = z.record(z.any());
 
-// Task schema
+// Task schema - match frontend TaskTypeKey values
 const taskSchema = z.object({
-  id: z.string().uuid().optional(),
-  type: z.enum([
-    'twitter',
-    'discord',
-    'telegram',
-    'quiz',
-    'puzzle',
-    'referral',
-    'content_submission',
-    'scoreline_prediction',
-    'code_entry'
-  ]),
+  id: z.string().optional(),
+  type: z.string(), // Accept any string - frontend uses 'social', 'content', 'quiz', etc.
   config: taskConfigSchema,
   points: z.number().int().min(0).optional(),
   required: z.boolean().optional()
 });
 
-// Reward schema (matches reward_types JSONB structure)
-// Accept both frontend types (Token, ETH, NFT) and backend types (tokens, nft, etc)
+// Reward schema - flexible to accept frontend format
 const rewardSchema = z.object({
-  id: z.string().optional(), // Frontend sends id
-  type: z.enum([
-    // Backend format
-    'tokens', 'nft', 'mintable_nft', 'voucher', 'gift',
-    // Frontend format
-    'Token', 'ETH', 'NFT', 'MintableNFT', 'Gift', 'Voucher', 'CustomPoints'
-  ]),
-  // Token rewards
-  token_address: z.string().optional(),
-  tokenAddress: z.string().optional(), // Frontend alias
-  prize_pool: z.string().optional(),
-  prizePool: z.string().optional(), // Frontend alias
-  distribution_type: z.enum(['equal', 'position_based', 'even', 'custom']).optional(),
-  distributionType: z.enum(['even', 'custom']).optional(), // Frontend alias
-  position_rewards: z.array(z.object({
-    position: z.number(),
-    amount: z.string()
-  })).optional(),
-  positionRewards: z.array(z.object({
-    position: z.number(),
-    amount: z.string()
-  })).optional(), // Frontend alias
+  id: z.string().optional(),
+  type: z.string(), // Accept any type string from frontend
+  // All fields optional and flexible
   chain: z.string().optional(),
-  token_metadata: z.object({
-    symbol: z.string(),
-    name: z.string(),
-    decimals: z.number()
-  }).optional(),
-  // Frontend token fields
-  customTokenSymbol: z.string().optional(),
+  tokenAddress: z.string().optional(),
   customTokenAddress: z.string().optional(),
+  customTokenSymbol: z.string().optional(),
   customTokenDecimals: z.string().optional(),
-  // NFT rewards
+  prizePool: z.string().optional(),
+  distributionType: z.string().optional(),
+  positionRewards: z.array(z.any()).optional(),
   nfts: z.array(z.any()).optional(),
-  nft_distribution_type: z.enum(['random', 'fcfs', 'position_based']).optional(),
-  nftDistributionType: z.enum(['even', 'custom']).optional(),
-  // Mintable NFT
-  mintable_nfts: z.any().optional(),
-  mintableNfts: z.any().optional(),
-  // Voucher/Gift
-  voucher_description: z.string().optional(),
-  voucherDescription: z.string().optional(),
-  voucher_codes: z.array(z.string()).optional(),
-  voucherCodes: z.array(z.string()).optional(),
-  gift_description: z.string().optional(),
+  nftDistributionType: z.string().optional(),
+  nftPositionDistribution: z.array(z.any()).optional(),
+  mintableNfts: z.array(z.any()).optional(),
+  mintableNftDistributionType: z.string().optional(),
+  mintableNftPositionDistribution: z.array(z.any()).optional(),
   giftDescription: z.string().optional(),
-  gift_value: z.string().optional(),
   giftValue: z.string().optional(),
-  // Custom points
+  voucherDescription: z.string().optional(),
+  voucherCodes: z.array(z.string()).optional(),
   customPointName: z.string().optional(),
   leaderboardEnabled: z.boolean().optional()
-});
+}).passthrough(); // Allow additional fields
 
 /**
  * Base event schema (without validation refinements)
@@ -107,13 +69,11 @@ const baseEventSchema = z.object({
     .max(5000, 'Description too long')
     .trim(),
 
-  video_url: z.string().url().optional(),
+  video_url: z.string().url().nullable().optional(),
 
-  start_time: z.string()
-    .datetime('Invalid start time format'),
+  start_time: z.string(),
 
-  end_time: z.string()
-    .datetime('Invalid end time format'),
+  end_time: z.string(),
 
   num_winners: z.number()
     .int()
@@ -123,7 +83,7 @@ const baseEventSchema = z.object({
 
   assets: z.object({
     logo: assetSchema,
-    banner: assetSchema.optional()
+    banner: assetSchema
   }).optional(),
 
   tasks: z.array(taskSchema)
@@ -132,23 +92,14 @@ const baseEventSchema = z.object({
   reward_types: z.array(rewardSchema)
     .min(1, 'At least one reward required'),
 
-  // Optional fields from migrations
+  // Optional fields
   point_system: z.object({
     enabled: z.boolean(),
     point_name: z.string(),
     leaderboard_enabled: z.boolean()
   }).optional(),
 
-  roles_permissions: z.object({
-    roles: z.array(z.object({
-      name: z.string(),
-      permissions: z.array(z.string())
-    })),
-    assignments: z.array(z.object({
-      user_id: z.string().uuid(),
-      role: z.string()
-    }))
-  }).optional()
+  roles_permissions: z.any().optional()
 });
 
 /**
