@@ -219,7 +219,7 @@
           type: task.type,
           config: clone(task.config),
         })),
-        rewards: rewards.map((reward) => clone(reward)),
+        reward_types: rewards.map((reward) => clone(reward)),
       };
 
       // Submit event

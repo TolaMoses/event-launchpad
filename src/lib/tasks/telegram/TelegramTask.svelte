@@ -143,6 +143,12 @@
             if (!config.telegram.channelId.trim()) {
                 errs.push("Channel ID is required for verification");
             }
+            // Require bot verification for channel
+            if (channelBotStatus !== "success") {
+                errs.push(
+                    "Please verify bot access to your channel before saving",
+                );
+            }
         }
 
         if (config.telegram.joinGroup) {
@@ -151,6 +157,12 @@
             }
             if (!config.telegram.groupId.trim()) {
                 errs.push("Group ID is required for verification");
+            }
+            // Require bot verification for group
+            if (groupBotStatus !== "success") {
+                errs.push(
+                    "Please verify bot access to your group before saving",
+                );
             }
         }
 
