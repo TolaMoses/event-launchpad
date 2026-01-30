@@ -29,7 +29,7 @@ export function getTaskOptions() {
   const registryEntries = Object.entries(taskRegistry) as [TaskTypeKey, TaskRegistryEntry][];
 
   return registryEntries
-    .filter(([key]) => !['irl', 'social'].includes(key)) // Exclude IRL and legacy social tasks
+    .filter(([key]) => !['irl', 'social', 'referral'].includes(key)) // Exclude IRL, legacy social, and referral tasks
     .map(([value, entry]) => ({
       value,
       label: entry.label

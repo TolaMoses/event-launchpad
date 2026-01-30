@@ -19,6 +19,7 @@
 	let loading = true;
 
 	onMount(async () => {
+		console.log("Telegram task config:", config);
 		await checkConnection();
 		loading = false;
 	});

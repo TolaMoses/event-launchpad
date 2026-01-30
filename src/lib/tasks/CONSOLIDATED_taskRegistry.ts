@@ -14,7 +14,7 @@ import TelegramConfigTask from './telegram/TelegramTask.svelte';
 import QuizTask from './quiz/QuizTask.svelte';
 import PuzzleTask from './puzzle/PuzzleTask.svelte';
 import ContentSubmissionConfigTask from './content_submission/ContentSubmissionTask.svelte';
-import ReferralConfigTask from './referral/ReferralConfigTask.svelte';
+// Referral task removed per user requirement
 import ScorelineConfigTask from './scoreline/ScorelineConfigTask.svelte';
 
 // Import legacy components
@@ -85,12 +85,6 @@ export const taskRegistry: TaskRegistry = {
 	},
 
 
-
-	// Referral
-	referral: {
-		label: 'Referral Tasks',
-		component: ReferralConfigTask
-	},
 
 	// Participation
 	participation: {
