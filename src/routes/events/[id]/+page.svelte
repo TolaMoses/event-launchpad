@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { supabase } from '$lib/supabaseClient';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { ASSETS } from '$lib/config/assets';
-	import { taskRegistry } from '$lib/tasks/taskRegistry';
+	import { onMount } from "svelte";
+	import { supabase } from "$lib/supabaseClient";
+	import { page } from "$app/stores";
+	import { goto } from "$app/navigation";
+	import { ASSETS } from "$lib/config/assets";
+	import { taskRegistry } from "$lib/tasks/taskRegistry";
 
 	type Event = {
 		id: string;
@@ -30,7 +30,10 @@
 	let loading = true;
 	let userId: string | null = null;
 	let hasJoined = false;
-	let taskStates: Record<string, { completed: boolean; submitting: boolean }> = {};
+	let taskStates: Record<
+		string,
+		{ completed: boolean; submitting: boolean }
+	> = {};
 	let taskSubmissions: Record<string, any> = {}; // Store user's submissions
 	let editingTask: string | null = null; // Track which task is being edited
 	let showVideo = false;
@@ -42,34 +45,38 @@
 	onMount(async () => {
 		// Check for referral parameter
 		const urlParams = new URLSearchParams(window.location.search);
-		const refParam = urlParams.get('ref');
+		const refParam = urlParams.get("ref");
 		if (refParam) {
 			referrerId = refParam;
 			// Store in sessionStorage for later use when user completes a task
 			sessionStorage.setItem(`event_${eventId}_referrer`, refParam);
 		} else {
 			// Check if we have a stored referrer for this event
-			const storedReferrer = sessionStorage.getItem(`event_${eventId}_referrer`);
+			const storedReferrer = sessionStorage.getItem(
+				`event_${eventId}_referrer`,
+			);
 			if (storedReferrer) {
 				referrerId = storedReferrer;
 			}
 		}
 
-		const { data: { user } } = await supabase.auth.getUser();
-		
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
 		if (user) {
 			userId = user.id;
 		}
 
 		// Fetch event details
 		const { data: eventData, error: eventError } = await supabase
-			.from('events')
-			.select('*')
-			.eq('id', eventId)
+			.from("events")
+			.select("*")
+			.eq("id", eventId)
 			.single();
 
 		if (eventError || !eventData) {
-			goto('/');
+			goto("/");
 			return;
 		}
 
@@ -79,10 +86,10 @@
 		if (userId) {
 			// Check if user has already joined (by completing tasks)
 			const { data: participantData } = await supabase
-				.from('event_participants')
-				.select('id')
-				.eq('event_id', eventId)
-				.eq('user_id', userId)
+				.from("event_participants")
+				.select("id")
+				.eq("event_id", eventId)
+				.eq("user_id", userId)
 				.maybeSingle();
 
 			hasJoined = !!participantData;
@@ -90,23 +97,28 @@
 			// Load task completion states and submission data
 			// Since tasks are stored as JSON, we check submissions by event_id and extract task_id from submission JSON
 			const { data: submissions } = await supabase
-				.from('task_submissions')
-				.select('submission, verified')
-				.eq('user_id', userId)
-				.eq('event_id', eventId);
+				.from("task_submissions")
+				.select("submission, verified")
+				.eq("user_id", userId)
+				.eq("event_id", eventId);
 
 			if (submissions && submissions.length > 0) {
-				console.log('Loaded submissions:', submissions);
+				console.log("Loaded submissions:", submissions);
 				submissions.forEach((sub: any) => {
-					const taskId = sub.submission?.task_id || sub.submission?.taskId;
+					const taskId =
+						sub.submission?.task_id || sub.submission?.taskId;
 					if (taskId) {
 						taskStates[taskId] = {
 							completed: true, // Mark as completed if submission exists
-							submitting: false
+							submitting: false,
 						};
 						// Store the full submission data for display
 						taskSubmissions[taskId] = sub.submission;
-						console.log('Task submission loaded:', taskId, sub.submission);
+						console.log(
+							"Task submission loaded:",
+							taskId,
+							sub.submission,
+						);
 					}
 				});
 			}
@@ -118,62 +130,73 @@
 	async function joinEvent() {
 		if (!userId || !event) return;
 
-		const { error } = await supabase
-			.from('event_participants')
-			.insert({
-				event_id: event.id,
-				user_id: userId
-			});
+		const { error } = await supabase.from("event_participants").insert({
+			event_id: event.id,
+			user_id: userId,
+		});
 
 		if (!error) {
 			hasJoined = true;
 		}
 	}
 
-	async function verifyAndSubmitTask(taskId: string, taskType: string, config: any) {
+	async function verifyAndSubmitTask(
+		taskId: string,
+		taskType: string,
+		config: any,
+	) {
 		if (!userId || !event) return;
 
 		// Call appropriate verification API based on task type
-		let verificationEndpoint = '';
+		let verificationEndpoint = "";
 		let verificationPayload: any = {};
+		let skipVerification = false;
 
 		switch (taskType) {
-			case 'twitter':
-				verificationEndpoint = '/api/tasks/verify-twitter';
+			case "twitter":
+				// Twitter tasks don't have verification API - just submit
+				skipVerification = true;
+				break;
+			case "discord":
+				verificationEndpoint = "/api/tasks/verify-discord";
 				verificationPayload = {
-					action: config.action,
-					username: config.username,
-					tweetUrl: config.tweetUrl
+					taskId: taskId,
+					eventId: event.id,
+					serverId: config?.discord?.serverId || config?.serverId,
 				};
 				break;
-			case 'discord':
-				verificationEndpoint = '/api/tasks/verify-discord';
+			case "telegram":
+				verificationEndpoint = "/api/tasks/verify-telegram";
 				verificationPayload = {
-					serverId: config.serverId,
-					action: config.action
-				};
-				break;
-			case 'telegram':
-				verificationEndpoint = '/api/tasks/verify-telegram';
-				verificationPayload = {
-					channelName: config.channelName,
-					action: config.action
+					taskId: taskId,
+					eventId: event.id,
+					channelId:
+						config?.telegram?.channelId ||
+						config?.telegram?.groupId ||
+						config?.channelId,
 				};
 				break;
 			default:
-				throw new Error('Unsupported task type');
+				// For other task types, skip verification and just submit
+				skipVerification = true;
 		}
 
-		// Verify with external API
-		const verifyResponse = await fetch(verificationEndpoint, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(verificationPayload)
-		});
+		// Verify with external API (unless skipped)
+		if (!skipVerification && verificationEndpoint) {
+			const verifyResponse = await fetch(verificationEndpoint, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(verificationPayload),
+			});
 
-		if (!verifyResponse.ok) {
-			const errorData = await verifyResponse.json();
-			throw new Error(errorData.message || 'Verification failed');
+			if (!verifyResponse.ok) {
+				const errorData = await verifyResponse.json();
+				throw new Error(
+					errorData.error ||
+						errorData.message ||
+						"Verification failed",
+				);
+			}
 		}
 
 		// If verified, submit to database
@@ -181,8 +204,11 @@
 			task_id: taskId,
 			user_id: userId,
 			event_id: event.id,
-			submission: { completed: true, verified_at: new Date().toISOString() },
-			verified: true
+			submission: {
+				completed: true,
+				verified_at: new Date().toISOString(),
+			},
+			verified: true,
 		};
 
 		// Include referrer if this user came from a referral link
@@ -191,11 +217,11 @@
 		}
 
 		const { error } = await supabase
-			.from('task_submissions')
+			.from("task_submissions")
 			.insert(submissionData);
 
 		if (error) {
-			throw new Error('Failed to save submission');
+			throw new Error("Failed to save submission");
 		}
 
 		// Clear referrer from session after first successful submission
@@ -204,10 +230,10 @@
 		// Add user to event participants if this is their first task completion
 		if (!hasJoined) {
 			const { error: participantError } = await supabase
-				.from('event_participants')
+				.from("event_participants")
 				.insert({
 					event_id: event.id,
-					user_id: userId
+					user_id: userId,
 				});
 
 			if (!participantError) {
@@ -223,7 +249,9 @@
 		if (!url) return null;
 
 		// YouTube
-		const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+		const youtubeMatch = url.match(
+			/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/,
+		);
 		if (youtubeMatch) {
 			return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
 		}
@@ -247,23 +275,23 @@
 
 	function getTaskCategory(taskType: string): string {
 		const categories: Record<string, string> = {
-			twitter: 'Social',
-			social: 'Social',
-			discord: 'Social',
-			telegram: 'Social',
-			quiz: 'Quiz & Games',
-			puzzle: 'Quiz & Games',
-			scoreline_prediction: 'Predictions',
-			content_submission: 'Content',
-			code_entry: 'Challenges',
-			referral: 'Referral'
+			twitter: "Social",
+			social: "Social",
+			discord: "Social",
+			telegram: "Social",
+			quiz: "Quiz & Games",
+			puzzle: "Quiz & Games",
+			scoreline_prediction: "Predictions",
+			content_submission: "Content",
+			code_entry: "Challenges",
+			referral: "Referral",
 		};
-		return categories[taskType] || 'Other';
+		return categories[taskType] || "Other";
 	}
 
 	function groupTasksByCategory(tasks: typeof event.tasks) {
 		const grouped: Record<string, typeof event.tasks> = {};
-		tasks.forEach(task => {
+		tasks.forEach((task) => {
 			const category = getTaskCategory(task.type);
 			if (!grouped[category]) {
 				grouped[category] = [];
@@ -283,7 +311,7 @@
 
 	function handleLogin() {
 		// Scroll to top where the login button is in the header
-		window.scrollTo({ top: 0, behavior: 'smooth' });
+		window.scrollTo({ top: 0, behavior: "smooth" });
 		showLoginPrompt = false;
 	}
 
@@ -293,11 +321,15 @@
 			return;
 		}
 
-		const homeScoreInput = document.getElementById(`home-score-${taskId}`) as HTMLInputElement;
-		const awayScoreInput = document.getElementById(`away-score-${taskId}`) as HTMLInputElement;
+		const homeScoreInput = document.getElementById(
+			`home-score-${taskId}`,
+		) as HTMLInputElement;
+		const awayScoreInput = document.getElementById(
+			`away-score-${taskId}`,
+		) as HTMLInputElement;
 
 		if (!homeScoreInput || !awayScoreInput) {
-			alert('Please enter both scores');
+			alert("Please enter both scores");
 			return;
 		}
 
@@ -305,12 +337,12 @@
 		const awayScore = parseInt(awayScoreInput.value);
 
 		if (isNaN(homeScore) || isNaN(awayScore)) {
-			alert('Please enter valid scores');
+			alert("Please enter valid scores");
 			return;
 		}
 
 		if (homeScore < 0 || awayScore < 0) {
-			alert('Scores cannot be negative');
+			alert("Scores cannot be negative");
 			return;
 		}
 
@@ -318,35 +350,46 @@
 		taskStates[taskId] = { completed: false, submitting: true };
 
 		try {
-			console.log('Submitting prediction:', { taskId, eventId: event.id, homeScore, awayScore });
-			
+			console.log("Submitting prediction:", {
+				taskId,
+				eventId: event.id,
+				homeScore,
+				awayScore,
+			});
+
 			const requestBody: any = {
 				taskId,
 				eventId: event.id,
 				prediction: {
 					home_score: homeScore,
-					away_score: awayScore
-				}
+					away_score: awayScore,
+				},
 			};
 
 			// Include referrer if this user came from a referral link
 			if (referrerId && referrerId !== userId) {
 				requestBody.referrerId = referrerId;
 			}
-			
-			const response = await fetch('/api/predictions', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify(requestBody)
+
+			const response = await fetch("/api/predictions", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				credentials: "include",
+				body: JSON.stringify(requestBody),
 			});
 
-			console.log('Response status:', response.status);
+			console.log("Response status:", response.status);
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-				console.error('Error response:', errorData);
-				throw new Error(errorData.message || errorData.error || `Failed to submit prediction (${response.status})`);
+				const errorData = await response
+					.json()
+					.catch(() => ({ error: "Unknown error" }));
+				console.error("Error response:", errorData);
+				throw new Error(
+					errorData.message ||
+						errorData.error ||
+						`Failed to submit prediction (${response.status})`,
+				);
 			}
 
 			// Add user to event participants if this is their first task completion
@@ -356,16 +399,28 @@
 
 			// Update local state
 			taskStates[taskId] = { completed: true, submitting: false };
-			taskSubmissions[taskId] = { task_id: taskId, home_score: homeScore, away_score: awayScore };
+			taskSubmissions[taskId] = {
+				task_id: taskId,
+				home_score: homeScore,
+				away_score: awayScore,
+			};
 			editingTask = null; // Clear edit mode
-			alert(editingTask ? 'Prediction updated successfully!' : 'Prediction submitted successfully!');
-			
+			alert(
+				editingTask
+					? "Prediction updated successfully!"
+					: "Prediction submitted successfully!",
+			);
+
 			// Reload the page to refresh submission data
 			window.location.reload();
 		} catch (error) {
-			console.error('Failed to submit prediction:', error);
-			alert(error instanceof Error ? error.message : 'Failed to submit prediction');
-			taskStates[taskId] = { completed: false, submitting: false};
+			console.error("Failed to submit prediction:", error);
+			alert(
+				error instanceof Error
+					? error.message
+					: "Failed to submit prediction",
+			);
+			taskStates[taskId] = { completed: false, submitting: false };
 		}
 	}
 
@@ -378,8 +433,11 @@
 	{:else if event}
 		<!-- Banner -->
 		<div class="event-banner">
-			<img src={event.banner_url || ASSETS.events.defaultBanner} alt={event.title} />
-			<button class="back-btn" on:click={() => goto('/')}>
+			<img
+				src={event.banner_url || ASSETS.events.defaultBanner}
+				alt={event.title}
+			/>
+			<button class="back-btn" on:click={() => goto("/")}>
 				<img src={ASSETS.icons.back} class="utility-icon" alt="Back" />
 				Back to Events
 			</button>
@@ -391,15 +449,21 @@
 				<div class="event-title-section">
 					<h3>{event.title}</h3>
 					<div class="flex space-between">
-						<img src={event.logo_url || ASSETS.events.defaultLogo} alt={event.title} class="event-logo" />
+						<img
+							src={event.logo_url || ASSETS.events.defaultLogo}
+							alt={event.title}
+							class="event-logo"
+						/>
 						<div class="event-meta">
 							<span>Ends: {formatDate(event.end_time)}</span>
-							<span>Winners: {event.num_winners || 'All participants'}</span>
+							<span
+								>Winners: {event.num_winners ||
+									"All participants"}</span
+							>
 							<span>Prize: {event.prize_details.type}</span>
 						</div>
 					</div>
 				</div>
-				
 			</div>
 
 			<!-- Description -->
@@ -425,12 +489,20 @@
 								></iframe>
 							</div>
 						{:else}
-							<a href={event.video_url} target="_blank" rel="noopener noreferrer" class="video-link">
+							<a
+								href={event.video_url}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="video-link"
+							>
 								Watch Video →
 							</a>
 						{/if}
 					{:else}
-						<button class="secondary-btn" on:click={() => showVideo = true}>
+						<button
+							class="secondary-btn"
+							on:click={() => (showVideo = true)}
+						>
 							▶ Show Video
 						</button>
 					{/if}
@@ -441,135 +513,264 @@
 			<div class="section">
 				<h2>Tasks</h2>
 				{#if !userId}
-					<p class="section-hint">Please log in to complete tasks and earn rewards</p>
+					<p class="section-hint">
+						Please log in to complete tasks and earn rewards
+					</p>
 				{:else}
-					<p class="section-hint">Complete all tasks to be eligible for rewards</p>
+					<p class="section-hint">
+						Complete all tasks to be eligible for rewards
+					</p>
 				{/if}
-				
+
 				{#each Object.entries(groupedTasks) as [category, tasks]}
 					<div class="task-category">
 						<h3 class="category-title">{category}</h3>
 						<div class="tasks-list">
 							{#each tasks as task, index}
 								{@const taskEntry = getTaskComponent(task.type)}
-								{@const isCompleted = taskStates[task.id]?.completed}
-								{@const isSubmitting = taskStates[task.id]?.submitting}
-								
-								<div class="task-card" class:completed={isCompleted}>
+								{@const isCompleted =
+									taskStates[task.id]?.completed}
+								{@const isSubmitting =
+									taskStates[task.id]?.submitting}
+
+								<div
+									class="task-card"
+									class:completed={isCompleted}
+								>
 									<div class="task-header">
 										<div class="task-info">
-											<div class="task-type-badge">{taskEntry?.label || task.type}</div>
+											<div class="task-type-badge">
+												{taskEntry?.label || task.type}
+											</div>
 											{#if isCompleted}
-												<div class="completed-badge">Completed</div>
+												<div class="completed-badge">
+													Completed
+												</div>
 											{/if}
 										</div>
 									</div>
 
 									<div class="task-body">
-										{#if task.type === 'content_submission'}
+										{#if task.type === "content_submission"}
 											<!-- Content Submission Task -->
-											<div class="content-submission-task">
-												<p class="task-description">{task.config.description || 'Submit your content'}</p>
+											<div
+												class="content-submission-task"
+											>
+												<p class="task-description">
+													{task.config.description ||
+														"Submit your content"}
+												</p>
 												{#if !isCompleted && userId}
-													<input 
-														type="url" 
+													<input
+														type="url"
 														placeholder="Enter content URL (e.g., YouTube, Twitter, etc.)"
 														class="content-input"
 														id="content-input-{task.id}"
 													/>
-													<button class="submit-btn" on:click={() => submitContent(task.id)}>
-														{isSubmitting ? 'Verifying...' : 'Submit'}
+													<button
+														class="submit-btn"
+														on:click={() =>
+															submitContent(
+																task.id,
+															)}
+													>
+														{isSubmitting
+															? "Verifying..."
+															: "Submit"}
 													</button>
 												{:else if isCompleted}
-												<p class="completed-text">Submission successful</p>
-											{:else}
-												<button class="login-required-btn" on:click={promptLogin}>
-													Log in to participate
-												</button>
-											{/if}
-											</div>
-										{:else if ['twitter', 'discord', 'telegram'].includes(task.type)}
-											<!-- Social Task -->
-											<div class="social-task">
-												<p class="task-description">{task.config.description || `Complete this ${task.type} task`}</p>
-												{#if !isCompleted && userId}
-													<button class="confirm-btn" on:click={() => verifyAndSubmitTask(task.id, task.type, task.config)}>
-														{isSubmitting ? 'Verifying...' : 'Confirm Completion'}
-													</button>
-												{:else if isCompleted}
-													<p class="completed-text">Task completed</p>
+													<p class="completed-text">
+														Submission successful
+													</p>
 												{:else}
-													<button class="login-required-btn" on:click={promptLogin}>
-														Log in to complete this task
+													<button
+														class="login-required-btn"
+														on:click={promptLogin}
+													>
+														Log in to participate
 													</button>
 												{/if}
 											</div>
-										{:else if task.type === 'scoreline'}
+										{:else if ["twitter", "discord", "telegram"].includes(task.type)}
+											<!-- Social Task -->
+											<div class="social-task">
+												<p class="task-description">
+													{task.config.description ||
+														`Complete this ${task.type} task`}
+												</p>
+												{#if !isCompleted && userId}
+													<button
+														class="confirm-btn"
+														on:click={() =>
+															verifyAndSubmitTask(
+																task.id,
+																task.type,
+																task.config,
+															)}
+													>
+														{isSubmitting
+															? "Verifying..."
+															: "Confirm Completion"}
+													</button>
+												{:else if isCompleted}
+													<p class="completed-text">
+														Task completed
+													</p>
+												{:else}
+													<button
+														class="login-required-btn"
+														on:click={promptLogin}
+													>
+														Log in to complete this
+														task
+													</button>
+												{/if}
+											</div>
+										{:else if task.type === "scoreline"}
 											<!-- Scoreline Prediction Task -->
 											<div class="scoreline-task">
 												<div class="match-info">
 													{#if task.config.league?.name}
-														<div class="league-name">{task.config.league.name}</div>
+														<div
+															class="league-name"
+														>
+															{task.config.league
+																.name}
+														</div>
 													{/if}
 													<div class="match-teams">
-														<div class="team">{task.config.home_team?.name || 'Home'}</div>
+														<div class="team">
+															{task.config
+																.home_team
+																?.name ||
+																"Home"}
+														</div>
 														<div class="vs">VS</div>
-														<div class="team">{task.config.away_team?.name || 'Away'}</div>
+														<div class="team">
+															{task.config
+																.away_team
+																?.name ||
+																"Away"}
+														</div>
 													</div>
 													{#if task.config.match_date}
-														<div class="match-datetime">
-															{new Date(task.config.match_date).toLocaleDateString()}
+														<div
+															class="match-datetime"
+														>
+															{new Date(
+																task.config.match_date,
+															).toLocaleDateString()}
 															{#if task.config.match_time}
-																at {task.config.match_time}
+																at {task.config
+																	.match_time}
 															{/if}
 														</div>
 													{/if}
 													{#if task.config.description}
-														<p class="match-description">{task.config.description}</p>
+														<p
+															class="match-description"
+														>
+															{task.config
+																.description}
+														</p>
 													{/if}
 												</div>
 
 												{#if (!isCompleted || editingTask === task.id) && userId}
-													<div class="prediction-form">
-														<div class="score-inputs">
-															<div class="score-input-group">
-																<label>{task.config.home_team?.name || 'Home'}</label>
-																<input 
-																	type="number" 
-																	min="0" 
+													<div
+														class="prediction-form"
+													>
+														<div
+															class="score-inputs"
+														>
+															<div
+																class="score-input-group"
+															>
+																<label
+																	>{task
+																		.config
+																		.home_team
+																		?.name ||
+																		"Home"}</label
+																>
+																<input
+																	type="number"
+																	min="0"
 																	max="99"
 																	placeholder="0"
-																	value={editingTask === task.id ? taskSubmissions[task.id]?.home_score : ''}
+																	value={editingTask ===
+																	task.id
+																		? taskSubmissions[
+																				task
+																					.id
+																			]
+																				?.home_score
+																		: ""}
 																	class="score-input"
 																	id="home-score-{task.id}"
 																/>
 															</div>
-															<div class="score-separator">-</div>
-															<div class="score-input-group">
-																<label>{task.config.away_team?.name || 'Away'}</label>
-																<input 
-																	type="number" 
-																	min="0" 
+															<div
+																class="score-separator"
+															>
+																-
+															</div>
+															<div
+																class="score-input-group"
+															>
+																<label
+																	>{task
+																		.config
+																		.away_team
+																		?.name ||
+																		"Away"}</label
+																>
+																<input
+																	type="number"
+																	min="0"
 																	max="99"
 																	placeholder="0"
-																	value={editingTask === task.id ? taskSubmissions[task.id]?.away_score : ''}
+																	value={editingTask ===
+																	task.id
+																		? taskSubmissions[
+																				task
+																					.id
+																			]
+																				?.away_score
+																		: ""}
 																	class="score-input"
 																	id="away-score-{task.id}"
 																/>
 															</div>
 														</div>
-														<div class="prediction-actions">
-															<button 
+														<div
+															class="prediction-actions"
+														>
+															<button
 																class="submit-prediction-btn"
-																on:click={() => submitPrediction(task.id)}
-																disabled={taskStates[task.id]?.submitting}
+																on:click={() =>
+																	submitPrediction(
+																		task.id,
+																	)}
+																disabled={taskStates[
+																	task.id
+																]?.submitting}
 															>
-																{taskStates[task.id]?.submitting ? 'Submitting...' : (editingTask === task.id ? 'Update Prediction' : 'Submit Prediction')}
+																{taskStates[
+																	task.id
+																]?.submitting
+																	? "Submitting..."
+																	: editingTask ===
+																		  task.id
+																		? "Update Prediction"
+																		: "Submit Prediction"}
 															</button>
 															{#if editingTask === task.id}
-																<button 
+																<button
 																	class="cancel-edit-btn"
-																	on:click={() => editingTask = null}
+																	on:click={() =>
+																		(editingTask =
+																			null)}
 																>
 																	Cancel
 																</button>
@@ -577,49 +778,115 @@
 														</div>
 													</div>
 												{:else if isCompleted}
-													<div class="submitted-prediction">
-														<p class="completed-text">Your Prediction</p>
-														<div class="prediction-display">
-															<div class="team-score">
-																<span class="team-name">{task.config.home_team?.name || 'Home'}</span>
-																<span class="score-value">{taskSubmissions[task.id]?.home_score ?? '-'}</span>
+													<div
+														class="submitted-prediction"
+													>
+														<p
+															class="completed-text"
+														>
+															Your Prediction
+														</p>
+														<div
+															class="prediction-display"
+														>
+															<div
+																class="team-score"
+															>
+																<span
+																	class="team-name"
+																	>{task
+																		.config
+																		.home_team
+																		?.name ||
+																		"Home"}</span
+																>
+																<span
+																	class="score-value"
+																	>{taskSubmissions[
+																		task.id
+																	]
+																		?.home_score ??
+																		"-"}</span
+																>
 															</div>
-															<div class="score-separator">-</div>
-															<div class="team-score">
-																<span class="team-name">{task.config.away_team?.name || 'Away'}</span>
-																<span class="score-value">{taskSubmissions[task.id]?.away_score ?? '-'}</span>
+															<div
+																class="score-separator"
+															>
+																-
+															</div>
+															<div
+																class="team-score"
+															>
+																<span
+																	class="team-name"
+																	>{task
+																		.config
+																		.away_team
+																		?.name ||
+																		"Away"}</span
+																>
+																<span
+																	class="score-value"
+																	>{taskSubmissions[
+																		task.id
+																	]
+																		?.away_score ??
+																		"-"}</span
+																>
 															</div>
 														</div>
 														{#if event && new Date(event.end_time) > new Date()}
-															<button 
+															<button
 																class="edit-prediction-btn"
-																on:click={() => editingTask = task.id}
+																on:click={() =>
+																	(editingTask =
+																		task.id)}
 															>
 																Edit Prediction
 															</button>
 														{/if}
 													</div>
 												{:else}
-													<button class="login-required-btn" on:click={promptLogin}>
+													<button
+														class="login-required-btn"
+														on:click={promptLogin}
+													>
 														Log in to participate
 													</button>
 												{/if}
 											</div>
 										{:else if taskEntry?.component}
-											<svelte:component 
-												this={taskEntry.component} 
+											<svelte:component
+												this={taskEntry.component}
 												config={task.config}
-												readonly={isCompleted || !userId}
-												onComplete={userId ? async () => await verifyAndSubmitTask(task.id, task.type, task.config) : undefined}
-												userId={userId}
-												eventId={eventId}
-												eventEnded={event ? new Date(event.end_time) < new Date() : false}
+												readonly={isCompleted ||
+													!userId}
+												onComplete={userId
+													? async () =>
+															await verifyAndSubmitTask(
+																task.id,
+																task.type,
+																task.config,
+															)
+													: undefined}
+												{userId}
+												{eventId}
+												eventEnded={event
+													? new Date(event.end_time) <
+														new Date()
+													: false}
 											/>
 										{:else}
 											<div class="generic-task-info">
-												<p class="task-type-label">Task: {taskEntry?.label || task.type}</p>
+												<p class="task-type-label">
+													Task: {taskEntry?.label ||
+														task.type}
+												</p>
 												{#if task.config.description}
-													<p class="task-description">{task.config.description}</p>
+													<p class="task-description">
+														{task.config
+															.description}
+													</p>
 												{/if}
 											</div>
 										{/if}
@@ -640,15 +907,24 @@
 		<div class="modal-content" on:click|stopPropagation>
 			<div class="modal-header">
 				<h3>🔒 Login Required</h3>
-				<button class="modal-close-btn" on:click={closeLoginPrompt}>✕</button>
+				<button class="modal-close-btn" on:click={closeLoginPrompt}
+					>✕</button
+				>
 			</div>
 			<div class="modal-body">
-				<p>You need to be logged in to complete tasks and submit predictions.</p>
+				<p>
+					You need to be logged in to complete tasks and submit
+					predictions.
+				</p>
 				<p>Please log in using the button in the top navigation bar.</p>
 			</div>
 			<div class="modal-footer">
-				<button class="modal-btn-secondary" on:click={closeLoginPrompt}>Cancel</button>
-				<button class="modal-btn-primary" on:click={handleLogin}>Go to Login</button>
+				<button class="modal-btn-secondary" on:click={closeLoginPrompt}
+					>Cancel</button
+				>
+				<button class="modal-btn-primary" on:click={handleLogin}
+					>Go to Login</button
+				>
 			</div>
 		</div>
 	</div>
@@ -920,7 +1196,9 @@
 		font-size: 1rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 	}
 
 	.primary-btn:hover:not(:disabled) {
@@ -999,7 +1277,9 @@
 		font-size: 0.95rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 		align-self: flex-start;
 	}
 
@@ -1193,7 +1473,9 @@
 		font-size: 1rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 	}
 
 	.submit-prediction-btn:hover:not(:disabled) {
@@ -1207,7 +1489,11 @@
 	}
 
 	.login-required-btn {
-		background: linear-gradient(135deg, rgba(111, 160, 255, 0.3) 0%, rgba(90, 141, 255, 0.3) 100%);
+		background: linear-gradient(
+			135deg,
+			rgba(111, 160, 255, 0.3) 0%,
+			rgba(90, 141, 255, 0.3) 100%
+		);
 		color: rgba(242, 243, 255, 0.9);
 		border: 2px dashed rgba(111, 160, 255, 0.5);
 		border-radius: 10px;
@@ -1220,7 +1506,11 @@
 	}
 
 	.login-required-btn:hover {
-		background: linear-gradient(135deg, rgba(111, 160, 255, 0.4) 0%, rgba(90, 141, 255, 0.4) 100%);
+		background: linear-gradient(
+			135deg,
+			rgba(111, 160, 255, 0.4) 0%,
+			rgba(90, 141, 255, 0.4) 100%
+		);
 		border-color: rgba(111, 160, 255, 0.7);
 		transform: translateY(-2px);
 	}
@@ -1275,7 +1565,11 @@
 	}
 
 	.edit-prediction-btn {
-		background: linear-gradient(135deg, rgba(111, 160, 255, 0.2) 0%, rgba(90, 141, 255, 0.2) 100%);
+		background: linear-gradient(
+			135deg,
+			rgba(111, 160, 255, 0.2) 0%,
+			rgba(90, 141, 255, 0.2) 100%
+		);
 		color: #6fa0ff;
 		border: 2px solid rgba(111, 160, 255, 0.4);
 		border-radius: 8px;
@@ -1289,7 +1583,11 @@
 	}
 
 	.edit-prediction-btn:hover {
-		background: linear-gradient(135deg, rgba(111, 160, 255, 0.3) 0%, rgba(90, 141, 255, 0.3) 100%);
+		background: linear-gradient(
+			135deg,
+			rgba(111, 160, 255, 0.3) 0%,
+			rgba(90, 141, 255, 0.3) 100%
+		);
 		border-color: rgba(111, 160, 255, 0.6);
 		transform: translateY(-2px);
 	}
