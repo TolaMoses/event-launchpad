@@ -20,7 +20,12 @@
 	});
 
 	function getProfileUrl(): string {
-		return config.twitter?.profileLink || "";
+		let url = config.twitter?.profileLink || "";
+		// Ensure URL has protocol to prevent relative links
+		if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+			url = "https://" + url;
+		}
+		return url;
 	}
 
 	function getProfileUsername(): string {

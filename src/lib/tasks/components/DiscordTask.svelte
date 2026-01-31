@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { onMount, onDestroy } from "svelte";
 	import { supabase } from "$lib/supabaseClient";
 
 	export let config: {
@@ -19,11 +19,21 @@
 	let error = "";
 	let isConnected = false;
 	let loading = true;
+	let connecting = false; // New state for connection in progress
+	let connectionUsername = ""; // Store connected username
+	let pollInterval: ReturnType<typeof setInterval> | null = null;
 
 	onMount(async () => {
 		console.log("Discord task config:", config);
 		await checkConnection();
 		loading = false;
+	});
+
+	onDestroy(() => {
+		// Clean up polling on component destroy
+		if (pollInterval) {
+			clearInterval(pollInterval);
+		}
 	});
 
 	async function checkConnection() {
@@ -34,19 +44,59 @@
 
 		const { data } = await supabase
 			.from("social_connections")
-			.select("id")
+			.select("id, username")
 			.eq("user_id", user.id)
 			.eq("platform", "discord")
 			.single();
 
 		isConnected = !!data;
+		if (data?.username) {
+			connectionUsername = data.username;
+		}
 	}
 
 	function connectDiscord() {
 		const currentUrl = window.location.href;
 		const authUrl = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
+
+		// Set connecting state
+		connecting = true;
+		error = "";
+
 		// Open in new tab/popup so it can auto-close on success
-		window.open(authUrl, "_blank", "width=600,height=700,scrollbars=yes");
+		const popup = window.open(
+			authUrl,
+			"_blank",
+			"width=600,height=700,scrollbars=yes",
+		);
+
+		// Start polling to check if connection was successful
+		pollInterval = setInterval(async () => {
+			await checkConnection();
+			if (isConnected) {
+				// Connection successful - stop polling
+				connecting = false;
+				if (pollInterval) {
+					clearInterval(pollInterval);
+					pollInterval = null;
+				}
+			}
+		}, 2000); // Poll every 2 seconds
+
+		// Also stop polling after 5 minutes (safety timeout)
+		setTimeout(
+			() => {
+				if (pollInterval) {
+					clearInterval(pollInterval);
+					pollInterval = null;
+					if (!isConnected) {
+						connecting = false;
+						error = "Connection timed out. Please try again.";
+					}
+				}
+			},
+			5 * 60 * 1000,
+		);
 	}
 
 	async function handleConfirm() {
@@ -104,17 +154,31 @@
 		{#if !readonly}
 			{#if loading}
 				<button class="confirm-btn" disabled>Loading...</button>
+			{:else if connecting}
+				<div class="connecting-status">
+					<span class="spinner"></span>
+					<span>Connecting Discord...</span>
+				</div>
 			{:else if !isConnected}
 				<button class="connect-btn" on:click={connectDiscord}>
 					Connect Discord
 				</button>
 			{:else}
+				{#if connectionUsername}
+					<div class="connected-status">
+						<span class="connected-icon">✓</span>
+						<span
+							>Connected as <strong>{connectionUsername}</strong
+							></span
+						>
+					</div>
+				{/if}
 				<button
 					class="confirm-btn"
 					on:click={handleConfirm}
 					disabled={confirming}
 				>
-					{confirming ? "Confirming..." : "Confirm I Joined"}
+					{confirming ? "Confirming..." : "Confirm I Joined Server"}
 				</button>
 			{/if}
 		{:else}
@@ -242,5 +306,49 @@
 		color: #ff6b6b;
 		font-size: 0.85rem;
 		margin: 0;
+	}
+
+	.connecting-status {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		color: #5865f2;
+		font-weight: 500;
+		padding: 0.75rem 1rem;
+		background: rgba(88, 101, 242, 0.1);
+		border-radius: 8px;
+		width: fit-content;
+	}
+
+	.spinner {
+		width: 16px;
+		height: 16px;
+		border: 2px solid rgba(88, 101, 242, 0.3);
+		border-top-color: #5865f2;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.connected-status {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: #10b981;
+		font-size: 0.9rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.connected-icon {
+		font-size: 1rem;
+	}
+
+	.connected-status strong {
+		color: #5865f2;
 	}
 </style>

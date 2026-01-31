@@ -641,7 +641,7 @@
 															)
 													: undefined}
 											/>
-										{:else if task.type === "scoreline"}
+										{:else if task.type === "scoreline" || task.type === "scoreline_prediction"}
 											<!-- Scoreline Prediction Task -->
 											<div class="scoreline-task">
 												<div class="match-info">
