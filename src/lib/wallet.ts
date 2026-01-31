@@ -100,9 +100,17 @@ export async function signInWithWallet(wallet: WalletConnection): Promise<void> 
   const { address, chainId: connectedChainId, chainName: connectedChainName } = wallet;
 
   const auth = supabase.auth as any;
+
+  // Use origin-only URI to avoid path mismatch errors when connecting from different pages
   const { error } = await auth.signInWithWeb3({
     chain: 'ethereum',
-    wallet: (window as any).ethereum
+    wallet: (window as any).ethereum,
+    options: {
+      siwe: {
+        // Use origin only (no path) to ensure consistent URI across all pages
+        uri: window.location.origin
+      }
+    }
   });
 
   if (error) {
