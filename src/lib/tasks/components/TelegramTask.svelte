@@ -42,7 +42,10 @@
 
 	function connectTelegram() {
 		const currentUrl = window.location.href;
-		window.location.href = `/auth/telegram?returnTo=${encodeURIComponent(currentUrl)}`;
+		// Use page route to render Telegram Login Widget
+		const authUrl = `/auth/telegram/connect?returnTo=${encodeURIComponent(currentUrl)}`;
+		// Open in new tab/popup so it can auto-close on success
+		window.open(authUrl, "_blank", "width=600,height=700,scrollbars=yes");
 	}
 
 	async function handleConfirm() {

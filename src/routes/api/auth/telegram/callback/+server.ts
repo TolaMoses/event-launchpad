@@ -74,11 +74,12 @@ export async function GET({ url, locals, cookies }: any) {
 				onConflict: 'user_id,platform'
 			});
 
-		// Redirect back to the page that initiated OAuth
+		// Redirect to success page instead of returning to the form
+		// Success page will auto-close the popup
 		const returnTo = cookies.get('oauth_return_to') || '/dashboard';
 		cookies.delete('oauth_return_to', { path: '/' });
 
-		throw redirect(302, returnTo);
+		throw redirect(302, '/auth/telegram/success');
 	} catch (err) {
 		console.error('Telegram auth error:', err);
 		throw error(500, 'Failed to connect Telegram account');

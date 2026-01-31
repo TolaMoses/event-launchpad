@@ -44,7 +44,9 @@
 
 	function connectDiscord() {
 		const currentUrl = window.location.href;
-		window.location.href = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
+		const authUrl = `/api/auth/discord/connect?returnTo=${encodeURIComponent(currentUrl)}`;
+		// Open in new tab/popup so it can auto-close on success
+		window.open(authUrl, "_blank", "width=600,height=700,scrollbars=yes");
 	}
 
 	async function handleConfirm() {
