@@ -33,22 +33,45 @@
 		}
 	});
 
-	async function checkConnection() {
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-		if (!user) return;
+	async function checkConnection(): Promise<boolean> {
+		try {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (!user) {
+				console.log("Telegram checkConnection: No user logged in");
+				return false;
+			}
 
-		const { data } = await supabase
-			.from("social_connections")
-			.select("id, username")
-			.eq("user_id", user.id)
-			.eq("platform", "telegram")
-			.single();
+			const { data, error: dbError } = await supabase
+				.from("social_connections")
+				.select("id, username")
+				.eq("user_id", user.id)
+				.eq("platform", "telegram")
+				.maybeSingle(); // Use maybeSingle to avoid error when no record
 
-		isConnected = !!data;
-		if (data?.username) {
-			connectionUsername = data.username;
+			if (dbError) {
+				console.error("Telegram checkConnection error:", dbError);
+				return false;
+			}
+
+			const connected = !!data;
+			console.log(
+				"Telegram checkConnection result:",
+				connected,
+				data?.username,
+			);
+
+			// Force reactivity by explicit assignment
+			isConnected = connected;
+			if (data?.username) {
+				connectionUsername = data.username;
+			}
+
+			return connected;
+		} catch (err) {
+			console.error("Telegram checkConnection exception:", err);
+			return false;
 		}
 	}
 
@@ -65,8 +88,9 @@
 
 		// Start polling to check if connection was successful
 		pollInterval = setInterval(async () => {
-			await checkConnection();
-			if (isConnected) {
+			const connected = await checkConnection();
+			console.log("Telegram polling check - connected:", connected);
+			if (connected) {
 				connecting = false;
 				if (pollInterval) {
 					clearInterval(pollInterval);
