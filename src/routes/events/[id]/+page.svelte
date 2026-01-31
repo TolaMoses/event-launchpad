@@ -6,6 +6,12 @@
 	import { ASSETS } from "$lib/config/assets";
 	import { taskRegistry } from "$lib/tasks/taskRegistry";
 
+	// Import participant display components
+	import TwitterTask from "$lib/tasks/components/TwitterTask.svelte";
+	import DiscordTask from "$lib/tasks/components/DiscordTask.svelte";
+	import TelegramTask from "$lib/tasks/components/TelegramTask.svelte";
+	import QuizDisplayTask from "$lib/tasks/components/QuizTask.svelte";
+
 	type Event = {
 		id: string;
 		title: string;
@@ -591,41 +597,50 @@
 													</button>
 												{/if}
 											</div>
-										{:else if ["twitter", "discord", "telegram"].includes(task.type)}
-											<!-- Social Task -->
-											<div class="social-task">
-												<p class="task-description">
-													{task.config.description ||
-														`Complete this ${task.type} task`}
-												</p>
-												{#if !isCompleted && userId}
-													<button
-														class="confirm-btn"
-														on:click={() =>
+										{:else if task.type === "twitter"}
+											<TwitterTask
+												config={task.config}
+												readonly={isCompleted}
+											/>
+										{:else if task.type === "discord"}
+											<DiscordTask
+												config={task.config}
+												readonly={isCompleted}
+												onComplete={userId
+													? async () =>
 															verifyAndSubmitTask(
 																task.id,
 																task.type,
 																task.config,
-															)}
-													>
-														{isSubmitting
-															? "Verifying..."
-															: "Confirm Completion"}
-													</button>
-												{:else if isCompleted}
-													<p class="completed-text">
-														Task completed
-													</p>
-												{:else}
-													<button
-														class="login-required-btn"
-														on:click={promptLogin}
-													>
-														Log in to complete this
-														task
-													</button>
-												{/if}
-											</div>
+															)
+													: undefined}
+											/>
+										{:else if task.type === "telegram"}
+											<TelegramTask
+												config={task.config}
+												readonly={isCompleted}
+												onComplete={userId
+													? async () =>
+															verifyAndSubmitTask(
+																task.id,
+																task.type,
+																task.config,
+															)
+													: undefined}
+											/>
+										{:else if task.type === "quiz"}
+											<QuizDisplayTask
+												config={task.config}
+												readonly={isCompleted}
+												onComplete={userId
+													? async () =>
+															verifyAndSubmitTask(
+																task.id,
+																task.type,
+																task.config,
+															)
+													: undefined}
+											/>
 										{:else if task.type === "scoreline"}
 											<!-- Scoreline Prediction Task -->
 											<div class="scoreline-task">
