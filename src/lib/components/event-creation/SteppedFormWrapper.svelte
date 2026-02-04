@@ -56,12 +56,14 @@
     function nextStep() {
         if (canGoNext) {
             currentStep++;
+            window.scrollTo({ top: 0, behavior: "smooth" });
         }
     }
 
     function prevStep() {
         if (canGoBack) {
             currentStep--;
+            window.scrollTo({ top: 0, behavior: "smooth" });
         }
     }
 

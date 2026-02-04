@@ -81,6 +81,24 @@
         ></textarea>
     </div>
 
+    <div class="form-group">
+        <label
+            >Match Date & Time <span class="hint"
+                >(select first for match suggestions)</span
+            ></label
+        >
+        <input type="datetime-local" bind:value={config.matchDate} />
+    </div>
+
+    <div class="form-group">
+        <label>League / Competition (Optional)</label>
+        <input
+            type="text"
+            bind:value={config.league}
+            placeholder="Premier League"
+        />
+    </div>
+
     <div class="teams-section">
         <div class="form-group">
             <label>Home Team Name</label>
@@ -119,20 +137,6 @@
                 placeholder="https://..."
             />
         </div>
-    </div>
-
-    <div class="form-group">
-        <label>Match Date & Time</label>
-        <input type="datetime-local" bind:value={config.matchDate} />
-    </div>
-
-    <div class="form-group">
-        <label>League / Competition (Optional)</label>
-        <input
-            type="text"
-            bind:value={config.league}
-            placeholder="Premier League"
-        />
     </div>
 
     {#if errors.length}
@@ -286,5 +290,11 @@
 
     li {
         margin: 0.25rem 0;
+    }
+
+    .hint {
+        font-weight: 400;
+        font-size: 0.8em;
+        color: rgba(91, 141, 255, 0.8);
     }
 </style>
