@@ -209,46 +209,32 @@
 			}
 		}
 
-		// If verified, submit to database
-		const submissionData: any = {
-			task_id: taskId,
-			user_id: userId,
-			event_id: event.id,
-			submission: {
-				completed: true,
-				verified_at: new Date().toISOString(),
-			},
-			verified: true,
-		};
+		// If verified, submit to database via server API (bypasses RLS)
+		const submitResponse = await fetch("/api/tasks/submit", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				taskId,
+				eventId: event.id,
+				submission: {
+					completed: true,
+					verified_at: new Date().toISOString(),
+				},
+				referrerId: referrerId !== userId ? referrerId : null,
+			}),
+		});
 
-		// Include referrer if this user came from a referral link
-		if (referrerId && referrerId !== userId) {
-			submissionData.referrer_id = referrerId;
-		}
-
-		const { error } = await supabase
-			.from("task_submissions")
-			.insert(submissionData);
-
-		if (error) {
-			throw new Error("Failed to save submission");
+		if (!submitResponse.ok) {
+			const errorData = await submitResponse.json();
+			throw new Error(errorData.error || "Failed to save submission");
 		}
 
 		// Clear referrer from session after first successful submission
 		sessionStorage.removeItem(`event_${eventId}_referrer`);
 
-		// Add user to event participants if this is their first task completion
+		// API also handles event participant join
 		if (!hasJoined) {
-			const { error: participantError } = await supabase
-				.from("event_participants")
-				.insert({
-					event_id: event.id,
-					user_id: userId,
-				});
-
-			if (!participantError) {
-				hasJoined = true;
-			}
+			hasJoined = true;
 		}
 
 		// Update local state
