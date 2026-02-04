@@ -1,15 +1,7 @@
-/**
- * Event Creation API
- * 
- * Updated with simplified architecture:
- * - Rate limiting (5 events per hour)
- * - Zod validation
- * - Uses reward_types (not rewards)
- */
-
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabaseAdmin } from '$lib/server/supabaseAdmin';
+import { syncTasksToTable } from '$lib/server/syncTasks';
 import { rateLimiter, RATE_LIMITS } from '$lib/infrastructure/redis/rateLimiter';
 import { validateBody } from '$lib/server/middleware/validation';
 import { eventCreateSchema } from '$lib/shared/validation/schemas/event.schema';
@@ -71,6 +63,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       { error: 'Failed to create event. Please try again.' },
       { status: 500 }
     );
+  }
+
+  // 6. Sync tasks to tasks table for FK relationships
+  if (validated.tasks && validated.tasks.length > 0) {
+    const syncResult = await syncTasksToTable(data.id, validated.tasks);
+    if (!syncResult.success) {
+      console.warn('Task sync warning:', syncResult.error);
+      // Don't fail event creation, just log warning
+    }
   }
 
   return json(

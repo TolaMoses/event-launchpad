@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabaseAdmin } from '$lib/server/supabaseAdmin';
+import { syncTasksToTable } from '$lib/server/syncTasks';
 
 /**
  * Add or update tasks for a community event
@@ -62,6 +63,14 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
   if (updateError) {
     console.error('Failed to update tasks:', updateError);
     throw error(500, 'Failed to add tasks');
+  }
+
+  // Sync tasks to tasks table for FK relationships
+  if (eventId) {
+    const syncResult = await syncTasksToTable(eventId, tasks);
+    if (!syncResult.success) {
+      console.warn('Task sync warning:', syncResult.error);
+    }
   }
 
   return json({
