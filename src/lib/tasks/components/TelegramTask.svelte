@@ -31,7 +31,47 @@
 		if (pollInterval) {
 			clearInterval(pollInterval);
 		}
+		// Remove event listeners
+		window.removeEventListener("focus", handleWindowFocus);
+		document.removeEventListener(
+			"visibilitychange",
+			handleVisibilityChange,
+		);
 	});
+
+	// Check connection when window regains focus (user returns from auth popup)
+	async function handleWindowFocus() {
+		if (connecting) {
+			console.log(
+				"Telegram: Window focused while connecting, checking connection...",
+			);
+			const connected = await checkConnection();
+			if (connected) {
+				connecting = false;
+				if (pollInterval) {
+					clearInterval(pollInterval);
+					pollInterval = null;
+				}
+			}
+		}
+	}
+
+	// Check connection when tab becomes visible
+	async function handleVisibilityChange() {
+		if (!document.hidden && connecting) {
+			console.log(
+				"Telegram: Tab became visible while connecting, checking connection...",
+			);
+			const connected = await checkConnection();
+			if (connected) {
+				connecting = false;
+				if (pollInterval) {
+					clearInterval(pollInterval);
+					pollInterval = null;
+				}
+			}
+		}
+	}
 
 	async function checkConnection(): Promise<boolean> {
 		try {
@@ -83,6 +123,10 @@
 		connecting = true;
 		error = "";
 
+		// Add event listeners to detect when user returns from auth popup
+		window.addEventListener("focus", handleWindowFocus);
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+
 		// Open in new tab/popup so it can auto-close on success
 		window.open(authUrl, "_blank", "width=600,height=700,scrollbars=yes");
 
@@ -96,6 +140,12 @@
 					clearInterval(pollInterval);
 					pollInterval = null;
 				}
+				// Remove event listeners
+				window.removeEventListener("focus", handleWindowFocus);
+				document.removeEventListener(
+					"visibilitychange",
+					handleVisibilityChange,
+				);
 			}
 		}, 2000);
 
@@ -109,6 +159,12 @@
 						connecting = false;
 						error = "Connection timed out. Please try again.";
 					}
+					// Remove event listeners on timeout
+					window.removeEventListener("focus", handleWindowFocus);
+					document.removeEventListener(
+						"visibilitychange",
+						handleVisibilityChange,
+					);
 				}
 			},
 			5 * 60 * 1000,
