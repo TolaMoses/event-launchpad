@@ -138,6 +138,8 @@
     } else {
       tasks = [...tasks, task];
     }
+    // Scroll to top so user can see task list
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handleTaskEdit(index: number) {
