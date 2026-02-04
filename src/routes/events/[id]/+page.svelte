@@ -168,6 +168,7 @@
 				verificationPayload = {
 					taskId: taskId,
 					eventId: event.id,
+					action: "join_server",
 					serverId: config?.discord?.serverId || config?.serverId,
 				};
 				break;
@@ -176,6 +177,9 @@
 				verificationPayload = {
 					taskId: taskId,
 					eventId: event.id,
+					action: config?.telegram?.groupId
+						? "join_group"
+						: "join_channel",
 					channelId:
 						config?.telegram?.channelId ||
 						config?.telegram?.groupId ||

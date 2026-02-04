@@ -185,6 +185,24 @@
 		}
 	}
 
+	async function disconnectDiscord() {
+		try {
+			const response = await fetch("/api/auth/discord/disconnect", {
+				method: "POST",
+			});
+
+			if (response.ok) {
+				isConnected = false;
+				connectionUsername = "";
+			} else {
+				const data = await response.json();
+				error = data.error || "Failed to disconnect";
+			}
+		} catch (err) {
+			error = "Failed to disconnect Discord";
+		}
+	}
+
 	function getInviteUrl(): string {
 		return config?.discord?.inviteLink || "";
 	}
@@ -242,6 +260,10 @@
 							>Connected as <strong>{connectionUsername}</strong
 							></span
 						>
+						<button
+							class="disconnect-btn"
+							on:click={disconnectDiscord}>Disconnect</button
+						>
 					</div>
 				{/if}
 				<button
@@ -249,7 +271,7 @@
 					on:click={handleConfirm}
 					disabled={confirming}
 				>
-					{confirming ? "Confirming..." : "Confirm I Joined Server"}
+					{confirming ? "Confirming..." : "Confirm"}
 				</button>
 			{/if}
 		{:else}
@@ -421,5 +443,20 @@
 
 	.connected-status strong {
 		color: #5865f2;
+	}
+
+	.disconnect-btn {
+		background: none;
+		border: none;
+		color: rgba(255, 255, 255, 0.5);
+		font-size: 0.8rem;
+		cursor: pointer;
+		text-decoration: underline;
+		padding: 0;
+		margin-left: 0.5rem;
+	}
+
+	.disconnect-btn:hover {
+		color: #ff6b6b;
 	}
 </style>
