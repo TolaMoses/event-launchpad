@@ -3,7 +3,7 @@
   import {
     createDefaultScorelinePredictionConfig,
     type ScorelinePredictionConfig,
-    validateScorelinePredictionConfig
+    validateScorelinePredictionConfig,
   } from "./schema";
 
   export let initialConfig: ScorelinePredictionConfig | null = null;
@@ -26,11 +26,13 @@
 
   async function fetchMatchSuggestions() {
     if (!config.match_date) return;
-    
+
     loadingSuggestions = true;
     showSuggestions = false;
     try {
-      const response = await fetch(`/api/match-suggestions?date=${config.match_date}&sport=${config.sport}`);
+      const response = await fetch(
+        `/api/match-suggestions?date=${config.match_date}&sport=${config.sport}`,
+      );
       if (response.ok) {
         matchSuggestions = await response.json();
         if (matchSuggestions.length > 0) {
@@ -38,13 +40,13 @@
         }
       }
     } catch (err) {
-      console.error('Failed to fetch match suggestions', err);
+      console.error("Failed to fetch match suggestions", err);
     } finally {
       loadingSuggestions = false;
     }
   }
 
-  function applySuggestion(suggestion: typeof matchSuggestions[0]) {
+  function applySuggestion(suggestion: (typeof matchSuggestions)[0]) {
     config.league.name = suggestion.league;
     config.home_team.name = suggestion.home_team;
     config.away_team.name = suggestion.away_team;
@@ -61,8 +63,8 @@
     }
   }
 
-  $: teamLabel = config.sport === 'tennis' ? 'Player' : 'Team';
-  $: leagueLabel = config.sport === 'tennis' ? 'Tournament' : 'League';
+  $: teamLabel = config.sport === "tennis" ? "Player" : "Team";
+  $: leagueLabel = config.sport === "tennis" ? "Tournament" : "League";
   $: if (config.match_date) {
     fetchMatchSuggestions();
   }
@@ -72,8 +74,28 @@
   <div class="task-section">
     <h3>⚽ Scoreline Prediction Task</h3>
     <p class="description">
-      Participants will predict the final score of a match. Perfect for sports events, tournaments, and competitions.
+      Participants will predict the final score of a match. Perfect for sports
+      events, tournaments, and competitions.
     </p>
+
+    <div class="grid-two">
+      <div class="form-group">
+        <label for="match-date"
+          >Match Date <span class="hint">(pick first for suggestions)</span
+          ></label
+        >
+        <input
+          id="match-date"
+          type="date"
+          bind:value={config.match_date}
+          required
+        />
+      </div>
+      <div class="form-group">
+        <label for="match-time">Match Time (Optional)</label>
+        <input id="match-time" type="time" bind:value={config.match_time} />
+      </div>
+    </div>
 
     <div class="form-group">
       <label for="sport-type">Sport Type</label>
@@ -85,42 +107,28 @@
       </select>
     </div>
 
-    <div class="grid-two">
-      <div class="form-group">
-        <label for="match-date">Match Date</label>
-        <input
-          id="match-date"
-          type="date"
-          bind:value={config.match_date}
-          required
-        />
-      </div>
-      <div class="form-group">
-        <label for="match-time">Match Time (Optional)</label>
-        <input
-          id="match-time"
-          type="time"
-          bind:value={config.match_time}
-        />
-      </div>
-    </div>
-
     {#if showSuggestions && matchSuggestions.length > 0}
       <div class="suggestions-box">
         <div class="suggestions-header">
           <strong>💡 Match Suggestions for {config.match_date}</strong>
-          <button type="button" class="close-btn" on:click={() => showSuggestions = false}>✕</button>
+          <button
+            type="button"
+            class="close-btn"
+            on:click={() => (showSuggestions = false)}>✕</button
+          >
         </div>
         <p class="suggestions-hint">Click a match to auto-fill details</p>
         <div class="suggestions-list">
           {#each matchSuggestions as suggestion}
-            <button 
+            <button
               type="button"
-              class="suggestion-item" 
+              class="suggestion-item"
               on:click={() => applySuggestion(suggestion)}
             >
               <div class="suggestion-league">{suggestion.league}</div>
-              <div class="suggestion-match">{suggestion.home_team} vs {suggestion.away_team}</div>
+              <div class="suggestion-match">
+                {suggestion.home_team} vs {suggestion.away_team}
+              </div>
               {#if suggestion.match_time}
                 <div class="suggestion-time">⏰ {suggestion.match_time}</div>
               {/if}
@@ -136,7 +144,9 @@
         id="league"
         type="text"
         bind:value={config.league.name}
-        placeholder={config.sport === 'tennis' ? 'e.g., ATP Tour' : 'e.g., Premier League'}
+        placeholder={config.sport === "tennis"
+          ? "e.g., ATP Tour"
+          : "e.g., Premier League"}
       />
     </div>
 
@@ -147,7 +157,9 @@
           id="home-team"
           type="text"
           bind:value={config.home_team.name}
-          placeholder={config.sport === 'tennis' ? 'e.g., Novak Djokovic' : 'e.g., Manchester United'}
+          placeholder={config.sport === "tennis"
+            ? "e.g., Novak Djokovic"
+            : "e.g., Manchester United"}
         />
       </div>
       <div class="form-group">
@@ -156,7 +168,9 @@
           id="away-team"
           type="text"
           bind:value={config.away_team.name}
-          placeholder={config.sport === 'tennis' ? 'e.g., Rafael Nadal' : 'e.g., Liverpool'}
+          placeholder={config.sport === "tennis"
+            ? "e.g., Rafael Nadal"
+            : "e.g., Liverpool"}
         />
       </div>
     </div>
@@ -177,7 +191,10 @@
         Exact score only (no partial points)
       </label>
       <label class="checkbox-label">
-        <input type="checkbox" bind:checked={config.rules.extra_time_included} />
+        <input
+          type="checkbox"
+          bind:checked={config.rules.extra_time_included}
+        />
         Include extra time/overtime
       </label>
     </div>
@@ -186,7 +203,10 @@
       <strong>📊 How it works:</strong>
       <ul>
         <li>Participants enter their predicted score (e.g., 2-1, 3-0)</li>
-        <li>After the match, you can verify and award points to correct predictions</li>
+        <li>
+          After the match, you can verify and award points to correct
+          predictions
+        </li>
         <li>Perfect for engaging your community during live sports events</li>
       </ul>
     </div>
@@ -204,7 +224,8 @@
 
   <div class="actions">
     {#if onCancel}
-      <button type="button" class="ghost-btn" on:click={onCancel}>Cancel</button>
+      <button type="button" class="ghost-btn" on:click={onCancel}>Cancel</button
+      >
     {/if}
     <button type="button" class="primary-btn" on:click={handleSave}>
       Save Task
@@ -456,5 +477,11 @@
     font-size: 0.75rem;
     color: rgba(243, 243, 255, 0.7);
     margin-top: 0.25rem;
+  }
+
+  .hint {
+    font-weight: 400;
+    font-size: 0.8em;
+    color: rgba(91, 141, 255, 0.8);
   }
 </style>
