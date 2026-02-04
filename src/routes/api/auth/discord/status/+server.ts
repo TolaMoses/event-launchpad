@@ -3,14 +3,14 @@ import { supabaseAdmin } from '$lib/server/supabaseAdmin';
 
 export async function GET({ locals }: any) {
 	if (!locals.user) {
-		return json({ connected: false, guilds: [] });
+		return json({ connected: false, guilds: [], username: null });
 	}
 
 	try {
 		// Check if user has Discord connected
 		const { data: connection } = await supabaseAdmin
 			.from('social_connections')
-			.select('*')
+			.select('*, username')
 			.eq('user_id', locals.user.id)
 			.eq('platform', 'discord')
 			.single();
@@ -47,6 +47,7 @@ export async function GET({ locals }: any) {
 
 		return json({
 			connected: true,
+			username: connection.username,
 			guilds: adminGuilds.map((guild: any) => ({
 				id: guild.id,
 				name: guild.name,

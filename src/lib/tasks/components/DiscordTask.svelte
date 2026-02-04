@@ -78,40 +78,31 @@
 
 	async function checkConnection(): Promise<boolean> {
 		try {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			if (!user) {
-				console.log("Discord checkConnection: No user logged in");
+			// Use server API endpoint which bypasses RLS
+			const response = await fetch("/api/auth/discord/status");
+
+			if (!response.ok) {
+				console.error(
+					"Discord checkConnection: API error",
+					response.status,
+				);
 				return false;
 			}
 
-			const { data, error: dbError } = await supabase
-				.from("social_connections")
-				.select("id, username")
-				.eq("user_id", user.id)
-				.eq("platform", "discord")
-				.maybeSingle(); // Use maybeSingle to avoid error when no record
-
-			if (dbError) {
-				console.error("Discord checkConnection error:", dbError);
-				return false;
-			}
-
-			const connected = !!data;
+			const data = await response.json();
 			console.log(
 				"Discord checkConnection result:",
-				connected,
-				data?.username,
+				data.connected,
+				data.username,
 			);
 
 			// Force reactivity by explicit assignment
-			isConnected = connected;
-			if (data?.username) {
+			isConnected = data.connected;
+			if (data.username) {
 				connectionUsername = data.username;
 			}
 
-			return connected;
+			return data.connected;
 		} catch (err) {
 			console.error("Discord checkConnection exception:", err);
 			return false;
