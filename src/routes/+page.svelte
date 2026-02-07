@@ -88,18 +88,43 @@
 			);
 		}
 
-		// Fetch user's task submissions to determine which events they've completed tasks for
+		// Fetch user's task submissions to determine which events they've completed ALL tasks for
 		if (userId) {
 			const { data: submissions } = await supabase
 				.from("task_submissions")
-				.select("event_id")
+				.select("event_id, submission")
 				.eq("user_id", userId);
 
-			if (submissions) {
-				// Get unique event IDs where user has submitted tasks
-				completedEventIds = new Set(
-					submissions.map((s) => s.event_id).filter(Boolean),
-				);
+			if (submissions && submissions.length > 0) {
+				// Group submissions by event_id and get unique task IDs submitted
+				const submissionsByEvent: Record<string, Set<string>> = {};
+				submissions.forEach((sub) => {
+					if (sub.event_id) {
+						if (!submissionsByEvent[sub.event_id]) {
+							submissionsByEvent[sub.event_id] = new Set();
+						}
+						const taskId =
+							sub.submission?.task_id || sub.submission?.taskId;
+						if (taskId) {
+							submissionsByEvent[sub.event_id].add(taskId);
+						}
+					}
+				});
+
+				// Check each event to see if ALL tasks are completed
+				events.forEach((event) => {
+					const totalTasks = event.tasks?.length || 0;
+					const submittedTaskIds = submissionsByEvent[event.id];
+					const completedCount = submittedTaskIds?.size || 0;
+
+					// Only mark as completed if ALL tasks have submissions
+					if (totalTasks > 0 && completedCount >= totalTasks) {
+						completedEventIds.add(event.id);
+					}
+				});
+
+				// Trigger reactivity
+				completedEventIds = completedEventIds;
 			}
 		}
 
