@@ -3,9 +3,9 @@ import { json } from '@sveltejs/kit';
 export async function GET() {
 	try {
 		const botToken = process.env.TELEGRAM_BOT_TOKEN;
-		
+
 		if (!botToken) {
-			return json({ username: '@YourBotUsername' });
+			return json({ botName: '' }); // Empty means not configured
 		}
 
 		// Fetch bot info from Telegram API
@@ -16,14 +16,14 @@ export async function GET() {
 		if (response.ok) {
 			const data = await response.json();
 			if (data.ok && data.result.username) {
-				return json({ username: `@${data.result.username}` });
+				return json({ botName: data.result.username }); // Return bot username without @
 			}
 		}
 
 		// Fallback if API call fails
-		return json({ username: '@YourBotUsername' });
+		return json({ botName: '' });
 	} catch (err) {
 		console.error('Failed to fetch bot info:', err);
-		return json({ username: '@YourBotUsername' });
+		return json({ botName: '' });
 	}
 }
