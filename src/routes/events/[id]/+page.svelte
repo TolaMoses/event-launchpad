@@ -46,6 +46,13 @@
 	let showLoginPrompt = false;
 	let referrerId: string | null = null;
 
+	// Computed: Count of completed tasks
+	$: totalTasks = event?.tasks?.length || 0;
+	$: completedTasksCount =
+		event?.tasks?.filter((task) => taskStates[task.id]?.completed).length ||
+		0;
+	$: allTasksCompleted = totalTasks > 0 && completedTasksCount === totalTasks;
+
 	$: eventId = $page.params.id;
 
 	onMount(async () => {
@@ -508,11 +515,45 @@
 			<!-- Tasks -->
 			<div class="section">
 				<h2>Tasks</h2>
+
+				<!-- Task Progress Indicator -->
+				{#if userId && totalTasks > 0}
+					<div class="task-progress">
+						<div class="progress-header">
+							<span class="progress-label">Progress</span>
+							<span class="progress-count"
+								>{completedTasksCount} of {totalTasks} tasks</span
+							>
+						</div>
+						<div class="progress-bar-container">
+							<div
+								class="progress-bar-fill"
+								style="width: {(completedTasksCount /
+									totalTasks) *
+									100}%"
+							></div>
+						</div>
+					</div>
+
+					{#if allTasksCompleted}
+						<div class="all-completed-banner">
+							<div class="banner-icon">🎉</div>
+							<div class="banner-content">
+								<h3>All Tasks Completed!</h3>
+								<p>
+									Congratulations! You've completed all tasks
+									for this event and are eligible for rewards.
+								</p>
+							</div>
+						</div>
+					{/if}
+				{/if}
+
 				{#if !userId}
 					<p class="section-hint">
 						Please log in to complete tasks and earn rewards
 					</p>
-				{:else}
+				{:else if !allTasksCompleted}
 					<p class="section-hint">
 						Complete all tasks to be eligible for rewards
 					</p>
@@ -1064,6 +1105,83 @@
 		color: rgba(242, 243, 255, 0.6);
 		font-size: 0.9rem;
 		margin: 0 0 1.5rem;
+	}
+
+	/* Task Progress Indicator */
+	.task-progress {
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 12px;
+		padding: 1rem 1.5rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.task-progress .progress-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.75rem;
+	}
+
+	.task-progress .progress-label {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: rgba(242, 243, 255, 0.8);
+	}
+
+	.task-progress .progress-count {
+		font-size: 0.9rem;
+		font-weight: 700;
+		color: #6fa0ff;
+	}
+
+	.task-progress .progress-bar-container {
+		height: 8px;
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	.task-progress .progress-bar-fill {
+		height: 100%;
+		background: linear-gradient(90deg, #6fa0ff, #5a8dff);
+		border-radius: 4px;
+		transition: width 0.3s ease;
+	}
+
+	/* All Tasks Completed Banner */
+	.all-completed-banner {
+		display: flex;
+		align-items: center;
+		gap: 1.25rem;
+		background: linear-gradient(
+			135deg,
+			rgba(16, 185, 129, 0.15),
+			rgba(5, 150, 105, 0.1)
+		);
+		border: 1px solid rgba(16, 185, 129, 0.3);
+		border-radius: 12px;
+		padding: 1.5rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.all-completed-banner .banner-icon {
+		font-size: 2.5rem;
+		flex-shrink: 0;
+	}
+
+	.all-completed-banner .banner-content h3 {
+		font-size: 1.2rem;
+		font-weight: 700;
+		color: #10b981;
+		margin: 0 0 0.5rem;
+	}
+
+	.all-completed-banner .banner-content p {
+		font-size: 0.95rem;
+		color: rgba(242, 243, 255, 0.8);
+		margin: 0;
+		line-height: 1.5;
 	}
 
 	.description {
